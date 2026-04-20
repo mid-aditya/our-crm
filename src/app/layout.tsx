@@ -1,17 +1,22 @@
-import { Shell } from "@/components/layout/Shell";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { IBM_Plex_Sans, Space_Mono } from "next/font/google";
 import "./globals.css";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const ibmPlexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-ibm",
+});
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-space-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Simple CRM",
-  description: "Next-gen CRM for your business",
+  title: "BroadcastCRM — Multi-Platform Marketing Command Center",
+  description: "Industrial-grade CRM dashboard for broadcast marketing campaigns across RCS, WhatsApp, Email, and SMS",
 };
 
 export default function RootLayout({
@@ -22,16 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${plusJakartaSans.className} antialiased bg-background text-foreground transition-colors duration-300`}
+        className={`${ibmPlexSans.variable} ${spaceMono.variable} antialiased`}
+        style={{ fontFamily: "var(--font-ibm), ui-sans-serif, system-ui, sans-serif" }}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <Shell>{children}</Shell>
-        </ThemeProvider>
+        {children}
       </body>
     </html>
   );
