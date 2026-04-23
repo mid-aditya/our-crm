@@ -44,8 +44,8 @@ const kpis = [
     subLabel: "Hari ini",
     trend: +12.4,
     icon: Send,
-    color: "#00F5FF",
-    bg: "from-[#00F5FF]/10 to-transparent",
+    color: "var(--primary)",
+    bg: "from-primary/10 to-transparent",
   },
   {
     label: "Tingkat Open Rate",
@@ -53,8 +53,8 @@ const kpis = [
     subLabel: "Rata-rata semua channel",
     trend: +3.1,
     icon: Eye,
-    color: "#3FB950",
-    bg: "from-[#3FB950]/10 to-transparent",
+    color: "var(--success)",
+    bg: "from-success/10 to-transparent",
   },
   {
     label: "Komplain Masuk",
@@ -62,8 +62,8 @@ const kpis = [
     subLabel: "Belum direspons",
     trend: -2,
     icon: AlertTriangle,
-    color: "#FF4C4C",
-    bg: "from-[#FF4C4C]/10 to-transparent",
+    color: "var(--destructive)",
+    bg: "from-destructive/10 to-transparent",
   },
   {
     label: "Campaign Aktif",
@@ -71,8 +71,8 @@ const kpis = [
     subLabel: "Sedang berjalan",
     trend: +1,
     icon: Megaphone,
-    color: "#D29922",
-    bg: "from-[#D29922]/10 to-transparent",
+    color: "var(--warning)",
+    bg: "from-warning/10 to-transparent",
   },
 ];
 
@@ -111,10 +111,10 @@ function PlatformBadge({ platform }: { platform: string }) {
 }
 
 const customTooltipStyle = {
-  backgroundColor: "#161B22",
-  border: "1px solid #30363D",
-  borderRadius: "8px",
-  color: "#E6EDF3",
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
+  borderRadius: "12px",
+  color: "var(--foreground)",
 };
 
 export default function DashboardPage() {
@@ -135,17 +135,17 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-['Space_Mono'] font-bold text-[#E6EDF3]">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             {greeting},{" "}
-            <span className="gradient-text text-glow-cyan">Aditya</span> 👋
+            <span className="text-primary">Aditya</span> 👋
           </h1>
-          <p className="text-[13px] text-[#8B949E] mt-1 font-['IBM_Plex_Sans']">
+          <p className="text-[13px] text-muted-foreground mt-1">
             {dateStr}
           </p>
         </div>
         <button
           onClick={() => navigate("campaigns")}
-          className="fab flex items-center gap-2 px-4 py-2.5 rounded-xl text-[#0D1117] font-semibold text-sm font-['IBM_Plex_Sans']"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-lg shadow-primary/25 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
           <Plus className="w-4 h-4" />
           New Campaign
@@ -183,15 +183,15 @@ export default function DashboardPage() {
               </div>
             </div>
             <p
-              className="text-2xl font-['Space_Mono'] font-bold"
+              className="text-2xl font-extrabold"
               style={{ color: kpi.color }}
             >
               {kpi.value}
             </p>
-            <p className="text-[12px] font-semibold text-[#E6EDF3] mt-1">
+            <p className="text-[13px] font-bold text-foreground mt-1">
               {kpi.label}
             </p>
-            <p className="text-[11px] text-[#8B949E] mt-0.5">{kpi.subLabel}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{kpi.subLabel}</p>
           </div>
         ))}
       </div>
@@ -199,14 +199,14 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         {/* Line Chart */}
-        <div className="xl:col-span-2 glass rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+        <div className="xl:col-span-2 glass rounded-2xl p-6 border border-border/50">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[14px] font-bold text-foreground">
               Performa Pengiriman 7 Hari
             </h2>
-            <span className="text-[10px] text-[#8B949E] font-mono">Per Platform</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Per Platform</span>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} debounce={100}>
             <LineChart data={lineChartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#21262D" />
               <XAxis dataKey="day" tick={{ fill: "#8B949E", fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -222,13 +222,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Donut Chart */}
-        <div className="glass rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+        <div className="glass rounded-2xl p-6 border border-border/50">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-[14px] font-bold text-foreground">
               Distribusi Channel
             </h2>
           </div>
-          <ResponsiveContainer width="100%" height={140}>
+          <ResponsiveContainer width="100%" height={140} debounce={100}>
             <PieChart>
               <Pie data={donutData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
                 {donutData.map((entry, i) => (
@@ -254,25 +254,24 @@ export default function DashboardPage() {
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        {/* Campaign Table */}
-        <div className="xl:col-span-2 glass rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-[#30363D]">
-            <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+        <div className="xl:col-span-2 glass rounded-2xl overflow-hidden border border-border/50">
+          <div className="flex items-center justify-between p-5 border-b border-border/50 bg-secondary/10">
+            <h2 className="text-[14px] font-bold text-foreground">
               Campaign Terbaru
             </h2>
             <button
               onClick={() => navigate("campaigns")}
-              className="flex items-center gap-1 text-[11px] text-[#00F5FF] hover:text-[#00F5FF]/80 transition-colors"
+              className="flex items-center gap-1 text-[12px] font-bold text-primary hover:opacity-80 transition-opacity"
             >
-              Lihat semua <ChevronRight className="w-3 h-3" />
+              Lihat semua <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#30363D]">
+                <tr className="border-b border-border/50 bg-secondary/5">
                   {["Nama", "Platform", "Status", "Progress", "Aksi"].map((h) => (
-                    <th key={h} className="text-left text-[10px] font-mono uppercase text-[#8B949E] tracking-wider px-4 py-2.5">
+                    <th key={h} className="text-left text-[10px] font-bold uppercase text-muted-foreground tracking-widest px-5 py-3">
                       {h}
                     </th>
                   ))}
@@ -280,51 +279,51 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {campaigns.slice(0, 4).map((c) => (
-                  <tr key={c.id} className="border-b border-[#30363D]/50 hover:bg-[#21262D]/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="text-[12px] font-semibold text-[#E6EDF3]">{c.name}</p>
-                      <p className="text-[10px] text-[#8B949E] mt-0.5">{c.audience.toLocaleString()} penerima</p>
+                  <tr key={c.id} className="border-b border-border/30 hover:bg-secondary/10 transition-colors">
+                    <td className="px-5 py-4">
+                      <p className="text-[13px] font-bold text-foreground">{c.name}</p>
+                      <p className="text-[11px] font-medium text-muted-foreground mt-0.5">{c.audience.toLocaleString()} penerima</p>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1 flex-wrap">
+                    <td className="px-5 py-4">
+                      <div className="flex gap-1.5 flex-wrap">
                         {c.platforms.map((p) => (
                           <PlatformBadge key={p} platform={p} />
                         ))}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full ${statusConfig[c.status]?.cls}`}>
+                    <td className="px-5 py-4">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${statusConfig[c.status]?.cls}`}>
                         {statusConfig[c.status]?.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 min-w-[100px]">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-[#21262D] rounded-full h-1.5 overflow-hidden relative">
+                    <td className="px-5 py-4 min-w-[120px]">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 bg-secondary rounded-full h-1.5 overflow-hidden relative">
                           <div
                             className="h-full rounded-full transition-all duration-1000 progress-bar-animated"
                             style={{
                               width: `${c.progress}%`,
-                              background: c.progress === 100 ? "#3FB950" : "linear-gradient(90deg, #00F5FF, #0099CC)",
+                              background: c.progress === 100 ? "var(--success)" : "var(--primary)",
                             }}
                           />
                         </div>
-                        <span className="text-[10px] font-mono text-[#8B949E] w-8 text-right">{c.progress}%</span>
+                        <span className="text-[11px] font-bold text-muted-foreground w-8 text-right">{c.progress}%</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        <button className="p-1 rounded text-[#8B949E] hover:text-[#D29922] hover:bg-[#D29922]/10 transition-colors" title="Pause">
-                          <Pause className="w-3.5 h-3.5" />
+                    <td className="px-5 py-4">
+                      <div className="flex gap-2">
+                        <button className="p-1.5 rounded-lg text-muted-foreground hover:text-warning hover:bg-warning/10 transition-colors" title="Pause">
+                          <Pause className="w-4 h-4" />
                         </button>
-                        <button className="p-1 rounded text-[#8B949E] hover:text-[#FF4C4C] hover:bg-[#FF4C4C]/10 transition-colors" title="Stop">
-                          <Square className="w-3.5 h-3.5" />
+                        <button className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Stop">
+                          <Square className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => navigate("analytics")}
-                          className="p-1 rounded text-[#8B949E] hover:text-[#00F5FF] hover:bg-[#00F5FF]/10 transition-colors"
+                          className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                           title="Report"
                         >
-                          <BarChart2 className="w-3.5 h-3.5" />
+                          <BarChart2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -335,17 +334,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Complaint Feed */}
-        <div className="glass rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between p-4 border-b border-[#30363D]">
-            <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+        <div className="glass rounded-2xl overflow-hidden border border-border/50">
+          <div className="flex items-center justify-between p-5 border-b border-border/50 bg-secondary/10">
+            <h2 className="text-[14px] font-bold text-foreground">
               Komplain Terbaru
             </h2>
             <button
               onClick={() => navigate("complaints")}
-              className="flex items-center gap-1 text-[11px] text-[#00F5FF] hover:text-[#00F5FF]/80 transition-colors"
+              className="flex items-center gap-1 text-[12px] font-bold text-primary hover:opacity-80 transition-opacity"
             >
-              Semua <ChevronRight className="w-3 h-3" />
+              Semua <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
           <div className="divide-y divide-[#30363D]/50">
@@ -371,9 +369,9 @@ export default function DashboardPage() {
                     onClick={() => {
                       addToast({ type: "info", title: "Quick Reply Dibuka", message: `Membalas komplain ${c.id}` });
                     }}
-                    className="flex items-center gap-1 text-[10px] text-[#00F5FF] hover:text-[#00F5FF]/80 transition-colors"
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-primary hover:opacity-80 transition-opacity"
                   >
-                    <MessageSquareReply className="w-3 h-3" />
+                    <MessageSquareReply className="w-3.5 h-3.5" />
                     Balas
                   </button>
                 </div>

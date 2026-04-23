@@ -25,10 +25,10 @@ import {
 } from "recharts";
 
 const customTooltipStyle = {
-  backgroundColor: "#161B22",
-  border: "1px solid #30363D",
-  borderRadius: "8px",
-  color: "#E6EDF3",
+  backgroundColor: "var(--card)",
+  border: "1px solid var(--border)",
+  borderRadius: "12px",
+  color: "var(--foreground)",
 };
 
 // Heatmap
@@ -36,11 +36,11 @@ const DAYS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i}`.padStart(2, "0"));
 
 function getColor(value: number): string {
-  if (value > 75) return "#00F5FF";
-  if (value > 50) return "#0099CC";
-  if (value > 25) return "#004466";
-  if (value > 5) return "#002233";
-  return "#21262D";
+  if (value > 75) return "var(--primary)";
+  if (value > 50) return "#4338CA";
+  if (value > 25) return "#312E81";
+  if (value > 5) return "#1E1B4B";
+  return "var(--secondary)";
 }
 
 const metricCards = [
@@ -62,18 +62,18 @@ export default function AnalyticsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-['Space_Mono'] font-bold text-[#E6EDF3]">Analytics</h1>
-          <p className="text-[12px] text-[#8B949E] mt-0.5">Performa per platform dan kampanye</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Analytics</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">Performa per platform dan kampanye</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Date Range */}
-          <div className="flex gap-1 bg-[#161B22] border border-[#30363D] rounded-xl p-1">
+          <div className="flex gap-1 bg-card border border-border rounded-xl p-1">
             {["7d", "14d", "30d", "90d"].map((r) => (
               <button
                 key={r}
                 onClick={() => setDateRange(r)}
-                className={`px-3 py-1.5 rounded-lg text-[11px] font-mono transition-all ${
-                  dateRange === r ? "bg-[#00F5FF] text-[#0D1117] font-bold" : "text-[#8B949E] hover:text-[#E6EDF3]"
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-bold transition-all ${
+                  dateRange === r ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {r}
@@ -114,15 +114,15 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">
         {metricCards.map((m) => (
-          <div key={m.label} className="glass card-hover rounded-xl p-4">
-            <div className="flex items-center justify-between mb-2">
-              <m.icon className="w-4 h-4" style={{ color: m.color }} />
+          <div key={m.label} className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <m.icon className="w-4.5 h-4.5" style={{ color: m.color }} />
             </div>
-            <p className="text-xl font-['Space_Mono'] font-bold" style={{ color: m.color }}>{m.value}</p>
-            <p className="text-[11px] font-semibold text-[#E6EDF3] mt-0.5">{m.label}</p>
-            <p className="text-[10px] text-[#8B949E] mt-0.5">{m.sub}</p>
+            <p className="text-2xl font-extrabold" style={{ color: m.color }}>{m.value}</p>
+            <p className="text-[13px] font-bold text-foreground mt-1.5">{m.label}</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-1">{m.sub}</p>
           </div>
         ))}
       </div>
@@ -130,15 +130,15 @@ export default function AnalyticsPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         {/* Bar Chart */}
-        <div className="glass rounded-xl p-5">
-          <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3] mb-4">
+        <div className="bg-card border border-border/50 rounded-2xl p-6">
+          <h2 className="text-[14px] font-bold text-foreground mb-6">
             Performa per Kampanye
           </h2>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={240} debounce={100}>
             <BarChart data={analyticsData.barData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" stroke="#21262D" horizontal={false} />
-              <XAxis type="number" tick={{ fill: "#8B949E", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="name" tick={{ fill: "#8B949E", fontSize: 10 }} axisLine={false} tickLine={false} width={90} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} axisLine={false} tickLine={false} width={90} />
               <Tooltip contentStyle={customTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: 11, color: "#8B949E" }} />
               <Bar dataKey="delivery" name="Delivery%" fill="#3FB950" radius={[0, 3, 3, 0]} barSize={6} />
@@ -150,15 +150,15 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Line Chart per Platform */}
-        <div className="glass rounded-xl p-5">
-          <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3] mb-4">
+        <div className="bg-card border border-border/50 rounded-2xl p-6">
+          <h2 className="text-[14px] font-bold text-foreground mb-6">
             Trend 7 Hari — Pengiriman
           </h2>
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={240} debounce={100}>
             <LineChart data={analyticsData.lineData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#21262D" />
-              <XAxis dataKey="day" tick={{ fill: "#8B949E", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#8B949E", fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="day" tick={{ fill: "var(--muted-foreground)", fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "var(--muted-foreground)", fontSize: 10 }} axisLine={false} tickLine={false} width={40} />
               <Tooltip contentStyle={customTooltipStyle} />
               <Legend wrapperStyle={{ fontSize: 11, color: "#8B949E" }} />
               <Line type="monotone" dataKey="whatsapp" stroke="#25D366" strokeWidth={2} dot={false} name="WhatsApp" />
@@ -171,12 +171,12 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Heatmap */}
-      <div className="glass rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+      <div className="bg-card border border-border/50 rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-[14px] font-bold text-foreground">
             Heatmap Aktivitas Audience
           </h2>
-          <p className="text-[10px] text-[#8B949E]">Jam × Hari dalam seminggu</p>
+          <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Jam × Hari</p>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[600px]">
@@ -219,18 +219,18 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Campaigns Table */}
-      <div className="glass rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-[#30363D]">
-          <h2 className="text-[13px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+      <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-border/50 bg-secondary/5">
+          <h2 className="text-[14px] font-bold text-foreground">
             Top Performing Campaigns
           </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-[#30363D]">
+              <tr className="border-b border-border/50 bg-secondary/10">
                 {["Kampanye", "Pesan Terkirim", "Open Rate", "Click Rate", "Estimasi Revenue"].map((h) => (
-                  <th key={h} className="text-left text-[10px] font-mono uppercase text-[#8B949E] tracking-wider px-4 py-3">
+                  <th key={h} className="text-left text-[10px] font-bold uppercase text-muted-foreground tracking-widest px-5 py-3.5">
                     {h}
                   </th>
                 ))}

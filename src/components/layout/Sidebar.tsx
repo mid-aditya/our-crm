@@ -56,54 +56,54 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "flex flex-col h-screen bg-[#161B22] border-r border-[#30363D] transition-all duration-300 sticky top-0 flex-shrink-0 z-40 relative group/sidebar",
-        sidebarCollapsed ? "w-16" : "w-64"
+        "flex flex-col h-screen bg-card border-r border-border transition-[width] duration-200 ease-out sticky top-0 flex-shrink-0 z-40 group/sidebar will-change-[width] overflow-hidden",
+        sidebarCollapsed ? "w-[72px]" : "w-64"
       )}
     >
       {/* Logo */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-[#30363D] flex-shrink-0">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-border flex-shrink-0">
+        <div className="flex items-center gap-3 overflow-hidden">
+          <div className={cn(
+            "rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20 transition-all duration-200",
+            sidebarCollapsed ? "w-10 h-10" : "w-9 h-9"
+          )}>
+            <CircleDot className={cn("text-primary-foreground transition-all", sidebarCollapsed ? "w-6 h-6" : "w-5 h-5")} />
+          </div>
+          <span className={cn(
+            "font-bold text-sm tracking-tight text-foreground whitespace-nowrap transition-all duration-200",
+            sidebarCollapsed ? "opacity-0 translate-x-4 pointer-events-none" : "opacity-100 translate-x-0"
+          )}>
+            BroadcastCRM
+          </span>
+        </div>
         {!sidebarCollapsed && (
-          <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-7 h-7 rounded bg-[#00F5FF] flex items-center justify-center flex-shrink-0">
-              <CircleDot className="w-4 h-4 text-[#0D1117]" />
-            </div>
-            <span className="font-['Space_Mono'] font-bold text-sm text-[#00F5FF] whitespace-nowrap glow-cyan-sm mt-0.5">
-              BroadcastCRM
-            </span>
-          </div>
+          <button
+            onClick={() => setSidebarCollapsed(true)}
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
         )}
-        {sidebarCollapsed && (
-          <div className="w-8 h-8 rounded bg-[#00F5FF] flex items-center justify-center mx-auto flex-shrink-0">
-            <CircleDot className="w-5 h-5 text-[#0D1117]" />
-          </div>
-        )}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className={cn(
-            "p-1.5 rounded-lg text-[#8B949E] hover:text-[#00F5FF] hover:bg-[#21262D] transition-colors",
-            sidebarCollapsed && "hidden"
-          )}
-        >
-          <ChevronLeft className="w-4 h-4" />
-        </button>
       </div>
 
       {sidebarCollapsed && (
         <button
           onClick={() => setSidebarCollapsed(false)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-[#21262D] border border-[#30363D] rounded-full flex items-center justify-center text-[#8B949E] hover:text-[#00F5FF] transition-colors z-50 opacity-0 group-hover/sidebar:opacity-100 shadow-md"
+          className="absolute -right-3 top-20 w-6 h-6 bg-card border border-border rounded-full flex items-center justify-center text-muted-foreground hover:text-primary transition-colors z-50 opacity-0 group-hover/sidebar:opacity-100 shadow-md"
         >
           <ChevronRight className="w-3 h-3" />
         </button>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 py-4 px-3 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
-        {!sidebarCollapsed && (
-          <p className="text-[10px] font-mono text-[#484F58] uppercase tracking-widest px-2 mb-2">
-            Navigation
-          </p>
-        )}
+      <nav className="flex-1 py-6 px-3 flex flex-col gap-1 overflow-y-auto overflow-x-hidden">
+        <p className={cn(
+          "text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em] px-3 mb-3 transition-opacity duration-200",
+          sidebarCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100"
+        )}>
+          Menu Utama
+        </p>
+        
         {navItems.map((item) => {
           const isActive = currentPage === item.id;
           return (
@@ -111,40 +111,44 @@ export function Sidebar() {
               key={item.id}
               onClick={() => navigate(item.id)}
               className={cn(
-                "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200 relative group outline-none",
-                sidebarCollapsed ? "justify-center p-2.5 mx-auto max-w-[40px]" : "gap-3 px-3 py-2.5",
+                "w-full flex items-center rounded-xl text-sm font-medium transition-all duration-200 relative group outline-none",
+                sidebarCollapsed ? "justify-center p-3.5" : "gap-3 px-3 py-2.5",
                 isActive
-                  ? "nav-active text-[#00F5FF]"
-                  : "text-[#8B949E] hover:bg-[#21262D] hover:text-[#E6EDF3]"
+                  ? "bg-primary/10 text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground"
               )}
             >
               <item.icon
                 className={cn(
-                  "w-4 h-4 flex-shrink-0",
-                  isActive ? "text-[#00F5FF]" : "text-[#8B949E] group-hover:text-[#E6EDF3]",
-                  sidebarCollapsed && "w-[18px] h-[18px]"
+                  "flex-shrink-0 transition-all duration-200",
+                  sidebarCollapsed ? "w-6 h-6" : "w-[18px] h-[18px]",
+                  isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
                 )}
               />
-              {!sidebarCollapsed && (
-                <span className="flex-1 text-left font-['IBM_Plex_Sans'] text-[13px]">
-                  {item.label}
+              <span className={cn(
+                "flex-1 text-left text-[14px] font-medium whitespace-nowrap transition-all duration-200",
+                sidebarCollapsed ? "opacity-0 w-0 pointer-events-none translate-x-4" : "opacity-100 w-auto translate-x-0"
+              )}>
+                {item.label}
+              </span>
+              
+              {item.badge && (
+                <span className={cn(
+                  "bg-primary text-primary-foreground font-bold rounded-full text-center leading-none transition-all duration-200",
+                  sidebarCollapsed 
+                    ? "absolute top-2 right-2 w-2.5 h-2.5 border-2 border-card" 
+                    : "text-[10px] px-2 py-0.5 min-w-[20px] opacity-100"
+                )}>
+                  {!sidebarCollapsed && item.badge}
                 </span>
-              )}
-              {item.badge && !sidebarCollapsed && (
-                <span className="bg-[#00F5FF] text-[#0D1117] text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-none">
-                  {item.badge}
-                </span>
-              )}
-              {item.badge && sidebarCollapsed && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-[#FF4C4C] rounded-full border-2 border-[#161B22]" />
               )}
               
-              {/* Floating Tooltip for collapsed state */}
+              {/* Tooltip for collapsed state */}
               {sidebarCollapsed && (
-                <div className="fixed left-16 ml-3 px-2.5 py-1.5 bg-[#21262D] border border-[#30363D] rounded-md text-[#E6EDF3] text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg flex items-center gap-2">
+                <div className="fixed left-[80px] px-3 py-2 bg-card border border-border rounded-lg text-foreground text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0 pointer-events-none z-[100] shadow-xl flex items-center gap-2">
                   {item.label}
                   {item.badge && (
-                    <span className="bg-[#00F5FF] text-[#0D1117] text-[9px] font-bold rounded-full px-1.5 py-0.5">
+                    <span className="bg-primary text-primary-foreground text-[9px] font-bold rounded-full px-1.5 py-0.5">
                       {item.badge}
                     </span>
                   )}
@@ -156,44 +160,47 @@ export function Sidebar() {
       </nav>
 
       {/* Platform Status */}
-      <div className={cn("border-t border-[#30363D] p-4 flex-shrink-0", sidebarCollapsed && "px-2")}>
-        {!sidebarCollapsed && (
-          <p className="text-[10px] font-mono text-[#484F58] uppercase tracking-widest mb-3">
-            Platforms
-          </p>
-        )}
-        <div className={cn("space-y-2", sidebarCollapsed && "flex flex-col items-center gap-3 space-y-0 mb-2")}>
+      <div className={cn("mt-auto border-t border-border p-4 flex-shrink-0 transition-all", sidebarCollapsed ? "px-3" : "px-4")}>
+        <p className={cn(
+          "text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.2em] mb-4 transition-all duration-200",
+          sidebarCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100"
+        )}>
+          Status Platform
+        </p>
+        <div className={cn("space-y-3", sidebarCollapsed && "flex flex-col items-center gap-5 space-y-0 mb-4")}>
           {platformStatus.map((p) => (
-            <div key={p.name} className={cn("flex items-center gap-2.5", sidebarCollapsed && "relative group justify-center")}>
+            <div key={p.name} className={cn("flex items-center gap-3", sidebarCollapsed && "relative group justify-center")}>
               <div
                 className={cn(
-                  "rounded-full flex-shrink-0 transition-opacity",
-                  sidebarCollapsed ? "w-2.5 h-2.5" : "w-1.5 h-1.5",
-                  p.online ? "pulse-online" : "opacity-30"
+                  "rounded-full flex-shrink-0 relative transition-all duration-200",
+                  sidebarCollapsed ? "w-3 h-3" : "w-2 h-2",
+                  p.online ? "after:absolute after:inset-0 after:rounded-full after:animate-ping after:bg-current after:opacity-40" : "opacity-30"
                 )}
-                style={{ backgroundColor: p.online ? p.color : "#8B949E" }}
+                style={{ backgroundColor: p.online ? p.color : "var(--muted-foreground)", color: p.color }}
               />
               
+              <span className={cn(
+                "text-[13px] font-medium flex-1 whitespace-nowrap transition-all duration-200",
+                sidebarCollapsed ? "opacity-0 w-0 pointer-events-none translate-x-4" : "opacity-100 w-auto translate-x-0",
+                p.online ? "text-foreground" : "text-muted-foreground"
+              )}>
+                {p.name}
+              </span>
+              
               {!sidebarCollapsed && (
-                <>
-                  <span className={cn("text-[11px] font-['IBM_Plex_Sans'] flex-1", p.online ? "text-[#E6EDF3]" : "text-[#8B949E]")}>
-                    {p.name}
-                  </span>
-                  <span
-                    className="text-[9px] font-mono font-bold tracking-wider"
-                    style={{ color: p.online ? p.color : "#8B949E" }}
-                  >
-                    {p.online ? "ONLINE" : "OFFLINE"}
-                  </span>
-                </>
+                <span
+                  className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded-md bg-secondary/50"
+                  style={{ color: p.online ? p.color : "var(--muted-foreground)" }}
+                >
+                  {p.online ? "LIVE" : "OFFLINE"}
+                </span>
               )}
 
-              {/* Tooltip for Platform dots when minified */}
               {sidebarCollapsed && (
-                <div className="fixed left-16 ml-3 px-2 py-1 bg-[#21262D] border border-[#30363D] rounded-md text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-[100] shadow-lg flex items-center gap-1.5">
+                <div className="fixed left-[80px] px-3 py-2 bg-card border border-border rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0 pointer-events-none z-[100] shadow-xl flex items-center gap-2">
                   <span style={{ color: p.color }}>{p.name}</span>
-                  <span className="text-[#8B949E] mx-1">•</span>
-                  <span className={p.online ? "text-[#3FB950]" : "text-[#8B949E]"}>
+                  <span className="text-muted-foreground">•</span>
+                  <span className={p.online ? "text-success" : "text-muted-foreground"}>
                     {p.online ? "ONLINE" : "OFFLINE"}
                   </span>
                 </div>
@@ -203,16 +210,23 @@ export function Sidebar() {
         </div>
 
         {/* User Profile */}
-        <div className={cn("mt-4 flex items-center gap-3", sidebarCollapsed && "justify-center pt-2 border-t border-[#30363D]")}>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#00F5FF] to-[#0099CC] flex items-center justify-center flex-shrink-0 shadow-lg cursor-pointer">
-            <span className="text-[11px] font-bold text-[#0D1117] tracking-tighter">AD</span>
+        <div className={cn(
+          "mt-6 flex items-center gap-3 p-2 rounded-xl transition-all duration-200",
+          sidebarCollapsed ? "bg-transparent border-none p-0 justify-center" : "bg-secondary/30 border border-border/50"
+        )}>
+          <div className={cn(
+            "rounded-xl bg-gradient-to-tr from-primary to-indigo-400 flex items-center justify-center flex-shrink-0 shadow-lg cursor-pointer transition-all duration-200",
+            sidebarCollapsed ? "w-10 h-10" : "w-9 h-9"
+          )}>
+            <span className={cn("font-extrabold text-primary-foreground", sidebarCollapsed ? "text-[14px]" : "text-[12px]")}>AD</span>
           </div>
-          {!sidebarCollapsed && (
-            <div className="flex-1 overflow-hidden">
-              <p className="text-[12px] font-semibold text-[#E6EDF3] leading-tight truncate">Aditya Admin</p>
-              <p className="text-[10px] text-[#8B949E] truncate">Super Admin</p>
-            </div>
-          )}
+          <div className={cn(
+            "flex-1 overflow-hidden transition-all duration-200",
+            sidebarCollapsed ? "opacity-0 w-0 pointer-events-none" : "opacity-100 w-auto"
+          )}>
+            <p className="text-[13px] font-bold text-foreground leading-tight truncate">Aditya Admin</p>
+            <p className="text-[11px] text-muted-foreground truncate">Super Admin</p>
+          </div>
         </div>
       </div>
     </aside>

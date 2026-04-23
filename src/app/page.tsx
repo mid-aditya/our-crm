@@ -12,25 +12,26 @@ import ContactsPage from "@/views/ContactsPage";
 import AnalyticsPage from "@/views/AnalyticsPage";
 import SettingsPage from "@/views/SettingsPage";
 
+const pages: Record<string, React.ComponentType> = {
+  dashboard: DashboardPage,
+  campaigns: CampaignsPage,
+  broadcast: BroadcastPage,
+  inbox: InboxPage,
+  complaints: ComplaintsPage,
+  contacts: ContactsPage,
+  analytics: AnalyticsPage,
+  settings: SettingsPage,
+};
+
 function AppContent() {
   const { currentPage } = useApp();
-
-  const pages: Record<string, React.ReactNode> = {
-    dashboard: <DashboardPage />,
-    campaigns: <CampaignsPage />,
-    broadcast: <BroadcastPage />,
-    inbox: <InboxPage />,
-    complaints: <ComplaintsPage />,
-    contacts: <ContactsPage />,
-    analytics: <AnalyticsPage />,
-    settings: <SettingsPage />,
-  };
+  const ActivePage = pages[currentPage] || DashboardPage;
 
   return (
-    <div className="flex min-h-screen bg-[#0D1117] grid-bg">
+    <div className="flex min-h-screen bg-background text-foreground selection:bg-primary/30">
       <Sidebar />
-      <main className="flex-1 min-w-0 overflow-x-hidden">
-        {pages[currentPage]}
+      <main className="flex-1 min-w-0 overflow-x-hidden relative">
+        <ActivePage />
       </main>
       <ToastContainer />
     </div>

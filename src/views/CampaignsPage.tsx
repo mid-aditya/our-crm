@@ -94,17 +94,17 @@ function CreateCampaignModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#0D1117]/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative glass-cyan rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-card border border-border rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-[#30363D]">
+        <div className="flex items-center justify-between p-6 border-b border-border/50">
           <div>
-            <h2 className="text-[15px] font-['Space_Mono'] font-bold text-[#E6EDF3]">
+            <h2 className="text-[16px] font-bold text-foreground">
               Buat Campaign Baru
             </h2>
-            <p className="text-[11px] text-[#8B949E] mt-0.5">Langkah {step + 1} dari {steps.length}</p>
+            <p className="text-[12px] text-muted-foreground mt-0.5">Langkah {step + 1} dari {steps.length}</p>
           </div>
-          <button onClick={onClose} className="text-[#8B949E] hover:text-[#E6EDF3] transition-colors">
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -114,12 +114,12 @@ function CreateCampaignModal({ onClose }: { onClose: () => void }) {
           {steps.map((s, i) => (
             <div key={i} className="flex items-center flex-1">
               <div className={cn(
-                "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-mono font-bold transition-all flex-shrink-0",
-                i < step ? "bg-[#3FB950] text-[#0D1117]" :
-                i === step ? "bg-[#00F5FF] text-[#0D1117]" :
-                "bg-[#21262D] text-[#8B949E]"
+                "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold transition-all flex-shrink-0",
+                i < step ? "bg-success text-success-foreground" :
+                i === step ? "bg-primary text-primary-foreground" :
+                "bg-secondary text-muted-foreground"
               )}>
-                {i < step ? <Check className="w-3.5 h-3.5" /> : i + 1}
+                {i < step ? <Check className="w-4 h-4" /> : i + 1}
               </div>
               {i < steps.length - 1 && (
                 <div className={cn("flex-1 h-0.5 mx-1", i < step ? "bg-[#3FB950]" : "bg-[#21262D]")} />
@@ -138,22 +138,22 @@ function CreateCampaignModal({ onClose }: { onClose: () => void }) {
           {step === 0 && (
             <>
               <div>
-                <label className="text-[11px] font-mono text-[#8B949E] uppercase tracking-wider block mb-1.5">Nama Kampanye *</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Nama Kampanye *</label>
                 <input
                   value={formData.name}
                   onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
                   placeholder="Contoh: Promo Lebaran 2025"
-                  className="w-full bg-[#21262D] border border-[#30363D] rounded-lg px-3 py-2.5 text-sm text-[#E6EDF3] placeholder-[#8B949E] focus:outline-none focus:border-[#00F5FF] transition-colors"
+                  className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 />
               </div>
               <div>
-                <label className="text-[11px] font-mono text-[#8B949E] uppercase tracking-wider block mb-1.5">Deskripsi</label>
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest block mb-2">Deskripsi</label>
                 <textarea
                   value={formData.desc}
                   onChange={(e) => setFormData((p) => ({ ...p, desc: e.target.value }))}
                   rows={3}
                   placeholder="Deskripsi singkat kampanye..."
-                  className="w-full bg-[#21262D] border border-[#30363D] rounded-lg px-3 py-2.5 text-sm text-[#E6EDF3] placeholder-[#8B949E] focus:outline-none focus:border-[#00F5FF] transition-colors resize-none"
+                  className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
                 />
               </div>
               <div>
@@ -164,10 +164,10 @@ function CreateCampaignModal({ onClose }: { onClose: () => void }) {
                       key={g}
                       onClick={() => setFormData((p) => ({ ...p, goal: g.toLowerCase() }))}
                       className={cn(
-                        "px-3 py-2 rounded-lg text-[12px] font-medium border transition-all",
+                        "px-4 py-2.5 rounded-xl text-[12px] font-bold border transition-all",
                         formData.goal === g.toLowerCase()
-                          ? "border-[#00F5FF] bg-[#00F5FF]/10 text-[#00F5FF]"
-                          : "border-[#30363D] bg-[#21262D] text-[#8B949E] hover:border-[#8B949E]"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary/30 text-muted-foreground hover:border-muted-foreground"
                       )}
                     >
                       {g}
@@ -225,10 +225,10 @@ function CreateCampaignModal({ onClose }: { onClose: () => void }) {
                       key={t}
                       onClick={() => setFormData((p) => ({ ...p, scheduleType: t }))}
                       className={cn(
-                        "flex-1 py-2 rounded-lg text-[11px] font-mono border transition-all capitalize",
+                        "flex-1 py-2.5 rounded-xl text-[12px] font-bold border transition-all capitalize",
                         formData.scheduleType === t
-                          ? "border-[#00F5FF] bg-[#00F5FF]/10 text-[#00F5FF]"
-                          : "border-[#30363D] bg-[#21262D] text-[#8B949E]"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-secondary/30 text-muted-foreground"
                       )}
                     >
                       {t === "now" ? "Sekarang" : t === "scheduled" ? "Terjadwal" : "Recurring"}
@@ -406,23 +406,23 @@ export default function CampaignsPage() {
     <div className="p-6 space-y-5">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-['Space_Mono'] font-bold text-[#E6EDF3]">Campaigns</h1>
-          <p className="text-[12px] text-[#8B949E] mt-0.5">{campaigns.length} total kampanye</p>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Campaigns</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">{campaigns.length} total kampanye</p>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 bg-[#161B22] border border-[#30363D] rounded-xl p-1">
+        <div className="flex gap-1 bg-card border border-border rounded-xl p-1">
           {filters.map((f) => (
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-[11px] font-mono transition-all",
+                "px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all",
                 activeFilter === f
-                  ? "bg-[#00F5FF] text-[#0D1117] font-bold"
-                  : "text-[#8B949E] hover:text-[#E6EDF3]"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
               )}
             >
               {f}
@@ -430,12 +430,12 @@ export default function CampaignsPage() {
           ))}
         </div>
         <div className="flex-1 relative max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8B949E]" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari kampanye..."
-            className="w-full bg-[#21262D] border border-[#30363D] rounded-xl pl-9 pr-3 py-2 text-sm text-[#E6EDF3] placeholder-[#8B949E] focus:outline-none focus:border-[#00F5FF] transition-colors"
+            className="w-full bg-card border border-border rounded-xl pl-10 pr-4 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-primary transition-colors h-[38px]"
           />
         </div>
         <div className="w-44">
@@ -457,13 +457,13 @@ export default function CampaignsPage() {
       {/* Campaign Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((c) => (
-          <div key={c.id} className="glass card-hover rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden corner-bracket">
-            <div className="flex items-start justify-between gap-2">
+          <div key={c.id} className="bg-card border border-border/50 rounded-2xl p-5 flex flex-col gap-4 relative overflow-hidden hover:border-primary/50 transition-all group shadow-sm hover:shadow-primary/5">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <h3 className="text-[13px] font-bold text-[#E6EDF3] truncate">{c.name}</h3>
-                <p className="text-[11px] text-[#8B949E] mt-0.5 line-clamp-2">{c.description}</p>
+                <h3 className="text-[14px] font-bold text-foreground truncate group-hover:text-primary transition-colors">{c.name}</h3>
+                <p className="text-[12px] text-muted-foreground mt-1 line-clamp-2 leading-relaxed">{c.description}</p>
               </div>
-              <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusConfig[c.status]?.cls}`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${statusConfig[c.status]?.cls}`}>
                 {statusConfig[c.status]?.label}
               </span>
             </div>
@@ -474,49 +474,49 @@ export default function CampaignsPage() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div className="flex items-center gap-1.5 text-[#8B949E]">
-                <Calendar className="w-3 h-3 flex-shrink-0" />
+            <div className="grid grid-cols-2 gap-3 text-[12px] font-medium">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Calendar className="w-3.5 h-3.5 text-primary/70" />
                 <span>{new Date(c.scheduledAt).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}</span>
               </div>
-              <div className="flex items-center gap-1.5 text-[#8B949E]">
-                <Users className="w-3 h-3 flex-shrink-0" />
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Users className="w-3.5 h-3.5 text-primary/70" />
                 <span>{c.audience.toLocaleString()}</span>
               </div>
             </div>
 
             <div>
-              <div className="flex justify-between text-[10px] text-[#8B949E] mb-1">
+              <div className="flex justify-between text-[11px] font-bold text-muted-foreground mb-1.5">
                 <span>Progress</span>
-                <span className="font-mono">{c.progress}%</span>
+                <span>{c.progress}%</span>
               </div>
-              <div className="bg-[#21262D] rounded-full h-1.5 overflow-hidden relative">
+              <div className="bg-secondary rounded-full h-1.5 overflow-hidden relative">
                 <div
                   className="h-full rounded-full transition-all duration-1000 relative overflow-hidden"
                   style={{
                     width: `${c.progress}%`,
-                    background: c.progress === 100 ? "#3FB950" : "linear-gradient(90deg, #00F5FF, #0099CC)",
+                    background: c.progress === 100 ? "var(--success)" : "var(--primary)",
                   }}
                 />
               </div>
-              <div className="flex gap-3 mt-1 text-[10px] font-mono">
-                <span className="text-[#3FB950]">{c.sent.toLocaleString()} terkirim</span>
-                {c.failed > 0 && <span className="text-[#FF4C4C]">{c.failed.toLocaleString()} gagal</span>}
+              <div className="flex gap-3 mt-2 text-[11px] font-bold">
+                <span className="text-success">{c.sent.toLocaleString()} terkirim</span>
+                {c.failed > 0 && <span className="text-destructive">{c.failed.toLocaleString()} gagal</span>}
               </div>
             </div>
 
-            <div className="flex gap-1 pt-2 border-t border-[#30363D]">
-              <button onClick={() => addToast({ type: "info", title: "Edit Campaign", message: c.name })} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] text-[#8B949E] hover:text-[#00F5FF] hover:bg-[#00F5FF]/10 transition-all border border-[#30363D] hover:border-[#00F5FF]/30">
-                <Edit2 className="w-3 h-3" /> Edit
+            <div className="flex gap-2 pt-3 border-t border-border/50 mt-auto">
+              <button onClick={() => addToast({ type: "info", title: "Edit Campaign", message: c.name })} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[12px] font-bold text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all border border-border/50">
+                <Edit2 className="w-3.5 h-3.5" /> Edit
               </button>
-              <button onClick={() => addToast({ type: "success", title: "Campaign Diduplikasi" })} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg text-[11px] text-[#8B949E] hover:text-[#D29922] hover:bg-[#D29922]/10 transition-all border border-[#30363D]">
-                <Copy className="w-3 h-3" /> Duplikat
+              <button onClick={() => addToast({ type: "success", title: "Campaign Diduplikasi" })} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-muted-foreground hover:text-warning hover:bg-warning/10 transition-all border border-border/50">
+                <Copy className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => addToast({ type: "warning", title: "Campaign Diarsipkan" })} className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] text-[#8B949E] hover:text-[#FF4C4C] hover:bg-[#FF4C4C]/10 transition-all border border-[#30363D]">
-                <Archive className="w-3 h-3" />
+              <button onClick={() => addToast({ type: "warning", title: "Campaign Diarsipkan" })} className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all border border-border/50">
+                <Archive className="w-3.5 h-3.5" />
               </button>
-              <button className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg text-[11px] text-[#8B949E] hover:text-[#9966FF] hover:bg-[#9966FF]/10 transition-all border border-[#30363D]">
-                <BarChart2 className="w-3 h-3" />
+              <button className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[12px] font-bold text-muted-foreground hover:text-indigo-400 hover:bg-indigo-400/10 transition-all border border-border/50">
+                <BarChart2 className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -526,9 +526,9 @@ export default function CampaignsPage() {
       {/* FAB */}
       <button
         onClick={() => setShowCreate(true)}
-        className="fixed bottom-8 right-8 fab w-14 h-14 rounded-full flex items-center justify-center shadow-2xl"
+        className="fixed bottom-8 right-8 w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-xl shadow-primary/30 hover:scale-110 active:scale-95 transition-all z-40"
       >
-        <Plus className="w-6 h-6 text-[#0D1117]" />
+        <Plus className="w-7 h-7" />
       </button>
 
       {showCreate && <CreateCampaignModal onClose={() => setShowCreate(false)} />}
