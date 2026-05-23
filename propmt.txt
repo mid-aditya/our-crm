@@ -1,0 +1,573 @@
+PROMPT PENGEMBANGAN CRM "OUR-CRM" - OMNICHANNEL CUSTOMER MANAGEMENT
+========================================================================
+
+[KONTEKS PROJECT]
+Anda adalah senior full-stack developer yang melanjutkan pengembangan 
+project "our-crm" - platform CRM omnichannel untuk bisnis Indonesia 
+dengan fokus WhatsApp marketing, sales pipeline, dan customer support.
+
+REPO: https://github.com/mid-aditya/our-crm.git
+DEMO: https://our-crm-mocha.vercel.app
+STATUS: Early MVP - UI sudah ada, perlu integrasi backend real
+
+TUJUAN UTAMA:
+- Mengubah mock data menjadi real Supabase integration
+- Implementasi authentication & multi-user permission system
+- Membangun fitur core CRM: contacts, deals pipeline, tasks, inbox
+- Integrasi WhatsApp API untuk broadcast & conversational messaging
+- Maintain tech stack yang ringan, cepat, dan mudah di-maintain
+
+
+[TECH STACK - LIGHTWEIGHT & PRODUCTION READY]
+
+FRONTEND (Sudah ada, pertahankan):
+✓ Next.js 16+ (App Router) - SSG/SSR hybrid
+✓ React 19 + TypeScript 5 - type safety
+✓ Tailwind CSS 4 + Framer Motion - styling & animasi
+✓ Recharts - analytics visualization
+✓ Lucide React + React Icons - icon set
+
+BACKEND & DATA (Perlu implementasi):
+✓ Supabase (PostgreSQL + Auth + Storage + Realtime)
+  → Gunakan sebagai backend utama, tanpa server terpisah
+✓ Next.js API Routes / Server Actions - untuk logic kompleks
+✓ @supabase/supabase-js v2 - client library
+✓ React Query (@tanstack/react-query) - caching & sync state
+
+INTEGRASI EKSTERNAL:
+✓ WhatsApp API: Fonnte / Wablas / Meta Business (pilih 1 dulu)
+✓ Email: Resend (free tier) atau Nodemailer + SMTP
+✓ File Storage: Supabase Storage (untuk lampiran ticket)
+✓ Analytics: Vercel Analytics + Supabase logs
+
+HOSTING:
+✓ Vercel - frontend + serverless functions
+✓ Supabase - database + auth + storage
+✓ Cloudflare - DNS + CDN (opsional tapi recommended)
+
+KENAPA STACK INI?
+• Zero server management → fokus ke fitur, bukan infra
+• Development cepat → Supabase Auth + DB + Storage dalam 1 platform
+• Biaya rendah → free tier cukup untuk awal, scalable saat growth
+• TypeScript end-to-end → minim bug, mudah refactor
+
+
+[DATABASE SCHEMA - SUPABASE]
+
+-- 1. PROFILES (extend auth.users)
+create table profiles (
+  id uuid references auth.users primary key,
+  full_name text not null,
+  phone text unique,
+  role text check (role in ('owner', 'admin', 'sales', 'support')),
+  team_id uuid references teams(id),
+  avatar_url text,
+  created_at timestamptz default now()
+);
+
+-- 2. TEAMS (multi-tenant support)
+create table teams (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  whatsapp_business_id text,
+  settings jsonb default '{}',
+  created_at timestamptz default now()
+);
+
+-- 3. CONTACTS
+create table contacts (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  name text not null,
+  whatsapp_number text, -- format: +628xxx
+  email text,
+  label text[], -- ['vip', 'prospect', 'customer']
+  source text, -- 'broadcast', 'inbox', 'import'
+  notes text,
+  last_activity_at timestamptz,
+  created_at timestamptz default now(),
+  unique(team_id, whatsapp_number)
+);
+
+-- 4. DEALS (Sales Pipeline)
+create table deals (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  contact_id uuid references contacts(id),
+  title text not null,
+  value numeric,
+  currency text default 'IDR',
+  stage text check (stage in ('chat_masuk', 'tertarik', 'ditawar', 'deal', 'batal')),
+  assigned_to uuid references profiles(id),
+  reminder_at timestamptz,
+  closed_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- 5. TASKS (Ticketing / To-Do)
+create table tasks (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  contact_id uuid references contacts(id),
+  deal_id uuid references deals(id),
+  title text not null,
+  description text,
+  priority text check (priority in ('low', 'medium', 'urgent')),
+  status text check (status in ('todo', 'in_progress', 'done', 'cancelled')),
+  due_date timestamptz,
+  assigned_to uuid references profiles(id),
+  completed_at timestamptz,
+  created_at timestamptz default now()
+);
+
+-- 6. CAMPAIGNS (Broadcast Management)
+create table campaigns (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  name text not null,
+  channel text check (channel in ('whatsapp', 'email', 'sms', 'rcs')),
+  message_template text,
+  audience_filter jsonb, -- {labels: ['vip'], min_value: 100000}
+  scheduled_at timestamptz,
+  status text check (status in ('draft', 'scheduled', 'sending', 'completed', 'failed')),
+  stats jsonb default '{"sent": 0, "delivered": 0, "failed": 0, "replied": 0}',
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+-- 7. MESSAGES (Unified Inbox)
+create table messages (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  contact_id uuid references contacts(id),
+  direction text check (direction in ('inbound', 'outbound')),
+  channel text check (channel in ('whatsapp', 'email', 'sms')),
+  content text not null,
+  media_url text[],
+  status text check (status in ('sent', 'delivered', 'read', 'failed')),
+  external_message_id text, -- ID dari WhatsApp API
+  created_at timestamptz default now()
+);
+
+-- 8. ACTIVITY_LOGS (Audit Trail)
+create table activity_logs (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid references teams(id) not null,
+  actor_id uuid references profiles(id),
+  action text not null, -- 'contact_created', 'deal_updated', etc
+  entity_type text,
+  entity_id uuid,
+  details jsonb,
+  created_at timestamptz default now()
+);
+
+-- INDEXES untuk performa
+create index idx_contacts_team on contacts(team_id);
+create index idx_contacts_wa on contacts(whatsapp_number) where whatsapp_number is not null;
+create index idx_deals_pipeline on deals(team_id, stage);
+create index idx_tasks_due on tasks(team_id, due_date) where status != 'done';
+create index idx_messages_contact on messages(contact_id, created_at desc);
+
+
+[ROW LEVEL SECURITY (RLS) - WAJIB!]
+
+-- Enable RLS di semua tabel
+alter table contacts enable row level security;
+alter table deals enable row level security;
+-- ... ulangi untuk semua tabel
+
+-- Policy: User hanya akses data tim-nya sendiri
+create policy "Team isolation on contacts"
+  on contacts for all
+  using (team_id in (
+    select team_id from profiles where id = auth.uid()
+  ));
+
+-- Policy: Sales hanya lihat contacts yang di-assign (opsional, lebih ketat)
+create policy "Sales see assigned contacts"
+  on contacts for select
+  using (
+    auth.uid() in (
+      select id from profiles 
+      where team_id = contacts.team_id 
+      and role in ('owner', 'admin', 'sales')
+    )
+  );
+
+-- Policy: Owner/admin bisa full access dalam tim-nya
+create policy "Admin full access"
+  on contacts for all
+  using (
+    exists (
+      select 1 from profiles 
+      where id = auth.uid() 
+      and team_id = contacts.team_id 
+      and role in ('owner', 'admin')
+    )
+  );
+
+
+[STRUKTUR FOLDER - REKOMENDASI]
+
+src/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/page.tsx
+│   │   └── callback/route.ts
+│   ├── (dashboard)/
+│   │   ├── layout.tsx          # Sidebar + Header + Auth guard
+│   │   ├── page.tsx            # Dashboard analytics
+│   │   ├── contacts/
+│   │   ├── deals/
+│   │   ├── tasks/
+│   │   ├── inbox/
+│   │   ├── campaigns/
+│   │   ├── analytics/
+│   │   └── settings/
+│   ├── api/
+│   │   ├── whatsapp/webhook/route.ts   # WhatsApp callback handler
+│   │   ├── campaigns/send/route.ts     # Broadcast trigger
+│   │   └── export/contacts/route.ts    # Excel export
+│   └── layout.tsx
+│
+├── components/
+│   ├── ui/                     # Button, Modal, Input, Toast (reusable)
+│   ├── layout/                 # Sidebar, Header, Breadcrumb
+│   ├── features/
+│   │   ├── contacts/           # ContactList, ContactForm, ImportCSV
+│   │   ├── deals/              # PipelineBoard, DealCard, StageSelector
+│   │   ├── inbox/              # ChatWindow, MessageBubble, TypingIndicator
+│   │   ├── campaigns/          # CampaignBuilder, AudienceSelector
+│   │   └── analytics/          # KPICard, ChannelChart, DateFilter
+│   └── providers/              # QueryProvider, ThemeProvider
+│
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts           # Browser client
+│   │   ├── server.ts           # Server-side client (with cookies)
+│   │   ├── queries.ts          # Reusable query functions
+│   │   └── rls-helpers.ts      # Utility untuk RLS checks
+│   ├── whatsapp/
+│   │   ├── provider.ts         # Interface untuk WhatsApp API
+│   │   ├── fonnte.ts           # Implementasi Fonnte
+│   │   └── utils.ts            # Format phone number, validate
+│   ├── hooks/
+│   │   ├── useAuth.ts
+│   │   ├── useContacts.ts
+│   │   ├── useDeals.ts
+│   │   └── useRealtime.ts      # Supabase subscription helper
+│   ├── validations/
+│   │   ├── contact.schema.ts   # Zod schema
+│   │   ├── campaign.schema.ts
+│   │   └── whatsapp.schema.ts
+│   └── utils.ts                # Formatter, date helpers, cn()
+│
+├── types/
+│   ├── database.ts             # Generated dari Supabase (supabase gen types)
+│   ├── api.ts                  # Request/Response types
+│   └── whatsapp.ts             # WhatsApp API types
+│
+├── config/
+│   ├── index.ts                # App config
+│   ├── features.ts             # Feature flags
+│   └── whatsapp.ts             # WhatsApp provider config
+│
+└── styles/
+    ├── globals.css
+    └── components.css          # Custom component styles
+
+
+[IMPLEMENTASI PRIORITAS - URUTAN DEVELOPMENT]
+
+🔴 PHASE 1: FOUNDATION (Minggu 1)
+[ ] 1. Setup src/lib/supabase/client.ts + server.ts
+[ ] 2. Buat src/types/database.ts via `supabase gen types typescript`
+[ ] 3. Implementasi login/logout dengan Supabase Auth
+[ ] 4. Buat middleware.ts untuk protected routes
+[ ] 5. Tambahkan .env.example:
+    NEXT_PUBLIC_SUPABASE_URL=
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=
+    WHATSAPP_API_KEY=
+    WHATSAPP_DEVICE_ID=
+
+[ ] 6. Buat React Query provider (src/components/providers/QueryProvider.tsx)
+[ ] 7. Replace mock contacts dengan real Supabase query
+[ ] 8. Tambahkan loading states + error handling di semua halaman
+
+🟡 PHASE 2: CORE CRM (Minggu 2-3)
+[ ] 9. CRUD Contacts dengan form validation (Zod + React Hook Form)
+[ ] 10. Import CSV contacts + export to Excel (xlsx library)
+[ ] 11. Deals pipeline: list view + stage update (drag-drop optional)
+[ ] 12. Tasks: create, assign, update status, due date reminder
+[ ] 13. Unified inbox: list conversations + chat interface (mock messages dulu)
+
+[ ] 14. Implementasi RLS policies di Supabase Dashboard
+[ ] 15. Tambahkan activity_logs auto-insert via database triggers
+
+🟢 PHASE 3: WHATSAPP INTEGRATION (Minggu 4)
+[ ] 16. Pilih 1 WhatsApp provider (rekomendasi: Fonnte untuk awal)
+[ ] 17. Buat src/lib/whatsapp/provider.ts interface + fonnte.ts implementation
+[ ] 18. Implementasi send message API route + webhook handler
+[ ] 19. Connect inbox messages dengan real WhatsApp messages via webhook
+[ ] 20. Broadcast campaign: queue system + rate limiting (max 100/msg/min)
+
+🔵 PHASE 4: POLISH & PRODUCTION (Minggu 5-6)
+[ ] 21. Real analytics: connect Recharts dengan Supabase queries
+[ ] 22. Real-time notifications: Supabase Realtime untuk new message/alert
+[ ] 23. Performance: image optimization, query caching, code splitting
+[ ] 24. Error monitoring: Sentry integration
+[ ] 25. Documentation: update README.md + user guide
+
+
+[CONTOH CODE - SUPABASE INTEGRATION]
+
+// src/lib/supabase/client.ts
+import { createBrowserClient } from '@supabase/ssr'
+import type { Database } from '@/types/database'
+
+export const createClient = () =>
+  createBrowserClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+// src/lib/supabase/queries.ts
+import { createClient } from './client'
+
+export const contacts = {
+  getAll: async (teamId: string, filters?: { label?: string; search?: string }) => {
+    const supabase = createClient()
+    let query = supabase.from('contacts').select('*').eq('team_id', teamId)
+    
+    if (filters?.label) query = query.contains('label', [filters.label])
+    if (filters?.search) query = query.ilike('name', `%${filters.search}%`)
+    
+    return query.order('created_at', { ascending: false })
+  },
+  
+  create: async (data: { team_id: string; name: string; whatsapp_number: string }) => {
+    const supabase = createClient()
+    // Format phone number ke +62
+    const wa = data.whatsapp_number.startsWith('08') 
+      ? '+62' + data.whatsapp_number.slice(1) 
+      : data.whatsapp_number
+      
+    return supabase.from('contacts').insert({ ...data, whatsapp_number: wa }).select().single()
+  },
+  
+  // ... update, delete, import
+}
+
+// src/app/(dashboard)/contacts/page.tsx (simplified)
+'use client'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { contacts } from '@/lib/supabase/queries'
+
+export default function ContactsPage({ teamId }: { teamId: string }) {
+  const queryClient = useQueryClient()
+  
+  const { data: contactsList, isLoading } = useQuery({
+    queryKey: ['contacts', teamId],
+    queryFn: () => contacts.getAll(teamId)
+  })
+  
+  const createMutation = useMutation({
+    mutationFn: (data: any) => contacts.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts', teamId] })
+      // show toast success
+    }
+  })
+  
+  if (isLoading) return <ContactsSkeleton />
+  
+  return (
+    <div>
+      <ContactForm onSubmit={(data) => createMutation.mutate({ ...data, team_id: teamId })} />
+      <ContactList contacts={contactsList?.data || []} />
+    </div>
+  )
+}
+
+
+[WHATSAPP INTEGRATION - FONNTE EXAMPLE]
+
+// src/lib/whatsapp/fonnte.ts
+export class FonnteProvider {
+  private apiKey: string
+  private deviceId: string
+  private baseUrl = 'https://api.fonnte.com'
+  
+  constructor(apiKey: string, deviceId: string) {
+    this.apiKey = apiKey
+    this.deviceId = deviceId
+  }
+  
+  async send(target: string, message: string, options?: { schedule?: string }) {
+    const response = await fetch(`${this.baseUrl}/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': this.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        target,
+        message,
+        device: this.deviceId,
+        schedule: options?.schedule
+      })
+    })
+    return response.json()
+  }
+  
+  // Webhook handler untuk incoming messages
+  static async handleWebhook(payload: any) {
+    // Parse incoming WhatsApp message
+    // Save to Supabase messages table
+    // Trigger real-time update via Supabase Realtime
+  }
+}
+
+// src/app/api/whatsapp/webhook/route.ts
+export async function POST(request: Request) {
+  const payload = await request.json()
+  
+  // Verify webhook signature (jika provider support)
+  
+  // Process message
+  await FonnteProvider.handleWebhook(payload)
+  
+  return Response.json({ status: 'ok' })
+}
+
+
+[SECURITY & COMPLIANCE CHECKLIST]
+
+✅ Authentication & Authorization:
+[ ] Supabase Auth dengan email + WhatsApp OTP option
+[ ] JWT token rotation + secure httpOnly cookies
+[ ] Role-based access: owner > admin > sales > support
+
+✅ Data Protection:
+[ ] RLS policies di semua tabel (wajib!)
+[ ] Enkripsi sensitive data: whatsapp_number (opsional, via pgcrypto)
+[ ] Audit logs untuk semua aksi kritis (delete, export, bulk update)
+
+✅ API Security:
+[ ] Rate limiting di API routes (Vercel Middleware)
+[ ] Input validation dengan Zod di semua endpoint
+[ ] Webhook signature verification untuk WhatsApp callback
+
+✅ Privacy Compliance (UU PDP Indonesia):
+[ ] User bisa export data pribadi mereka
+[ ] User bisa request delete account + data
+[ ] Consent checkbox untuk broadcast messaging
+[ ] Privacy policy page + terms of service
+
+✅ WhatsApp Compliance:
+[ ] Opt-in mechanism untuk broadcast recipients
+[ ] Unsubscribe option di setiap broadcast
+[ ] Rate limiting: max 100 messages/menit untuk hindari banned
+[ ] Template approval untuk broadcast (jika pakai Meta API)
+
+
+[ACCEPTANCE CRITERIA - MVP]
+
+Functional:
+[✓] User bisa login dengan email/WhatsApp OTP
+[✓] Dashboard menampilkan data real dari Supabase
+[✓] CRUD contacts dengan validasi WhatsApp number Indonesia
+[✓] Import CSV 1000 contacts dalam < 30 detik
+[✓] Deals pipeline bisa update stage + assign to team member
+[✓] Inbox menampilkan conversations + bisa reply (via WhatsApp API)
+[✓] Broadcast campaign bisa dijadwalkan + dikirim ke 100 kontak
+[✓] Export contacts to Excel berfungsi
+
+Performance:
+[✓] Page load < 2 detik (Lighthouse > 90)
+[✓] Search contacts < 500ms untuk 10k records
+[✓] Broadcast 100 messages selesai dalam < 5 menit
+[✓] Real-time message update < 3 detik setelah dikirim
+
+Security:
+[✓] RLS policies teruji: user tidak bisa akses data tim lain
+[✓] API routes protected dengan auth check
+[✓] WhatsApp number tidak terekspos di client-side code
+
+Business:
+[✓] Onboarding user < 5 menit (signup → create first contact)
+[✓] WhatsApp message delivery rate > 95%
+[✓] Zero data loss selama development/testing
+
+
+[CATATAN PENTING UNTUK DEVELOPER]
+
+1. START SMALL:
+   Jangan implementasi semua fitur sekaligus. Fokus Phase 1 dulu: 
+   auth + contacts + basic CRUD. Validasi dulu dengan user nyata.
+
+2. SUPABASE RLS IS NON-NEGOTIABLE:
+   Test RLS policies dengan multiple test users sebelum deploy. 
+   Security bug di CRM = disaster.
+
+3. WHATSAPP RATE LIMITING:
+   Selalu implementasi queue + delay untuk broadcast. 
+   Provider bisa ban akun jika detect spam behavior.
+
+4. PHONE NUMBER FORMAT:
+   Standardize ke E.164 format (+628xxx) di semua input. 
+   Gunakan library libphonenumber-js jika perlu.
+
+5. ERROR HANDLING:
+   Setiap API call harus punya try-catch + user-friendly error message. 
+   Jangan expose Supabase error details ke frontend.
+
+6. TESTING STRATEGY:
+   - Unit test: utils, validations, hooks
+   - Integration test: API routes + Supabase queries
+   - E2E test: critical flows (login → create contact → send message)
+   Gunakan Vitest + Playwright (ringan, fast).
+
+7. DOCUMENTATION:
+   Update README.md dengan:
+   - Setup instructions (Supabase, env vars)
+   - Feature list + screenshots
+   - API documentation (jika ada public endpoints)
+   - Troubleshooting guide
+
+
+[ROADMAP BEYOND MVP]
+
+Q2 2026:
+[ ] Multi-tenant: white-label untuk agency/reseller
+[ ] WhatsApp template manager + approval workflow
+[ ] AI-powered: auto-reply suggestions, sentiment analysis
+
+Q3 2026:
+[ ] Mobile app (React Native) untuk field sales
+[ ] Advanced analytics: conversion funnel, cohort analysis
+[ ] Integration marketplace: Shopify, WooCommerce, Google Sheets
+
+Q4 2026:
+[ ] Omnichannel: Instagram DM, Telegram, Email dalam 1 inbox
+[ ] Automation builder: if-this-then-that workflow
+[ ] Team collaboration: internal notes, @mention, task comments
+
+
+[PESAN PENUTUP]
+"CRM yang baik bukan yang fiturnya paling banyak, tapi yang 
+paling membantu tim sales & support bekerja lebih efisien. 
+Fokus pada user experience, keandalan data, dan integrasi 
+WhatsApp yang mulus. Ship fast, learn faster, iterate constantly."
+
+
+[CARA MENGGUNAKAN PROMPT INI]
+1. Copy seluruh konten ini
+2. Paste ke AI coding assistant (Cursor, GitHub Copilot, Claude, dll)
+3. Gunakan sebagai panduan sprint planning & code review
+4. Share ke tim developer sebagai technical specification
+5. Update checklist saat fitur selesai diimplementasi
+
+Versi: 1.0 - OurCRM Development Prompt
+Project: https://github.com/mid-aditya/our-crm.git
+Tanggal: 2026
