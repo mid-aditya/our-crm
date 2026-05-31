@@ -10,9 +10,9 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  const isAuthRoute = pathname === "/login";
+  const isPublicRoute = pathname === "/" || pathname === "/login";
 
-  if (isAuthRoute) {
+  if (isPublicRoute) {
     return <>{children}</>;
   }
 
