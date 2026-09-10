@@ -59,6 +59,7 @@ export function buildServer() {
   void sensitiveRateLimit(app, "/auth/forgot-password");
 
   app.get("/health", async () => ({ data: { status: "ok" } }));
+  app.get("/api/v1/health", async () => ({ data: { status: "ok" } }));
 
   void app.register(
     async (v1) => {
