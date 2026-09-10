@@ -1,6 +1,11 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { getConnection } from "../core/tenant-connection-manager.js";
-import type { AccessTokenPayload } from "@saas-crm/shared-types";
+// Payload JWT — mirror dari packages/shared-types (di-duplikat agar tsc rootDir tetap bersih).
+interface AccessTokenPayload {
+  user_id: string;
+  company_id: string;
+  role_id: string;
+}
 
 // ─── tenantResolver (bagian [5]) ──────────────────────────────────────────
 // company_id WAJIB dari JWT terverifikasi (request.user), bukan dari

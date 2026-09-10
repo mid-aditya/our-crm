@@ -8,6 +8,10 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
     "test": "vitest run",
+    "seed": "tsx src/scripts/seed-master.ts",
+    "migrate:tenants": "tsx src/scripts/migrate-tenants.ts",
+    "import:legacy": "tsx src/scripts/import-legacy.ts",
+    "worker:provision": "tsx src/jobs/provisioning.worker.ts",
     "lint": "eslint src --max-warnings=0"
   },
   "dependencies": {

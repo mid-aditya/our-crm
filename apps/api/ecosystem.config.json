@@ -1,0 +1,18 @@
+{
+  "apps": [
+    {
+      "name": "crm-api",
+      "script": "dist/server.js",
+      "cwd": "./apps/api",
+      "instances": 2,
+      "exec_mode": "cluster",
+      "watch": false
+    },
+    {
+      "name": "crm-provision-worker",
+      "script": "dist/jobs/provisioning.worker.js",
+      "cwd": "./apps/api",
+      "instances": 1
+    }
+  ]
+}

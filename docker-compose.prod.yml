@@ -1,0 +1,48 @@
+services:
+  api:
+    build: ./apps/api
+    environment:
+      NODE_ENV: production
+      MASTER_DB_HOST: postgres
+      REDIS_URL: redis://redis:6379
+    env_file:
+      - .env.production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      replicas: 2
+
+  web:
+    build: ./apps/web
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:15-alpine
+    env_file:
+      - .env.production
+    volumes:
+      - pgprod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisprod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 5
+
+volumes:
+  pgprod:
+  redisprod:
