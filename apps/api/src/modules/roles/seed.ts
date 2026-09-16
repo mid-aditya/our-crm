@@ -5,6 +5,7 @@ import {
   dealStages,
   users,
 } from "../../db/tenant/schema.js";
+import { ledgerAccounts } from "../../db/tenant/schema-erp.js";
 import { DEFAULT_PERMISSIONS, ADMIN_EXCLUDED, MEMBER_INCLUDED } from "./permissions.js";
 import { hashPassword } from "../auth/service.js";
 
@@ -46,6 +47,20 @@ export async function seedTenantDefaults(
     { name: "Batal", orderIndex: 4, isLostStage: true },
   ];
   for (const s of stages) await db.insert(dealStages).values(s);
+
+  // Chart of accounts default (accounting).
+  const coa = [
+    { code: "1000", name: "Kas & Bank", type: "asset" },
+    { code: "1100", name: "Piutang Usaha", type: "asset" },
+    { code: "2000", name: "Utang Usaha", type: "liability" },
+    { code: "3000", name: "Modal", type: "equity" },
+    { code: "4000", name: "Pendapatan Jasa", type: "revenue" },
+    { code: "5000", name: "Beban Operasional", type: "expense" },
+    { code: "5100", name: "Beban Gaji", type: "expense" },
+  ];
+  for (const a of coa) {
+    await db.insert(ledgerAccounts).values(a).onConflictDoNothing({ target: ledgerAccounts.code });
+  }
 
   const [ownerUser] = await db
     .insert(users)

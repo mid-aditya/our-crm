@@ -4,6 +4,12 @@ import Dashboard from "../pages/Dashboard.vue";
 import Contacts from "../pages/Contacts.vue";
 import Deals from "../pages/Deals.vue";
 import Activities from "../pages/Activities.vue";
+import Clients from "../pages/Clients.vue";
+import Projects from "../pages/Projects.vue";
+import Tasks from "../pages/Tasks.vue";
+import Invoices from "../pages/Invoices.vue";
+import Employees from "../pages/Employees.vue";
+import Accounting from "../pages/Accounting.vue";
 import DefaultLayout from "../layouts/DefaultLayout.vue";
 
 const routes = [
@@ -15,6 +21,12 @@ const routes = [
       { path: "", component: Dashboard },
       { path: "contacts", component: Contacts },
       { path: "deals", component: Deals },
+      { path: "clients", component: Clients },
+      { path: "projects", component: Projects },
+      { path: "tasks", component: Tasks },
+      { path: "invoices", component: Invoices },
+      { path: "employees", component: Employees },
+      { path: "accounting", component: Accounting },
       { path: "activities", component: Activities },
     ],
   },

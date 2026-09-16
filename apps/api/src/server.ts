@@ -14,6 +14,10 @@ import { contactRoutes } from "./modules/contacts/routes.js";
 import { dealRoutes } from "./modules/deals/routes.js";
 import { activityRoutes } from "./modules/activities/routes.js";
 import { userRoutes, roleRoutes } from "./modules/users/routes.js";
+import { clientsOrgRoutes } from "./modules/clients/routes.js";
+import { projectRoutes } from "./modules/projects/routes.js";
+import { invoiceRoutes } from "./modules/invoices/routes.js";
+import { hrmRoutes, accountingRoutes } from "./modules/hrm/routes.js";
 import { eq } from "drizzle-orm";
 
 declare module "fastify" {
@@ -70,6 +74,11 @@ export function buildServer() {
       await activityRoutes(v1);
       await userRoutes(v1);
       await roleRoutes(v1);
+      await clientsOrgRoutes(v1);
+      await projectRoutes(v1);
+      await invoiceRoutes(v1);
+      await hrmRoutes(v1);
+      await accountingRoutes(v1);
     },
     { prefix: "/api/v1" },
   );
