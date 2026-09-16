@@ -9,6 +9,7 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "seed": "tsx src/scripts/seed-master.ts",
+    "setup:demo": "tsx src/scripts/setup-demo.ts",
     "migrate:tenants": "tsx src/scripts/migrate-tenants.ts",
     "import:legacy": "tsx src/scripts/import-legacy.ts",
     "worker:provision": "tsx src/jobs/provisioning.worker.ts",
@@ -21,11 +22,12 @@
     "@fastify/rate-limit": "^10.1.1",
     "argon2": "^0.41.1",
     "bullmq": "^5.4.0",
+    "dotenv": "^17.4.2",
     "drizzle-orm": "^0.36.0",
     "fastify": "^5.1.0",
     "ioredis": "^5.3.2",
-    "pino": "^9.5.0",
     "pg": "^8.13.0",
+    "pino": "^9.5.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

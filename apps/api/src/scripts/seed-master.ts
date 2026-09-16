@@ -1,5 +1,7 @@
 // Seed master: plan default + platform admin awal.
 // Jalankan: npm run seed -w apps/api (butuh MASTER_DB_* env).
+import dotenv from "dotenv";
+dotenv.config();
 import argon2 from "argon2";
 import { getMasterDb } from "../db/master/client.js";
 import { plans, platformAdmins } from "../db/master/schema.js";
