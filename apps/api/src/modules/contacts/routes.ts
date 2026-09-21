@@ -49,6 +49,14 @@ export async function contactRoutes(app: FastifyInstance) {
     return { data, meta: { next_cursor: hasMore ? data[data.length - 1].id : null } };
   });
 
+  app.get("/contacts/:id", { preHandler: [app.authenticate, tenantResolver, rbacGuard("contacts.read")] }, async (req, reply) => {
+    const db = req.tenantDb!;
+    const { id } = req.params as { id: string };
+    const [row] = await db.select().from(contacts).where(and(eq(contacts.id, id), isNull(contacts.deletedAt))).limit(1);
+    if (!row) return reply.status(404).send({ error: { code: "NOT_FOUND", message: "Kontak tidak ada" } });
+    return reply.send({ data: row });
+  });
+
   app.post("/contacts", { preHandler: [app.authenticate, tenantResolver, rbacGuard("contacts.create")] }, async (req, reply) => {
     const parsed = createSchema.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: { code: "VALIDATION_ERROR", message: parsed.error.issues[0].message } });

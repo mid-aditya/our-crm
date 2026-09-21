@@ -38,8 +38,19 @@
         </select>
       </div>
       <div>
-        <label class="label">Template * — variabel: &#123;&#123;nama&#125;&#125;, &#123;&#123;nama_lengkap&#125;&#125;, &#123;&#123;perusahaan&#125;&#125;, &#123;&#123;email&#125;&#125;, &#123;&#123;hp&#125;&#125;</label>
-        <textarea v-model="form.template" required rows="4" class="input font-mono" placeholder="Halo {{nama}}, ada promo spesial dari {{perusahaan}}..." />
+        <label class="label">Template * — klik variabel untuk sisipkan</label>
+        <div class="flex flex-wrap gap-1.5 mb-2">
+          <button v-for="v in varKeys" :key="v" type="button" @click="insertVar(v)" class="badge-blue hover:bg-indigo-200 font-mono">{{ varTag(v) }}</button>
+        </div>
+        <textarea ref="templateBox" v-model="form.template" required rows="4" class="input font-mono" placeholder="Halo {{nama}}, ada promo spesial..." />
+      </div>
+      <div class="ticket-section">
+        <div class="ticket-section-title">Live preview</div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <input v-model="sample.nama" placeholder="nama" class="input !py-1 !text-xs" />
+          <input v-model="sample.perusahaan" placeholder="perusahaan" class="input !py-1 !text-xs" />
+        </div>
+        <div class="bg-slate-900 text-white rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap max-w-[85%]">{{ rendered }}</div>
       </div>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="label">Filter sumber (opsional)</label><input v-model="form.source" class="input" placeholder="web" /></div>
@@ -51,7 +62,7 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "../api/client";
 import Modal from "../components/Modal.vue";
 
@@ -63,6 +74,40 @@ const modal = ref(false);
 const formError = ref("");
 const form = ref({ name: "", channel_id: "", template: "", source: "", scheduled_at: "" });
 const prev = ref<{ id: string; total: number; sample: string } | null>(null);
+const varKeys = ["nama", "nama_lengkap", "perusahaan", "email", "hp"];
+const sample = ref({ nama: "Budi", perusahaan: "PT Maju Jaya" });
+const templateBox = ref<HTMLTextAreaElement | null>(null);
+
+function renderLocal(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, key: string) => vars[key.toLowerCase()] ?? m);
+}
+const rendered = computed(() =>
+  renderLocal(form.value.template || "Tulis template untuk melihat preview…", {
+    nama: sample.value.nama,
+    nama_lengkap: `${sample.value.nama} Santoso`,
+    perusahaan: sample.value.perusahaan,
+    email: "budi@example.id",
+    hp: "+628123456789",
+  }),
+);
+function varTag(v: string) {
+  return "{{" + v + "}}";
+}
+function insertVar(v: string) {
+  const el = templateBox.value;
+  const tag = `{{${v}}}`;
+  if (!el) {
+    form.value.template += tag;
+    return;
+  }
+  const start = el.selectionStart ?? form.value.template.length;
+  const end = el.selectionEnd ?? start;
+  form.value.template = form.value.template.slice(0, start) + tag + form.value.template.slice(end);
+  requestAnimationFrame(() => {
+    el.focus();
+    el.selectionStart = el.selectionEnd = start + tag.length;
+  });
+}
 
 function badge(s: string) {
   return s === "done" ? "badge-green" : s === "sending" ? "badge-blue" : "badge-slate";

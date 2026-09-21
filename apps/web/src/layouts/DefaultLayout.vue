@@ -1,40 +1,48 @@
 <template>
   <div class="min-h-screen bg-slate-100 text-slate-900 flex">
-    <aside class="w-64 shrink-0 bg-slate-900 text-slate-300 flex-col hidden md:flex">
-      <div class="px-5 py-5 flex items-center gap-3 border-b border-white/10">
-        <div class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-950">
+    <aside class="shrink-0 bg-slate-900 text-slate-300 flex-col hidden md:flex transition-all" :class="collapsed ? 'w-16' : 'w-64'">
+      <div class="px-4 py-5 flex items-center gap-3 border-b border-white/10" :class="collapsed ? 'justify-center px-0' : ''">
+        <div class="w-10 h-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-950 shrink-0">
           <MessageSquareText :size="22" />
         </div>
-        <div>
+        <div v-if="!collapsed">
           <div class="font-bold text-white tracking-tight">CRM Suite</div>
           <div class="text-[11px] text-slate-400">WhatsApp · Tiket · Sales</div>
         </div>
       </div>
-      <nav class="flex-1 overflow-auto px-3 py-4 space-y-5">
+      <button @click="toggle" :title="collapsed ? 'Buka sidebar' : 'Minimize sidebar'"
+        class="mx-3 mt-3 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 flex items-center gap-2 text-xs">
+        <component :is="collapsed ? PanelLeftOpen : PanelLeftClose" :size="16" />
+        <span v-if="!collapsed">Minimize</span>
+      </button>
+      <nav class="flex-1 overflow-auto px-3 py-2 space-y-5">
         <div v-for="g in groups" :key="g.label">
-          <div class="px-3 mb-1.5 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{{ g.label }}</div>
+          <div v-if="!collapsed" class="px-3 mb-1.5 text-[11px] uppercase tracking-wider text-slate-500 font-semibold">{{ g.label }}</div>
           <div class="space-y-0.5">
             <RouterLink
               v-for="l in g.links"
               :key="l.to"
               :to="l.to"
+              :title="l.label"
               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 hover:text-white transition-colors"
+              :class="collapsed ? 'justify-center' : ''"
               active-class="bg-indigo-600 text-white shadow-md shadow-indigo-950"
-            ><component :is="l.icon" :size="18" />{{ l.label }}</RouterLink>
+            ><component :is="l.icon" :size="18" /><span v-if="!collapsed">{{ l.label }}</span></RouterLink>
           </div>
         </div>
       </nav>
       <div class="p-3 border-t border-white/10">
-        <div class="flex items-center gap-3 px-2 py-2">
-          <div class="avatar bg-indigo-500">{{ initial }}</div>
-          <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-3 px-2 py-2" :class="collapsed ? 'justify-center px-0' : ''">
+          <div class="avatar bg-indigo-500 shrink-0">{{ initial }}</div>
+          <div v-if="!collapsed" class="min-w-0 flex-1">
             <div class="text-sm font-semibold text-white truncate">{{ email || "Agent" }}</div>
             <div class="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />Online
             </div>
           </div>
-          <button @click="logout" title="Keluar" class="text-slate-400 hover:text-rose-400 p-1"><LogOut :size="18" /></button>
+          <button v-if="!collapsed" @click="logout" title="Keluar" class="text-slate-400 hover:text-rose-400 p-1"><LogOut :size="18" /></button>
         </div>
+        <button v-if="collapsed" @click="logout" title="Keluar" class="w-full flex justify-center text-slate-400 hover:text-rose-400 p-2"><LogOut :size="18" /></button>
       </div>
     </aside>
 
@@ -58,11 +66,12 @@
   </div>
 </template>
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   LayoutDashboard, Users, MessageCircle, Megaphone, Ticket, BarChart3,
-  Trophy, Handshake, Settings, LogOut, MessageSquareText, NotebookPen,
+  Trophy, Handshake, LogOut, MessageSquareText, NotebookPen,
+  PanelLeftClose, PanelLeftOpen,
 } from "lucide-vue-next";
 import { useAuthStore } from "../stores/auth";
 
@@ -87,6 +96,11 @@ const flatLinks = computed(() => [...groups.flatMap((g) => g.links), { to: "/set
 
 const auth = useAuthStore();
 const router = useRouter();
+const collapsed = ref(localStorage.getItem("sidebar_collapsed") === "1");
+function toggle() {
+  collapsed.value = !collapsed.value;
+  localStorage.setItem("sidebar_collapsed", collapsed.value ? "1" : "0");
+}
 const email = computed(() => auth.email);
 const initial = computed(() => (auth.email?.[0] ?? "A").toUpperCase());
 function logout() {

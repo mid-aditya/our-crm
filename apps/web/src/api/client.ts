@@ -56,6 +56,7 @@ export const api = {
     return req<unknown[]>(`/contacts${s ? `?${s}` : ""}`).then((r) => ({ list: r.data, cursor: r.meta?.next_cursor ?? null }));
   },
   createContact: (v: object) => post("/contacts", v).then((r) => r.data),
+  getContact: (id: string) => get<unknown>(`/contacts/${id}`),
   updateContact: (id: string, v: object) => patch(`/contacts/${id}`, v),
   deleteContact: (id: string) => del(`/contacts/${id}`),
 

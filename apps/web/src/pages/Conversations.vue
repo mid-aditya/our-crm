@@ -1,7 +1,7 @@
 <template>
-  <div class="flex flex-col md:flex-row gap-4 md:h-[calc(100vh-140px)]">
-    <!-- Daftar percakapan -->
-    <div class="card w-full md:w-80 shrink-0 flex flex-col overflow-hidden">
+  <div class="flex flex-col xl:flex-row gap-4 xl:h-[calc(100vh-140px)]">
+    <!-- Panel 1: list chat -->
+    <div class="card w-full xl:w-72 shrink-0 flex flex-col overflow-hidden">
       <div class="p-3 border-b border-slate-100 flex gap-2">
         <select v-model="filter" @change="load" class="input !py-1.5 !text-xs">
           <option value="">Semua status</option>
@@ -12,7 +12,7 @@
         <button @click="modalNew = true" class="btn-primary btn-sm shrink-0">Baru</button>
       </div>
       <p v-if="error" class="text-rose-600 text-xs p-3">{{ error }}</p>
-      <div class="flex-1 overflow-auto divide-y divide-slate-100">
+      <div class="flex-1 overflow-auto divide-y divide-slate-100 min-h-[20vh]">
         <button
           v-for="c in list" :key="c.id" @click="select(c)"
           class="w-full text-left p-3 hover:bg-slate-50 flex gap-3"
@@ -23,12 +23,12 @@
           </span>
           <span class="min-w-0 flex-1">
             <span class="flex justify-between gap-2">
-              <strong class="text-sm truncate">{{ c.contactName || c.contactId?.slice(0, 8) || "Tanpa kontak" }}</strong>
+              <strong class="text-sm truncate">{{ c.contactName || "Tanpa kontak" }}</strong>
               <span class="text-[11px] text-slate-400 shrink-0">{{ timeAgo(c.lastMessageAt) }}</span>
             </span>
             <span class="text-xs text-slate-500 flex items-center gap-1.5 mt-0.5">
               <span class="w-1.5 h-1.5 rounded-full inline-block" :class="dot(c.status)" />
-              {{ c.status }}{{ c.awaitingSince ? " · menunggu balasan" : "" }}
+              {{ c.status }}{{ c.awaitingSince ? " · menunggu" : "" }}
             </span>
           </span>
         </button>
@@ -36,7 +36,7 @@
       </div>
     </div>
 
-    <!-- Thread -->
+    <!-- Panel 2: isi chat -->
     <div class="card flex-1 flex flex-col overflow-hidden min-h-[50vh]">
       <template v-if="selected">
         <div class="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
@@ -67,6 +67,88 @@
       </template>
       <p v-else class="empty m-auto">Pilih percakapan di kiri untuk mulai membalas.</p>
     </div>
+
+    <!-- Panel 3: ticketing (profile / ticket / history) -->
+    <div class="card w-full xl:w-80 shrink-0 flex-col overflow-hidden hidden xl:flex">
+      <template v-if="selected">
+        <div class="flex border-b border-slate-100">
+          <button v-for="t in sideTabs" :key="t.key" @click="sideTab = t.key"
+            class="tab-btn flex-1" :class="sideTab === t.key ? 'tab-active' : ''">{{ t.label }}</button>
+        </div>
+        <div class="flex-1 overflow-auto p-4">
+          <!-- PROFILE -->
+          <div v-if="sideTab === 'profile'">
+            <div v-if="contact" class="space-y-3">
+              <div class="flex items-center gap-3">
+                <span class="avatar bg-gradient-to-br from-indigo-500 to-violet-500 text-sm">{{ contactInitials }}</span>
+                <div>
+                  <div class="font-bold">{{ contact.fullName }}</div>
+                  <div class="text-xs text-slate-400">Sejak {{ fmtDate(contact.createdAt) }}</div>
+                </div>
+              </div>
+              <div class="ticket-form">
+                <div><label class="label">Nama</label><input v-model="profileForm.full_name" class="input !py-1.5 !text-xs" /></div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div><label class="label">Email</label><input v-model="profileForm.email" class="input !py-1.5 !text-xs" /></div>
+                  <div><label class="label">HP</label><input v-model="profileForm.phone" class="input !py-1.5 !text-xs" /></div>
+                </div>
+                <div><label class="label">Perusahaan</label><input v-model="profileForm.company_name" class="input !py-1.5 !text-xs" /></div>
+                <div><label class="label">Sumber</label><input v-model="profileForm.source" class="input !py-1.5 !text-xs" /></div>
+                <div><label class="label">Catatan</label><textarea v-model="profileForm.notes" rows="2" class="input !py-1.5 !text-xs" /></div>
+              </div>
+              <button @click="saveProfile" class="btn-primary btn-sm w-full">Simpan profil</button>
+              <p v-if="sideMsg" class="text-xs text-emerald-600">{{ sideMsg }}</p>
+            </div>
+            <p v-else class="empty">Percakapan ini belum terhubung ke kontak.</p>
+          </div>
+          <!-- TICKET -->
+          <div v-if="sideTab === 'ticket'">
+            <form @submit.prevent="createTicket" class="ticket-form">
+              <div class="ticket-section">
+                <div class="ticket-section-title">Tiket baru</div>
+                <div><label class="label">Subjek *</label><input v-model="ticketForm.subject" required class="input !py-1.5 !text-xs" /></div>
+                <div><label class="label">Deskripsi</label><textarea v-model="ticketForm.description" rows="2" class="input !py-1.5 !text-xs" /></div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div><label class="label">Prioritas</label>
+                    <select v-model="ticketForm.priority" class="input !py-1.5 !text-xs">
+                      <option value="low">low</option><option value="medium">medium</option><option value="urgent">urgent</option>
+                    </select>
+                  </div>
+                  <div class="flex items-end"><button class="btn-primary btn-sm w-full">Buat</button></div>
+                </div>
+              </div>
+            </form>
+            <div class="ticket-section-title mt-4">Tiket kontak ini ({{ contactTickets.length }})</div>
+            <ul class="space-y-2">
+              <li v-for="t in contactTickets" :key="t.id" class="text-xs border border-slate-200 rounded-xl px-3 py-2 flex justify-between gap-2">
+                <span><strong class="font-mono">{{ t.number }}</strong> — {{ t.subject }}</span>
+                <RouterLink :to="`/tickets/${t.id}`" class="text-indigo-600 font-semibold shrink-0">Buka</RouterLink>
+              </li>
+            </ul>
+            <p v-if="!contactTickets.length" class="empty !py-4">Belum ada tiket.</p>
+          </div>
+          <!-- HISTORY -->
+          <div v-if="sideTab === 'history'">
+            <div class="ticket-section-title">Percakapan lain ({{ otherConvs.length }})</div>
+            <ul class="space-y-1.5 text-xs mb-4">
+              <li v-for="c in otherConvs" :key="c.id" class="border border-slate-200 rounded-xl px-3 py-2 flex justify-between">
+                <span>{{ c.status }} · {{ timeAgo(c.lastMessageAt) }}</span>
+                <button @click="select(c)" class="text-indigo-600 font-semibold">Buka</button>
+              </li>
+            </ul>
+            <div class="ticket-section-title">Tiket ({{ contactTickets.length }})</div>
+            <ul class="space-y-1.5 text-xs">
+              <li v-for="t in contactTickets" :key="t.id" class="border border-slate-200 rounded-xl px-3 py-2 flex justify-between">
+                <span><strong class="font-mono">{{ t.number }}</strong> · {{ t.status }}</span>
+                <RouterLink :to="`/tickets/${t.id}`" class="text-indigo-600 font-semibold">Buka</RouterLink>
+              </li>
+            </ul>
+            <p v-if="!otherConvs.length && !contactTickets.length" class="empty !py-4">Belum ada riwayat.</p>
+          </div>
+        </div>
+      </template>
+      <p v-else class="empty m-auto">Pilih chat untuk melihat profil, tiket & riwayat.</p>
+    </div>
   </div>
 
   <Modal :open="modalNew" title="Percakapan baru" @close="modalNew = false">
@@ -84,13 +166,15 @@
   </Modal>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { Send, User } from "lucide-vue-next";
 import { api } from "../api/client";
 import Modal from "../components/Modal.vue";
 
 interface Conv { id: string; contactId?: string; contactName?: string; status: string; lastMessageAt?: string; awaitingSince?: string }
 interface Msg { id: string; direction: string; body: string; status: string; createdAt: string }
+interface Contact { id: string; fullName: string; email?: string; phone?: string; companyName?: string; source?: string; notes?: string; createdAt: string }
+interface Ticket { id: string; number: string; subject: string; status: string; contactId?: string }
 
 const list = ref<Conv[]>([]);
 const messages = ref<Msg[]>([]);
@@ -104,8 +188,28 @@ const modalNew = ref(false);
 const newForm = ref({ channel_id: "", contact_id: "" });
 const threadBox = ref<HTMLElement | null>(null);
 
+const sideTabs = [
+  { key: "profile", label: "Profil" },
+  { key: "ticket", label: "Tiket" },
+  { key: "history", label: "Riwayat" },
+];
+const sideTab = ref("profile");
+const contact = ref<Contact | null>(null);
+const profileForm = ref({ full_name: "", email: "", phone: "", company_name: "", source: "", notes: "" });
+const contactTickets = ref<Ticket[]>([]);
+const ticketForm = ref({ subject: "", description: "", priority: "medium" });
+const sideMsg = ref("");
+
+const contactInitials = computed(() =>
+  (contact.value?.fullName ?? "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase(),
+);
+const otherConvs = computed(() =>
+  list.value.filter((c) => selected.value && c.id !== selected.value.id && c.contactId && c.contactId === selected.value.contactId),
+);
+
 function dot(s: string) { return s === "open" ? "bg-emerald-500" : s === "pending" ? "bg-amber-500" : "bg-slate-400"; }
 function fmtTime(s: string) { return new Date(s).toLocaleString("id-ID", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" }); }
+function fmtDate(s: string) { return new Date(s).toLocaleDateString("id-ID"); }
 function timeAgo(s?: string) {
   if (!s) return "";
   const m = Math.round((Date.now() - new Date(s).getTime()) / 60000);
@@ -134,11 +238,32 @@ async function load() {
   } catch (e) { error.value = (e as Error).message; }
 }
 
+async function loadSide() {
+  contact.value = null;
+  contactTickets.value = [];
+  sideMsg.value = "";
+  if (!selected.value?.contactId) return;
+  try {
+    const [c, t] = await Promise.all([
+      api.getContact(selected.value.contactId) as Promise<Contact>,
+      api.tickets() as Promise<Ticket[]>,
+    ]);
+    contact.value = c;
+    profileForm.value = {
+      full_name: c.fullName ?? "", email: c.email ?? "", phone: c.phone ?? "",
+      company_name: c.companyName ?? "", source: c.source ?? "", notes: c.notes ?? "",
+    };
+    contactTickets.value = t.filter((x) => x.contactId === selected.value!.contactId);
+  } catch (e) { error.value = (e as Error).message; }
+}
+
 async function select(c: Conv) {
   selected.value = c;
   messages.value = [];
+  sideTab.value = "profile";
   try {
     messages.value = (await api.convMessages(c.id)) as Msg[];
+    await loadSide();
     await nextTick();
     threadBox.value?.scrollTo({ top: threadBox.value.scrollHeight });
   } catch (e) { error.value = (e as Error).message; }
@@ -162,6 +287,34 @@ async function setStatus(s: string) {
   try {
     await api.updateConversation(selected.value.id, { status: s });
     await load();
+  } catch (e) { error.value = (e as Error).message; }
+}
+
+async function saveProfile() {
+  if (!contact.value) return;
+  sideMsg.value = "";
+  try {
+    const p: Record<string, string> = { full_name: profileForm.value.full_name };
+    for (const k of ["email", "phone", "company_name", "source", "notes"] as const) {
+      if (profileForm.value[k]) p[k] = profileForm.value[k];
+    }
+    await api.updateContact(contact.value.id, p);
+    sideMsg.value = "Profil tersimpan.";
+    await load();
+    await loadSide();
+  } catch (e) { error.value = (e as Error).message; }
+}
+
+async function createTicket() {
+  if (!ticketForm.value.subject.trim()) return;
+  error.value = "";
+  try {
+    const p: Record<string, string> = { subject: ticketForm.value.subject, priority: ticketForm.value.priority };
+    if (ticketForm.value.description) p.description = ticketForm.value.description;
+    if (selected.value?.contactId) p.contact_id = selected.value.contactId;
+    await api.createTicket(p);
+    ticketForm.value = { subject: "", description: "", priority: "medium" };
+    await loadSide();
   } catch (e) { error.value = (e as Error).message; }
 }
 

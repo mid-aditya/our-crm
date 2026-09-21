@@ -11,6 +11,29 @@
   .btn-sm { @apply px-3 py-1.5 text-xs rounded-lg; }
   .input { @apply w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-400; }
   .label { @apply block text-xs font-semibold text-slate-500 mb-1; }
+  /* Dropdown: chevron konsisten + hapus tampilan bawaan */
+  select.input {
+    @apply appearance-none pr-9 cursor-pointer;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+  }
+  select.input:disabled { @apply bg-slate-50 text-slate-400 cursor-not-allowed; }
+  /* Calendar & time picker: skema indigo + klik seluruh area */
+  input[type="date"].input, input[type="datetime-local"].input, input[type="time"].input {
+    @apply cursor-pointer;
+    color-scheme: light;
+  }
+  input[type="date"].input::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"].input::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-60 hover:opacity-100;
+  }
+  /* Form tiket: grup field rapat + section */
+  .ticket-form { @apply space-y-3; }
+  .ticket-section { @apply bg-slate-50 border border-slate-200/70 rounded-xl p-3; }
+  .ticket-section-title { @apply text-xs font-bold uppercase tracking-wide text-slate-500 mb-2; }
+  .tab-btn { @apply px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors; }
+  .tab-active { @apply text-indigo-600 border-b-2 border-indigo-600; }
   .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200/70; }
   .card-pad { @apply card p-5; }
   .card-hover { @apply transition-all hover:shadow-md hover:-translate-y-0.5; }
