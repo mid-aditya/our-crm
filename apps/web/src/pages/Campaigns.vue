@@ -6,8 +6,8 @@
     </div>
     <button @click="openCreate" class="btn-primary btn-sm">Buat campaign</button>
   </div>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
-  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3 mt-3">
     <div v-for="c in list" :key="c.id" class="card-pad card-hover">
       <div class="flex justify-between items-start gap-2">
         <strong>{{ c.name }}</strong>
@@ -29,7 +29,7 @@
   <p v-if="!list.length" class="empty">Belum ada campaign.</p>
 
   <Modal :open="modal" title="Campaign baru" @close="modal = false">
-    <form @submit.prevent="save" class="space-y-3">
+    <form @submit.prevent="save" class="space-y-2">
       <div><label class="label">Nama *</label><input v-model="form.name" required class="input" placeholder="Promo Lebaran" /></div>
       <div><label class="label">Channel *</label>
         <select v-model="form.channel_id" class="input">

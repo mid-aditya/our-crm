@@ -1,7 +1,7 @@
 <template>
   <h1 class="page-title">Aktivitas</h1>
   <p class="page-sub">Call, meeting, email, note, task personal.</p>
-  <div class="toolbar mt-4"><button @click="openCreate" class="btn-primary btn-sm">+ Tambah</button></div>
+  <div class="toolbar mt-3"><button @click="openCreate" class="btn-primary btn-sm">+ Tambah</button></div>
   <p v-if="error" class="error-box">{{ error }}</p>
   <div class="card divide-y divide-slate-100">
     <div v-for="a in list" :key="a.id" class="p-4 flex items-start justify-between gap-3">
@@ -16,7 +16,7 @@
     <p v-if="!list.length" class="empty">Belum ada aktivitas.</p>
   </div>
   <Modal :open="modal" title="Tambah aktivitas" @close="modal = false">
-    <form @submit.prevent="save" class="space-y-3">
+    <form @submit.prevent="save" class="space-y-2">
       <div class="grid grid-cols-2 gap-3">
         <div><label class="label">Tipe</label>
           <select v-model="form.type" class="input">

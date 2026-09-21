@@ -13,35 +13,41 @@
   .label { @apply block text-xs font-semibold text-slate-500 mb-1; }
   /* Dropdown: chevron konsisten + hapus tampilan bawaan */
   select.input {
-    @apply appearance-none pr-9 cursor-pointer;
-    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    @apply appearance-none pr-9 cursor-pointer font-medium;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.7rem center;
+    background-color: #fff;
   }
+  select.input:hover { @apply border-indigo-300; }
   select.input:disabled { @apply bg-slate-50 text-slate-400 cursor-not-allowed; }
-  /* Calendar & time picker: skema indigo + klik seluruh area */
+  /* Calendar & time picker: ikon dalam kotak tint + klik seluruh area */
   input[type="date"].input, input[type="datetime-local"].input, input[type="time"].input {
-    @apply cursor-pointer;
+    @apply cursor-pointer bg-slate-50/60 font-medium;
     color-scheme: light;
   }
+  input[type="date"].input:hover, input[type="datetime-local"].input:hover { @apply border-indigo-300 bg-white; }
   input[type="date"].input::-webkit-calendar-picker-indicator,
   input[type="datetime-local"].input::-webkit-calendar-picker-indicator {
-    @apply cursor-pointer opacity-60 hover:opacity-100;
+    @apply cursor-pointer opacity-70 hover:opacity-100;
+    background-color: rgb(238 242 255);
+    border-radius: 0.5rem;
+    padding: 0.2rem;
   }
   /* Form tiket: grup field rapat + section */
-  .ticket-form { @apply space-y-3; }
-  .ticket-section { @apply bg-slate-50 border border-slate-200/70 rounded-xl p-3; }
-  .ticket-section-title { @apply text-xs font-bold uppercase tracking-wide text-slate-500 mb-2; }
+  .ticket-form { @apply space-y-2; }
+  .ticket-section { @apply bg-slate-50/80 border border-slate-200 rounded-xl p-3; }
+  .ticket-section-title { @apply text-[11px] font-bold uppercase tracking-wider text-indigo-600 mb-2; }
   .tab-btn { @apply px-3 py-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors; }
   .tab-active { @apply text-indigo-600 border-b-2 border-indigo-600; }
   .card { @apply bg-white rounded-2xl shadow-sm border border-slate-200/70; }
-  .card-pad { @apply card p-5; }
+  .card-pad { @apply card p-4; }
   .card-hover { @apply transition-all hover:shadow-md hover:-translate-y-0.5; }
   .table-wrap { @apply card overflow-hidden; }
   .table { @apply w-full text-sm; }
   .table thead { @apply bg-slate-50/80 text-slate-500 text-[11px] uppercase tracking-wide; }
-  .table th { @apply text-left font-semibold px-4 py-3; }
-  .table td { @apply px-4 py-3 border-t border-slate-100; }
+  .table th { @apply text-left font-semibold px-3 py-2; }
+  .table td { @apply px-3 py-2 border-t border-slate-100; }
   .table tbody tr { @apply hover:bg-indigo-50/40 transition-colors; }
   .badge { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold; }
   .badge-green { @apply badge bg-emerald-100 text-emerald-700; }
@@ -52,9 +58,9 @@
   .badge-purple { @apply badge bg-purple-100 text-purple-700; }
   .page-title { @apply text-2xl font-extrabold tracking-tight text-slate-900; }
   .page-sub { @apply text-sm text-slate-500 mt-0.5; }
-  .toolbar { @apply flex flex-wrap items-center gap-2 mb-4; }
-  .error-box { @apply bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-3 mb-4; }
-  .empty { @apply text-center text-slate-400 text-sm py-10; }
+  .toolbar { @apply flex flex-wrap items-center gap-2 mb-3; }
+  .error-box { @apply bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-xl px-4 py-2.5 mb-3; }
+  .empty { @apply text-center text-slate-400 text-sm py-6; }
   .avatar { @apply inline-flex items-center justify-center w-9 h-9 rounded-full text-xs font-bold text-white shrink-0; }
   .stat-icon { @apply w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0; }
   .nav-link { @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors; }

@@ -2,8 +2,8 @@
   <RouterLink to="/tickets" class="text-sm text-slate-500 hover:text-slate-800">← Kembali</RouterLink>
   <h1 class="page-title mt-1">{{ isNew ? "Tiket baru" : ticket?.number }}</h1>
 
-  <div v-if="isNew" class="card-pad mt-4 max-w-xl">
-    <form @submit.prevent="create" class="space-y-3">
+  <div v-if="isNew" class="card-pad mt-3 max-w-xl">
+    <form @submit.prevent="create" class="space-y-2">
       <div><label class="label">Subjek *</label><input v-model="form.subject" required class="input" /></div>
       <div><label class="label">Deskripsi</label><textarea v-model="form.description" rows="4" class="input" /></div>
       <div class="grid grid-cols-2 gap-3">
@@ -17,7 +17,7 @@
     </form>
   </div>
 
-  <div v-else class="grid lg:grid-cols-3 gap-4 mt-4">
+  <div v-else class="grid lg:grid-cols-3 gap-3 mt-3">
     <div class="lg:col-span-2 card-pad">
       <h2 class="font-bold">{{ ticket?.subject }}</h2>
       <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{{ ticket?.description || "—" }}</p>
@@ -53,7 +53,7 @@
       </div>
     </div>
   </div>
-  <p v-if="error && !isNew" class="error-box mt-4">{{ error }}</p>
+  <p v-if="error && !isNew" class="error-box mt-3">{{ error }}</p>
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from "vue";

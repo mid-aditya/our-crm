@@ -10,8 +10,8 @@
           <div class="font-extrabold text-xl tracking-tight">CRM Suite</div>
         </div>
         <h1 class="text-4xl font-extrabold tracking-tight mt-14 leading-tight">Satu platform untuk seluruh bisnismu.</h1>
-        <p class="text-indigo-100 mt-4 max-w-md">CRM, sales pipeline, projects, invoicing, accounting & HRM — dalam satu login, data terisolasi per perusahaan.</p>
-        <ul class="mt-8 space-y-3 text-sm">
+        <p class="text-indigo-100 mt-3 max-w-md">CRM, sales pipeline, projects, invoicing, accounting & HRM — dalam satu login, data terisolasi per perusahaan.</p>
+        <ul class="mt-8 space-y-2 text-sm">
           <li v-for="f in features" :key="f" class="flex items-center gap-3">
             <span class="w-6 h-6 rounded-full bg-emerald-400/90 text-indigo-900 font-bold flex items-center justify-center text-xs">✓</span>{{ f }}
           </li>
@@ -46,7 +46,7 @@
           <p v-if="error" class="text-rose-600 text-sm bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">{{ error }}</p>
           <button class="btn-primary w-full !py-2.5" :disabled="loading">{{ loading ? "Memproses..." : "Masuk →" }}</button>
         </form>
-        <div class="card mt-4 p-4 text-xs text-slate-500">
+        <div class="card mt-3 p-4 text-xs text-slate-500">
           <div class="font-semibold text-slate-700 mb-1">🔑 Akun demo (klik untuk isi otomatis)</div>
           <button @click="fillDemo" class="text-left hover:text-indigo-700 font-mono bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 w-full">
             owner@demo.co.id / password123

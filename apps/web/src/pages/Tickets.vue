@@ -6,7 +6,7 @@
     </div>
     <RouterLink to="/tickets/new" class="btn-primary btn-sm">Buat tiket</RouterLink>
   </div>
-  <div class="toolbar mt-4">
+  <div class="toolbar mt-3">
     <select v-model="filter" @change="load" class="input !w-auto !py-1.5 !text-xs">
       <option value="">Semua status</option>
       <option value="open">Open</option><option value="pending">Pending</option>

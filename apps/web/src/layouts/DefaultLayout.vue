@@ -59,7 +59,7 @@
         <div class="flex-1" />
         <RouterLink to="/tickets/new" class="btn-secondary btn-sm">Buat tiket</RouterLink>
       </header>
-      <main class="p-4 md:p-6 w-full max-w-6xl mx-auto">
+      <main class="p-3 md:p-4 w-full max-w-6xl mx-auto">
         <RouterView />
       </main>
     </div>

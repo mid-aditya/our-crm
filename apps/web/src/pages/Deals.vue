@@ -1,7 +1,7 @@
 <template>
   <h1 class="page-title">Deals</h1>
   <p class="page-sub">Pipeline penjualan per stage.</p>
-  <div class="toolbar mt-4">
+  <div class="toolbar mt-3">
     <button @click="openCreate" class="btn-primary btn-sm">+ Tambah deal</button>
   </div>
   <p v-if="error" class="error-box">{{ error }}</p>
@@ -26,7 +26,7 @@
       </div>
     </div>
   </div>
-  <div class="card-pad mt-4">
+  <div class="card-pad mt-3">
     <h2 class="font-semibold text-sm mb-2">Deal tanpa stage / status lain</h2>
     <ul class="text-sm space-y-1">
       <li v-for="d in ungrouped" :key="d.id" class="flex justify-between border-b border-slate-100 py-1">
@@ -37,7 +37,7 @@
     <p v-if="!ungrouped.length" class="empty !py-4">Tidak ada.</p>
   </div>
   <Modal :open="modal" title="Tambah deal" @close="modal = false">
-    <form @submit.prevent="save" class="space-y-3">
+    <form @submit.prevent="save" class="space-y-2">
       <div><label class="label">Judul *</label><input v-model="form.title" required class="input" /></div>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="label">Nilai</label><input v-model="form.value" class="input" placeholder="5000000" /></div>

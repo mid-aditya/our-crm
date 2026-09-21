@@ -1,7 +1,7 @@
 <template>
   <h1 class="page-title">Kontak</h1>
   <p class="page-sub">Kelola kontak pelanggan (clients individual).</p>
-  <div class="toolbar mt-4">
+  <div class="toolbar mt-3">
     <input v-model="search" @input="debouncedLoad" placeholder="Cari nama / email / HP..." class="input max-w-xs" />
     <button @click="openCreate" class="btn-primary btn-sm">+ Tambah</button>
   </div>
@@ -28,7 +28,7 @@
     </div>
   </div>
   <Modal :open="modal" :title="editing ? 'Ubah kontak' : 'Tambah kontak'" @close="modal = false">
-    <form @submit.prevent="save" class="space-y-3">
+    <form @submit.prevent="save" class="space-y-2">
       <div><label class="label">Nama lengkap *</label><input v-model="form.full_name" required class="input" /></div>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="label">Email</label><input v-model="form.email" type="email" class="input" /></div>

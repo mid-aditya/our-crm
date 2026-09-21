@@ -3,8 +3,8 @@
     <h1 class="page-title">Performa Agent</h1>
     <p class="page-sub">Balasan, tiket resolved, deals won & percakapan aktif per agent.</p>
   </div>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
-  <div class="table-wrap mt-4"><table class="table">
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
+  <div class="table-wrap mt-3"><table class="table">
     <thead><tr><th>Agent</th><th class="text-right">Balasan</th><th class="text-right">Tiket resolved</th><th class="text-right">Deals won</th><th class="text-right">Aktif</th><th>Skor</th></tr></thead>
     <tbody>
       <tr v-for="a in ranked" :key="a.id">

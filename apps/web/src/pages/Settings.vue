@@ -1,8 +1,8 @@
 <template>
   <h1 class="page-title">Pengaturan</h1>
   <p class="page-sub">Users, roles & permissions.</p>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
-  <div class="grid lg:grid-cols-2 gap-4 mt-4">
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
+  <div class="grid lg:grid-cols-2 gap-3 mt-3">
     <div>
       <div class="toolbar"><button @click="modalInvite = true" class="btn-primary btn-sm">+ Invite user</button></div>
       <div class="table-wrap"><table class="table">
@@ -43,7 +43,7 @@
     </div>
   </div>
   <Modal :open="modalInvite" title="Invite user" @close="modalInvite = false">
-    <form @submit.prevent="invite" class="space-y-3">
+    <form @submit.prevent="invite" class="space-y-2">
       <div><label class="label">Nama *</label><input v-model="inv.full_name" required class="input" /></div>
       <div><label class="label">Email *</label><input v-model="inv.email" type="email" required class="input" /></div>
       <div><label class="label">Role</label>

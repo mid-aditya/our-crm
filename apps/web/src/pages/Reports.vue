@@ -3,8 +3,8 @@
     <h1 class="page-title">Laporan</h1>
     <p class="page-sub">Volume percakapan, funnel sales & tiket, statistik blasting.</p>
   </div>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
-  <div class="grid lg:grid-cols-2 gap-4 mt-4">
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
+  <div class="grid lg:grid-cols-2 gap-3 mt-3">
     <div class="card-pad">
       <h2 class="font-bold mb-3">Pesan per hari (30 hari)</h2>
       <div v-if="volume.length" class="space-y-1.5 max-h-80 overflow-auto">
@@ -33,7 +33,7 @@
       <p v-else class="empty !py-4">Belum ada tiket.</p>
     </div>
   </div>
-  <div class="card-pad mt-4">
+  <div class="card-pad mt-3">
     <h2 class="font-bold mb-3">Statistik blasting</h2>
     <div class="table-wrap !shadow-none !border-0"><table class="table">
       <thead><tr><th>Campaign</th><th>Status</th><th class="text-right">Terkirim</th><th class="text-right">Gagal</th><th class="text-right">Total</th></tr></thead>

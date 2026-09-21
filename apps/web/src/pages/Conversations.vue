@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col xl:flex-row gap-4 xl:h-[calc(100vh-140px)]">
+  <div class="flex flex-col xl:flex-row gap-3 xl:h-[calc(100vh-140px)]">
     <!-- Panel 1: list chat -->
     <div class="card w-full xl:w-72 shrink-0 flex flex-col overflow-hidden">
       <div class="p-3 border-b border-slate-100 flex gap-2">
@@ -78,7 +78,7 @@
         <div class="flex-1 overflow-auto p-4">
           <!-- PROFILE -->
           <div v-if="sideTab === 'profile'">
-            <div v-if="contact" class="space-y-3">
+            <div v-if="contact" class="space-y-2">
               <div class="flex items-center gap-3">
                 <span class="avatar bg-gradient-to-br from-indigo-500 to-violet-500 text-sm">{{ contactInitials }}</span>
                 <div>
@@ -118,7 +118,7 @@
                 </div>
               </div>
             </form>
-            <div class="ticket-section-title mt-4">Tiket kontak ini ({{ contactTickets.length }})</div>
+            <div class="ticket-section-title mt-3">Tiket kontak ini ({{ contactTickets.length }})</div>
             <ul class="space-y-2">
               <li v-for="t in contactTickets" :key="t.id" class="text-xs border border-slate-200 rounded-xl px-3 py-2 flex justify-between gap-2">
                 <span><strong class="font-mono">{{ t.number }}</strong> — {{ t.subject }}</span>
@@ -130,7 +130,7 @@
           <!-- HISTORY -->
           <div v-if="sideTab === 'history'">
             <div class="ticket-section-title">Percakapan lain ({{ otherConvs.length }})</div>
-            <ul class="space-y-1.5 text-xs mb-4">
+            <ul class="space-y-1.5 text-xs mb-3">
               <li v-for="c in otherConvs" :key="c.id" class="border border-slate-200 rounded-xl px-3 py-2 flex justify-between">
                 <span>{{ c.status }} · {{ timeAgo(c.lastMessageAt) }}</span>
                 <button @click="select(c)" class="text-indigo-600 font-semibold">Buka</button>
@@ -152,7 +152,7 @@
   </div>
 
   <Modal :open="modalNew" title="Percakapan baru" @close="modalNew = false">
-    <form @submit.prevent="create" class="space-y-3">
+    <form @submit.prevent="create" class="space-y-2">
       <div><label class="label">Channel *</label>
         <select v-model="newForm.channel_id" class="input">
           <option value="">Pilih channel…</option>

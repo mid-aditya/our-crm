@@ -6,9 +6,9 @@
     </div>
     <RouterLink to="/conversations" class="btn-primary btn-sm">Buka percakapan</RouterLink>
   </div>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
 
-  <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mt-4">
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mt-3">
     <div v-for="s in stats" :key="s.label" class="card-pad card-hover">
       <div class="flex items-center gap-2 text-xs text-slate-500 font-medium">
         <component :is="s.icon" :size="15" class="text-indigo-500" />{{ s.label }}
@@ -17,7 +17,7 @@
     </div>
   </div>
 
-  <div class="grid lg:grid-cols-2 gap-4 mt-4">
+  <div class="grid lg:grid-cols-2 gap-3 mt-3">
     <div class="card-pad">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-bold">Perlu perhatian</h2>
@@ -33,7 +33,7 @@
         <h2 class="font-bold">Pipeline deals</h2>
         <RouterLink to="/deals" class="text-xs text-indigo-600 font-semibold hover:underline">Kanban</RouterLink>
       </div>
-      <div v-if="pipeline.length" class="space-y-3">
+      <div v-if="pipeline.length" class="space-y-2">
         <div v-for="d in pipeline" :key="d.stage">
           <div class="flex justify-between text-sm mb-1">
             <span class="font-medium">{{ d.stage }}</span>

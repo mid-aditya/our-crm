@@ -6,8 +6,8 @@
     </div>
     <button @click="openCreate" class="btn-primary btn-sm">Tambah channel</button>
   </div>
-  <p v-if="error" class="error-box mt-4">{{ error }}</p>
-  <div class="grid md:grid-cols-2 gap-4 mt-4">
+  <p v-if="error" class="error-box mt-3">{{ error }}</p>
+  <div class="grid md:grid-cols-2 gap-3 mt-3">
     <div v-for="c in list" :key="c.id" class="card-pad">
       <div class="flex justify-between items-start">
         <div>
@@ -27,7 +27,7 @@
   <p v-if="!list.length" class="empty">Belum ada channel. Tambahkan satu untuk mulai.</p>
 
   <Modal :open="modal" title="Channel baru" @close="modal = false">
-    <form @submit.prevent="save" class="space-y-3">
+    <form @submit.prevent="save" class="space-y-2">
       <div><label class="label">Nama *</label><input v-model="form.name" required class="input" placeholder="CS Utama" /></div>
       <div><label class="label">Tipe *</label>
         <select v-model="form.type" class="input">
@@ -35,11 +35,11 @@
           <option value="official">Official (Meta Cloud API)</option>
         </select>
       </div>
-      <div v-if="form.type === 'official'" class="space-y-3">
+      <div v-if="form.type === 'official'" class="space-y-2">
         <div><label class="label">Phone Number ID *</label><input v-model="form.phone_number_id" class="input" /></div>
         <div><label class="label">Access Token *</label><input v-model="form.access_token" type="password" class="input" /></div>
       </div>
-      <div v-else class="space-y-3">
+      <div v-else class="space-y-2">
         <div><label class="label">Gateway URL *</label><input v-model="form.gateway_url" class="input" placeholder="http://localhost:8080" /></div>
         <div class="grid grid-cols-2 gap-3">
           <div><label class="label">API Key</label><input v-model="form.api_key" class="input" /></div>
