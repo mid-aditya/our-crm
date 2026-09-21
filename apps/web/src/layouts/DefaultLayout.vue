@@ -71,7 +71,7 @@ import { useRouter } from "vue-router";
 import {
   LayoutDashboard, Users, MessageCircle, Megaphone, Ticket, BarChart3,
   Trophy, Handshake, LogOut, MessageSquareText, NotebookPen,
-  PanelLeftClose, PanelLeftOpen,
+  PanelLeftClose, PanelLeftOpen, Smartphone,
 } from "lucide-vue-next";
 import { useAuthStore } from "../stores/auth";
 
@@ -81,6 +81,7 @@ const groups = [
     { to: "/conversations", label: "Percakapan", icon: MessageCircle },
     { to: "/campaigns", label: "Blasting", icon: Megaphone },
     { to: "/tickets", label: "Tiket", icon: Ticket },
+    { to: "/channels", label: "Channel WA", icon: Smartphone },
   ]},
   { label: "Sales", links: [
     { to: "/contacts", label: "Kontak", icon: Users },
