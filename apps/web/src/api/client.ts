@@ -13,16 +13,8 @@ export interface Envelope<T> {
   data: T;
   meta?: Record<string, unknown> & {
     next_cursor?: string | null;
+    replies?: unknown[];
     items?: unknown[];
-    payments?: unknown[];
-    subtotal?: number;
-    tax?: number;
-    total?: number;
-    paid?: number;
-    balance?: number;
-    planned?: number;
-    actual?: number;
-    remaining?: number;
   };
 }
 
@@ -50,15 +42,11 @@ const put = <T>(p: string, v?: object) =>
 const del = <T>(p: string) => req<T>(p, { method: "DELETE" }).then((r) => r.data);
 
 export const api = {
-  // — auth —
   login: (email: string, password: string, company_id?: string) =>
     req<{ access_token: string; refresh_token: string } | { requires_company_selection: boolean; companies: { company_id: string }[] }>(
       "/auth/login", { method: "POST", body: JSON.stringify({ email, password, company_id }) }, false,
     ).then((r) => r.data),
-  logout: (refresh_token: string, company_id: string) =>
-    post("/auth/logout", { refresh_token, company_id }),
 
-  // — contacts —
   contacts: (q?: { search?: string; limit?: number; cursor?: string }) => {
     const p = new URLSearchParams();
     if (q?.search) p.set("search", q.search);
@@ -71,56 +59,48 @@ export const api = {
   updateContact: (id: string, v: object) => patch(`/contacts/${id}`, v),
   deleteContact: (id: string) => del(`/contacts/${id}`),
 
-  // — deals —
   deals: () => get<unknown[]>("/deals"),
-  stages: () => get<{ id: string; name: string; orderIndex: number; isWonStage: boolean; isLostStage: boolean }[]>("/deal-stages"),
+  stages: () => get<{ id: string; name: string }[]>("/deal-stages"),
   createDeal: (v: object) => post("/deals", v).then((r) => r.data),
   updateDeal: (id: string, v: object) => patch(`/deals/${id}`, v),
   deleteDeal: (id: string) => del(`/deals/${id}`),
 
-  // — activities —
   activities: () => get<unknown[]>("/activities"),
   createActivity: (v: object) => post("/activities", v).then((r) => r.data),
   completeActivity: (id: string) => patch(`/activities/${id}/complete`, {}),
 
-  // — clients / org —
-  organizations: () => get<unknown[]>("/organizations"),
-  createOrganization: (v: object) => post("/organizations", v).then((r) => r.data),
-  deleteOrganization: (id: string) => del(`/organizations/${id}`),
-  departments: () => get<unknown[]>("/departments"),
-  createDepartment: (v: object) => post("/departments", v).then((r) => r.data),
+  // — WhatsApp conversations —
+  waChannels: () => get<{ id: string; name: string; type: string; status: string }[]>("/wa-channels"),
+  createChannel: (v: object) => post("/wa-channels", v).then((r) => r.data),
+  conversations: (status?: string) =>
+    get<unknown[]>(`/conversations${status ? `?status=${status}` : ""}`),
+  createConversation: (v: object) => post("/conversations", v).then((r) => r.data),
+  convMessages: (id: string) => get<unknown[]>(`/conversations/${id}/messages`),
+  replyConversation: (id: string, body: string) =>
+    post(`/conversations/${id}/reply`, { body }).then((r) => r.data),
+  updateConversation: (id: string, v: object) => patch(`/conversations/${id}`, v),
 
-  // — projects & tasks —
-  projects: () => get<unknown[]>("/projects"),
-  createProject: (v: object) => post("/projects", v).then((r) => r.data),
-  projectTasks: (id: string) => get<unknown[]>(`/projects/${id}/tasks`),
-  createProjectTask: (id: string, v: object) => post(`/projects/${id}/tasks`, v).then((r) => r.data),
-  updateProjectTask: (id: string, v: object) => patch(`/project-tasks/${id}`, v),
-  projectBudgets: (id: string) =>
-    req<unknown[]>(`/projects/${id}/budgets`).then((r) => ({ list: r.data, meta: r.meta })),
-  createBudget: (id: string, v: object) => post(`/projects/${id}/budgets`, v).then((r) => r.data),
-  addMember: (id: string, v: object) => post(`/projects/${id}/members`, v).then((r) => r.data),
+  // — blasting —
+  campaigns: () => get<unknown[]>("/campaigns"),
+  createCampaign: (v: object) => post("/campaigns", v).then((r) => r.data),
+  campaignPreview: (id: string) =>
+    req<{ total: number; sample: string }>(`/campaigns/${id}/preview`).then((r) => r.data),
+  launchCampaign: (id: string) => post(`/campaigns/${id}/launch`, {}).then((r) => r.data),
+  deleteCampaign: (id: string) => del(`/campaigns/${id}`),
 
-  // — invoices —
-  invoices: () => get<unknown[]>("/invoices"),
-  createInvoice: (v: object) => post("/invoices", v).then((r) => r.data),
-  invoiceDetail: (id: string) => req<unknown>(`/invoices/${id}`).then((r) => ({ data: r.data, meta: r.meta })),
-  payInvoice: (id: string, v: object) => post(`/invoices/${id}/payments`, v).then((r) => r.data),
-  invoiceStatus: (id: string, status: string) => patch(`/invoices/${id}/status`, { status }),
+  // — tickets —
+  tickets: (status?: string) => get<unknown[]>(`/tickets${status ? `?status=${status}` : ""}`),
+  createTicket: (v: object) => post("/tickets", v).then((r) => r.data),
+  ticketDetail: (id: string) =>
+    req<unknown>(`/tickets/${id}`).then((r) => ({ data: r.data, replies: (r.meta?.replies ?? []) as unknown[] })),
+  replyTicket: (id: string, body: string) => post(`/tickets/${id}/replies`, { body }).then((r) => r.data),
+  updateTicket: (id: string, v: object) => patch(`/tickets/${id}`, v),
 
-  // — employees & time —
-  employees: () => get<unknown[]>("/employees"),
-  createEmployee: (v: object) => post("/employees", v).then((r) => r.data),
-  clockIn: (v: object) => post("/time-entries/clock-in", v).then((r) => r.data),
-  clockOut: (id: string) => post(`/time-entries/${id}/clock-out`, {}).then((r) => r.data),
-  employeeActivities: (id: string) => get<unknown[]>(`/employees/${id}/activities`),
-  productivity: () => get<unknown>("/reports/productivity"),
-
-  // — accounting —
-  ledger: () => get<unknown[]>("/ledger-accounts"),
-  createAccount: (v: object) => post("/ledger-accounts", v).then((r) => r.data),
-  postJournal: (v: object) => post("/journal", v).then((r) => r.data),
-  trialBalance: () => get<unknown[]>("/trial-balance"),
+  // — reports & performance —
+  overview: () => get<Record<string, number>>("/reports/overview"),
+  convVolume: () => get<unknown[]>("/reports/conversations"),
+  funnel: () => get<unknown>("/reports/funnel"),
+  agentStats: () => get<unknown[]>("/reports/agents"),
 
   // — users & roles —
   users: () => get<unknown[]>("/users"),
