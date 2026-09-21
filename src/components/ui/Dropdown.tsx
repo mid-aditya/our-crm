@@ -33,7 +33,7 @@ export function Dropdown({ trigger, children, align = "right", className }: Drop
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 mt-2 min-w-[200px] origin-top rounded-xl border border-border bg-card p-1 shadow-xl animate-in fade-in zoom-in duration-200",
+            "absolute z-50 mt-1.5 min-w-[180px] origin-top rounded-lg border border-border bg-card p-1 shadow-xl animate-in fade-in zoom-in duration-150",
             align === "right" ? "right-0" : "left-0"
           )}
         >
@@ -59,7 +59,7 @@ export function DropdownItem({
     <button
       onClick={onClick}
       className={cn(
-        "flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+        "flex w-full items-center rounded-md px-2.5 py-1.5 text-[13px] font-medium transition-colors text-left",
         variant === "default"
           ? "text-foreground hover:bg-secondary"
           : "text-destructive hover:bg-destructive/10",

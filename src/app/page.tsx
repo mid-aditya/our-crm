@@ -43,230 +43,276 @@ const features = [
 ];
 
 const steps = [
-  "Sign up",
-  "Tambah kontak",
-  "Buat deal",
-  "Follow up",
-  "Close sale",
+  { label: "Sign up", note: "Buat akun & workspace" },
+  { label: "Tambah kontak", note: "Manual atau import CSV" },
+  { label: "Buat deal", note: "Catat nilai & stage" },
+  { label: "Follow up", note: "Tugas & reminder aktif" },
+  { label: "Close sale", note: "Deal masuk laporan" },
 ];
+
+function Wordmark() {
+  return (
+    <span className="flex items-center gap-2">
+      <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary font-display text-[13px] font-bold text-primary-foreground">
+        O
+      </span>
+      <span className="font-display text-[15px] font-bold tracking-tight text-foreground">
+        Our CRM
+      </span>
+    </span>
+  );
+}
 
 export default function Home() {
   return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
-          <Link
-            href="/"
-            className="text-2xl font-black bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent"
-          >
-            Our CRM
+      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 md:px-6">
+          <Link href="/" aria-label="Our CRM — beranda">
+            <Wordmark />
           </Link>
-          <nav className="hidden items-center gap-8 text-sm font-bold text-muted-foreground md:flex">
-            <a href="#features" className="hover:text-foreground">
-              Features
-            </a>
-            <a href="#workflow" className="hover:text-foreground">
-              Workflow
-            </a>
-            <a href="#security" className="hover:text-foreground">
-              Security
-            </a>
+          <nav className="hidden items-center gap-6 md:flex">
+            {[
+              ["Fitur", "#fitur"],
+              ["Alur kerja", "#alur-kerja"],
+              ["Keamanan", "#keamanan"],
+            ].map(([label, href]) => (
+              <a
+                key={href}
+                href={href}
+                className="microlabel text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {label}
+              </a>
+            ))}
           </nav>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="rounded-xl px-4 py-2 text-sm font-bold text-muted-foreground hover:bg-secondary hover:text-foreground"
+              className="rounded-lg px-3 py-1.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               Login
             </Link>
             <Link
               href="/login"
-              className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
+              className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Get Started
+              Mulai
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-4 py-20 md:px-8 md:py-28">
-        <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.18),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.12),transparent_30%)]" />
-        <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-sm font-bold text-primary">
-              <HiOutlineChatAlt2 className="h-4 w-4" />
-              CRM Omnichannel untuk bisnis Indonesia
-            </div>
-            <div className="space-y-5">
-              <h1 className="text-5xl font-black tracking-tight md:text-7xl">
-                Kelola sales, support, dan WhatsApp dalam satu CRM.
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-muted-foreground md:text-xl">
-                Our CRM membantu tim Anda mengubah chat masuk menjadi deal,
-                mengatur follow-up, dan memantau performa bisnis dari data real.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+      <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 md:px-6 md:pb-24 md:pt-20">
+        <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
+          <div>
+            <p className="microlabel flex items-center gap-2 text-primary">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60 motion-reduce:hidden" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+              </span>
+              CRM Omnichannel — untuk bisnis Indonesia
+            </p>
+            <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.05] tracking-tight md:text-6xl">
+              Chat masuk jadi deal.
+              <br />
+              <span className="text-primary">Semua tercatat rapi.</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground">
+              Our CRM menyatukan kontak, pipeline, follow-up, dan laporan dalam
+              satu workspace yang ringan — siap untuk WhatsApp dan channel
+              lainnya.
+            </p>
+            <div className="mt-7 flex flex-col gap-2 sm:flex-row">
               <Link
                 href="/login"
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-base font-black text-primary-foreground shadow-xl shadow-primary/20 hover:bg-primary/90"
+                className="inline-flex h-10 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Mulai Sekarang
               </Link>
               <a
-                href="#features"
-                className="inline-flex h-12 items-center justify-center rounded-xl border border-border bg-card px-6 text-base font-black hover:bg-secondary"
+                href="#fitur"
+                className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-card px-5 text-sm font-semibold transition-colors hover:bg-secondary"
               >
                 Lihat Fitur
               </a>
             </div>
-            <div className="grid max-w-xl grid-cols-3 gap-4 pt-4">
+
+            {/* Stat strip — satu garis, bukan kartu */}
+            <dl className="mt-10 grid grid-cols-3 divide-x divide-border border-y border-border">
               {[
                 ["<2s", "Page load"],
-                ["100+", "Broadcast/min"],
-                ["RLS", "Secure data"],
+                ["100+", "Broadcast / min"],
+                ["RLS", "Data terisolasi"],
               ].map(([value, label]) => (
+                <div key={label} className="px-4 py-3 first:pl-0">
+                  <dt className="microlabel text-muted-foreground">{label}</dt>
+                  <dd className="num mt-1.5 text-xl font-semibold text-foreground">
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+
+          {/* Snapshot — gaya buku kas: header kolom + baris + total */}
+          <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <div>
+                <p className="font-display text-sm font-bold tracking-tight">
+                  Pipeline Snapshot
+                </p>
+                <p className="microlabel mt-1 text-muted-foreground">
+                  Realtime overview
+                </p>
+              </div>
+              <span className="microlabel flex items-center gap-1.5 rounded-full bg-success/10 px-2 py-1 text-success">
+                <span className="h-1 w-1 rounded-full bg-success" />
+                Live
+              </span>
+            </div>
+            <div className="microlabel grid grid-cols-[1fr_auto_auto] gap-4 border-b border-border/70 px-4 py-2 text-muted-foreground">
+              <span>Kontak</span>
+              <span className="text-right">Nilai</span>
+              <span className="w-12 text-right">Status</span>
+            </div>
+            <div className="divide-y divide-border/70">
+              {[
+                ["Premium Plan", "Ahmad Zaki", "Rp 5.000.000", "Hot"],
+                ["Demo Follow-up", "Budi Santoso", "Rp 2.000.000", "Warm"],
+                ["Support Ticket", "Siti Aminah", "Rp 750.000", "New"],
+              ].map(([title, name, value, tag]) => (
                 <div
-                  key={label}
-                  className="rounded-2xl border border-border bg-card/70 p-4 backdrop-blur"
+                  key={title}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-4 px-4 py-2.5 transition-colors hover:bg-secondary/40"
                 >
-                  <p className="text-2xl font-black text-primary">{value}</p>
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    {label}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-semibold">
+                      {title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {name}
+                    </p>
+                  </div>
+                  <p className="num text-[13px] font-medium">{value}</p>
+                  <div className="w-12 text-right">
+                    <span
+                      className={
+                        "microlabel rounded px-1.5 py-1 " +
+                        (tag === "Hot"
+                          ? "bg-destructive/10 text-destructive"
+                          : tag === "Warm"
+                            ? "bg-warning/10 text-warning"
+                            : "bg-secondary text-secondary-foreground")
+                      }
+                    >
+                      {tag}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
-          </div>
-
-          <div className="relative">
-            <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-primary/10 blur-3xl" />
-            <div className="rounded-[2rem] border border-border bg-card p-4 shadow-2xl">
-              <div className="rounded-3xl bg-secondary/40 p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-black">Pipeline Snapshot</p>
-                    <p className="text-xs text-muted-foreground">
-                      Realtime CRM overview
-                    </p>
-                  </div>
-                  <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-black text-emerald-600">
-                    Live
-                  </span>
-                </div>
-                <div className="grid gap-3">
-                  {[
-                    ["Ahmad Zaki", "Premium Plan", "Rp 5.000.000", "Hot"],
-                    ["Budi Santoso", "Demo Follow-up", "Rp 2.000.000", "Warm"],
-                    ["Siti Aminah", "Support Ticket", "Rp 750.000", "New"],
-                  ].map(([name, title, value, tag]) => (
-                    <div
-                      key={name}
-                      className="rounded-2xl border border-border bg-card p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="font-black">{title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {name}
-                          </p>
-                        </div>
-                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">
-                          {tag}
-                        </span>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
-                        <p className="text-sm font-black text-primary">
-                          {value}
-                        </p>
-                        <p className="text-xs font-bold text-muted-foreground">
-                          Follow-up today
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center justify-between border-t border-border bg-secondary/40 px-4 py-2.5">
+              <span className="microlabel text-muted-foreground">
+                Total open
+              </span>
+              <span className="num text-sm font-semibold text-primary">
+                Rp 7.750.000
+              </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="mb-10 max-w-2xl">
-          <h2 className="text-3xl font-black tracking-tight md:text-5xl">
-            Fitur utama untuk tim sales & support
-          </h2>
-          <p className="mt-4 text-muted-foreground">
-            Ringan, cepat, dan siap dikembangkan untuk WhatsApp marketing.
-          </p>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature) => (
-            <div
-              key={feature.title}
-              className="group rounded-3xl border border-border bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-xl"
-            >
-              <div className="mb-5 inline-flex rounded-2xl bg-primary/10 p-3 text-primary transition-transform group-hover:scale-110">
-                <feature.icon className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-black">{feature.title}</h3>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                {feature.desc}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Workflow */}
-      <section id="workflow" className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="rounded-[2rem] border border-border bg-card p-8 md:p-12">
-          <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div>
-              <h2 className="text-3xl font-black md:text-5xl">
-                Workflow sederhana
-              </h2>
-              <p className="mt-3 text-muted-foreground">
-                Dari signup sampai close sale dalam hitungan menit.
-              </p>
-            </div>
-            <Link
-              href="/login"
-              className="w-fit rounded-xl bg-primary px-5 py-3 text-sm font-black text-primary-foreground shadow-lg shadow-primary/20"
-            >
-              Coba Workflow
-            </Link>
+      {/* Fitur — grid hairline, tanpa kartu melayang */}
+      <section
+        id="fitur"
+        className="border-y border-border bg-card/40"
+      >
+        <div className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+          <div className="mb-10 max-w-xl">
+            <p className="microlabel text-primary">Fitur</p>
+            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-4xl">
+              Semua yang tim sales & support butuhkan
+            </h2>
           </div>
-          <div className="grid gap-4 md:grid-cols-5">
-            {steps.map((step, i) => (
-              <div key={step} className="rounded-2xl bg-secondary/50 p-5">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-black text-primary-foreground">
-                  {i + 1}
-                </div>
-                <p className="font-black">{step}</p>
+          <div className="grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-card p-5 transition-colors hover:bg-secondary/40"
+              >
+                <feature.icon className="h-5 w-5 text-primary" />
+                <h3 className="mt-3 text-[15px] font-bold tracking-tight">
+                  {feature.title}
+                </h3>
+                <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
+                  {feature.desc}
+                </p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Security */}
-      <section id="security" className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="space-y-4">
-            <h2 className="text-3xl font-black md:text-5xl">
-              Data aman sejak awal
+      {/* Alur kerja — sequence asli, layak pakai nomor */}
+      <section id="alur-kerja" className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+        <div className="mb-10 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+          <div className="max-w-xl">
+            <p className="microlabel text-primary">Alur kerja</p>
+            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-4xl">
+              Dari signup sampai close sale
             </h2>
-            <p className="text-muted-foreground">
+          </div>
+          <Link
+            href="/login"
+            className="w-fit rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Coba Sekarang
+          </Link>
+        </div>
+        <ol className="relative grid gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-5">
+          {steps.map((step, i) => (
+            <li key={step.label} className="bg-card p-4">
+              <div className="flex items-center gap-2">
+                <span className="num text-xs font-semibold text-primary">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                {i < steps.length - 1 && (
+                  <span
+                    aria-hidden
+                    className="hidden h-px flex-1 bg-border md:block"
+                  />
+                )}
+              </div>
+              <p className="mt-3 text-sm font-bold">{step.label}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {step.note}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Keamanan */}
+      <section
+        id="keamanan"
+        className="border-y border-border bg-card/40"
+      >
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 md:px-6 md:py-20 lg:grid-cols-2 lg:gap-14">
+          <div>
+            <p className="microlabel text-primary">Keamanan</p>
+            <h2 className="mt-3 font-display text-3xl font-extrabold tracking-tight md:text-4xl">
+              Data aman sejak baris pertama
+            </h2>
+            <p className="mt-4 max-w-md text-sm leading-6 text-muted-foreground">
               Our CRM memakai Supabase Auth, team isolation, dan Row Level
-              Security agar data antar tim tidak bocor.
+              Security agar data antar tim tidak pernah bercampur.
             </p>
           </div>
-          <div className="space-y-3">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
             {[
               "Supabase Auth",
               "Role-based access",
@@ -274,47 +320,45 @@ export default function Home() {
               "RLS policies",
               "Activity logs",
             ].map((item) => (
-              <div
+              <li
                 key={item}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4"
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium"
               >
-                <HiOutlineCheckCircle className="h-6 w-6 text-emerald-500" />
-                <span className="font-bold">{item}</span>
-              </div>
+                <HiOutlineCheckCircle className="h-4 w-4 shrink-0 text-primary" />
+                {item}
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
-        <div className="rounded-[2rem] bg-gradient-to-r from-primary to-orange-400 p-8 text-primary-foreground shadow-2xl md:p-12">
-          <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
-            <div>
-              <h2 className="text-3xl font-black md:text-5xl">
-                Siap kelola customer lebih rapi?
-              </h2>
-              <p className="mt-3 opacity-90">
-                Masuk ke dashboard dan mulai tambah kontak pertama Anda.
-              </p>
-            </div>
-            <Link
-              href="/login"
-              className="inline-flex h-12 w-fit items-center justify-center rounded-xl bg-white px-6 text-base font-black text-orange-600 hover:bg-white/90"
-            >
-              Login / Register
-            </Link>
+      <section className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+        <div className="flex flex-col justify-between gap-6 rounded-xl bg-ink p-8 text-ink-foreground md:flex-row md:items-center md:p-10">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight md:text-3xl">
+              Siap kelola customer lebih rapi?
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Masuk ke dashboard dan mulai tambah kontak pertama Anda.
+            </p>
           </div>
+          <Link
+            href="/login"
+            className="inline-flex h-10 w-fit shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Login / Register
+          </Link>
         </div>
       </section>
 
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-3 px-4 text-sm text-muted-foreground md:flex-row md:px-8">
-          <p>
-            © {new Date().getFullYear()} Our CRM. Built for Indonesian
-            businesses.
+      <footer className="border-t border-border py-6">
+        <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 px-4 md:flex-row md:items-center md:px-6">
+          <Wordmark />
+          <p className="microlabel text-muted-foreground">
+            © {new Date().getFullYear()} Our CRM — Omnichannel customer
+            management
           </p>
-          <p>Omnichannel customer management platform.</p>
         </div>
       </footer>
     </main>

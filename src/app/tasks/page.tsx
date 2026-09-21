@@ -2,11 +2,12 @@
 
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
+import { Input, inputClass } from "@/components/ui/Input";
 import { cn, formatDate } from "@/lib/utils";
 import type { Task } from "@/types";
+import type { TaskPriority } from "@/types/database";
 import {
   useTasks,
   useCreateTask,
@@ -16,12 +17,25 @@ import {
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useState } from "react";
 import {
-  HiOutlineCheckCircle,
+  HiOutlineCheck,
   HiOutlineClock,
-  HiOutlinePlus,
-  HiOutlineUser,
   HiOutlineExclamationCircle,
+  HiOutlineUser,
+  HiOutlinePlus,
+  HiOutlineTrash,
 } from "react-icons/hi";
+
+/* Task dari query select include relasi contact */
+type TaskWithContact = Task & { contact?: { name: string } | null };
+
+const priorityVariant: Record<
+  Task["priority"],
+  "destructive" | "warning" | "secondary"
+> = {
+  urgent: "destructive",
+  medium: "warning",
+  low: "secondary",
+};
 
 export default function TasksPage() {
   const { profile } = useAuth();
@@ -32,13 +46,18 @@ export default function TasksPage() {
   const deleteTask = useDeleteTask(teamId);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<{
+    title: string;
+    description: string;
+    priority: TaskPriority;
+  }>({
     title: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium",
   });
 
-  const tasks: Task[] = (tasksData?.data ?? []) as Task[];
+  const tasks: TaskWithContact[] = (tasksData?.data ?? []) as TaskWithContact[];
+  const doneCount = tasks.filter((t) => t.status === "done").length;
 
   async function handleCreate() {
     if (!newTask.title) return;
@@ -61,157 +80,125 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="rise space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">
-            Tasks & Ticketing
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">
+            Tasks
           </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Track team actions and responsibilities.
+          <p className="text-sm text-muted-foreground">
+            <span className="num">{doneCount}</span>/{tasks.length ?? 0}{" "}
+            selesai — pantau tindak lanjut tim.
           </p>
         </div>
-        <Button
-          className="w-full md:w-auto"
-          onClick={() => setShowAddModal(true)}
-        >
-          <HiOutlinePlus className="mr-2 w-5 h-5" />
+        <Button onClick={() => setShowAddModal(true)} className="w-full md:w-auto">
+          <HiOutlinePlus className="h-4 w-4" />
           Add Task
         </Button>
       </div>
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        <div className="flex items-center justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <Card className="p-8 flex items-center justify-center space-x-3 text-destructive">
-          <HiOutlineExclamationCircle className="w-6 h-6" />
-          <p className="font-medium">{(error as any).message}</p>
+        <Card className="flex items-center justify-center gap-2 p-6 text-destructive">
+          <HiOutlineExclamationCircle className="h-5 w-5" />
+          <p className="text-sm font-medium">
+            {error instanceof Error ? error.message : "Terjadi kesalahan"}
+          </p>
         </Card>
       )}
 
-      {/* Tasks */}
+      {/* Task list */}
       {!isLoading && !error && (
-        <div className="grid grid-cols-1 gap-6">
+        <Card className="divide-y divide-border/70 overflow-hidden p-0">
           {tasks.length === 0 && (
-            <Card className="p-12 text-center text-muted-foreground">
-              <p className="font-medium">No tasks yet</p>
-              <p className="text-sm mt-1">
-                Create your first task to get started.
+            <div className="px-4 py-12 text-center text-muted-foreground">
+              <p className="text-sm font-medium">Belum ada task</p>
+              <p className="mt-1 text-xs">
+                Buat task pertama untuk mulai memantau follow-up.
               </p>
-            </Card>
+            </div>
           )}
 
           {tasks.map((task) => {
             const isDone = task.status === "done";
             return (
-              <Card
+              <div
                 key={task.id}
                 className={cn(
-                  "group relative overflow-hidden transition-all hover:shadow-xl hover:border-primary/30",
-                  isDone && "opacity-60 grayscale-[0.5]",
+                  "group flex items-start gap-3 px-4 py-3 transition-colors hover:bg-secondary/40",
+                  isDone && "opacity-60",
                 )}
               >
-                <div
+                {/* Checkbox */}
+                <button
+                  onClick={() => handleToggle(task.id, task.status)}
+                  aria-label={isDone ? "Mark as todo" : "Mark as done"}
                   className={cn(
-                    "absolute top-0 left-0 w-2 h-full transition-colors",
+                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-colors",
                     isDone
-                      ? "bg-emerald-500"
-                      : task.priority === "urgent"
-                        ? "bg-destructive"
-                        : "bg-amber-500",
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-card hover:border-primary",
                   )}
-                />
+                >
+                  {isDone && <HiOutlineCheck className="h-3.5 w-3.5" />}
+                </button>
 
-                <CardContent className="p-0">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between p-6 gap-6">
-                    <div className="flex-1 space-y-4">
-                      <div className="flex items-center space-x-3">
-                        <Badge
-                          variant={
-                            isDone
-                              ? "success"
-                              : task.priority === "urgent"
-                                ? "destructive"
-                                : "warning"
-                          }
-                        >
-                          {isDone ? "DONE" : task.priority.toUpperCase()}
-                        </Badge>
-                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                          Created {formatDate(task.created_at)}
-                        </span>
-                      </div>
-
-                      <h3
-                        className={cn(
-                          "text-xl font-bold tracking-tight",
-                          isDone && "line-through text-muted-foreground",
-                        )}
-                      >
-                        {task.title}
-                      </h3>
-
-                      {task.description && (
-                        <p className="text-sm text-muted-foreground">
-                          {task.description}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap gap-6 items-center">
-                        <div className="flex items-center space-x-2">
-                          <div className="p-2 bg-primary/10 rounded-xl text-primary">
-                            <HiOutlineUser className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">
-                              Contact
-                            </p>
-                            <p className="text-xs font-bold">
-                              {(task as any).contact?.name ?? "-"}
-                            </p>
-                          </div>
-                        </div>
-                        {task.due_date && (
-                          <div className="flex items-center space-x-2">
-                            <div className="p-2 bg-amber-500/10 rounded-xl text-amber-600">
-                              <HiOutlineClock className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">
-                                Due Date
-                              </p>
-                              <p className="text-xs font-bold">
-                                {formatDate(task.due_date)}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleToggle(task.id, task.status)}
+                {/* Body */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3
                       className={cn(
-                        "p-4 rounded-2xl transition-all self-center md:self-auto",
-                        isDone
-                          ? "bg-emerald-500/10 text-emerald-600"
-                          : "bg-secondary text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600",
+                        "text-sm font-semibold leading-tight",
+                        isDone && "line-through",
                       )}
                     >
-                      <HiOutlineCheckCircle className="w-10 h-10" />
-                    </button>
+                      {task.title}
+                    </h3>
+                    <Badge variant={priorityVariant[task.priority] ?? "secondary"} micro>
+                      {task.priority}
+                    </Badge>
                   </div>
-                </CardContent>
-              </Card>
+
+                  {task.description && (
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {task.description}
+                    </p>
+                  )}
+
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <HiOutlineUser className="h-3.5 w-3.5" />
+                      {task.contact?.name ?? "—"}
+                    </span>
+                    {task.due_date && (
+                      <span className="num flex items-center gap-1">
+                        <HiOutlineClock className="h-3.5 w-3.5" />
+                        {formatDate(task.due_date)}
+                      </span>
+                    )}
+                    <span className="num">dibuat {formatDate(task.created_at)}</span>
+                  </div>
+                </div>
+
+                {/* Delete */}
+                <button
+                  onClick={() => deleteTask.mutate(task.id)}
+                  aria-label="Delete task"
+                  className="rounded-md p-1.5 text-muted-foreground/50 opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100 focus-visible:opacity-100"
+                >
+                  <HiOutlineTrash className="h-4 w-4" />
+                </button>
+              </div>
             );
           })}
-        </div>
+        </Card>
       )}
 
       {/* Add Task Modal */}
@@ -220,10 +207,13 @@ export default function TasksPage() {
         onClose={() => setShowAddModal(false)}
         title="Add Task"
       >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Title *</label>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label htmlFor="task-title" className="microlabel text-muted-foreground">
+              Title *
+            </label>
             <Input
+              id="task-title"
               placeholder="e.g. Follow up proposal"
               value={newTask.title}
               onChange={(e) =>
@@ -231,24 +221,33 @@ export default function TasksPage() {
               }
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Description</label>
+          <div className="space-y-1.5">
+            <label htmlFor="task-desc" className="microlabel text-muted-foreground">
+              Description
+            </label>
             <textarea
-              className="flex h-24 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
-              placeholder="Optional description..."
+              id="task-desc"
+              className={`${inputClass} h-20 resize-none`}
+              placeholder="Deskripsi opsional..."
               value={newTask.description}
               onChange={(e) =>
                 setNewTask({ ...newTask, description: e.target.value })
               }
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Priority</label>
+          <div className="space-y-1.5">
+            <label htmlFor="task-priority" className="microlabel text-muted-foreground">
+              Priority
+            </label>
             <select
-              className="flex h-11 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+              id="task-priority"
+              className={inputClass}
               value={newTask.priority}
               onChange={(e) =>
-                setNewTask({ ...newTask, priority: e.target.value as any })
+                setNewTask({
+                  ...newTask,
+                  priority: e.target.value as TaskPriority,
+                })
               }
             >
               <option value="low">Low</option>
@@ -257,7 +256,7 @@ export default function TasksPage() {
             </select>
           </div>
           <Button
-            className="w-full h-12 mt-4"
+            className="w-full"
             onClick={handleCreate}
             isLoading={createTask.isPending}
           >

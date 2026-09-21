@@ -21,7 +21,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -29,7 +29,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Sidebar Wrapper */}
       <div
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-56 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -39,22 +39,26 @@ export function Shell({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen min-w-0">
         {/* Mobile Header */}
-        <header className="h-16 flex items-center px-4 bg-card border-b border-border lg:hidden sticky top-0 z-30">
+        <header className="h-14 flex items-center px-3 bg-card border-b border-border lg:hidden sticky top-0 z-30">
           <button
             onClick={() => setIsSidebarOpen(true)}
+            aria-label="Open menu"
             className="p-2 -ml-2 text-muted-foreground hover:text-foreground"
           >
-            <HiOutlineMenuAlt2 className="w-6 h-6" />
+            <HiOutlineMenuAlt2 className="w-5 h-5" />
           </button>
-          <div className="ml-4">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
+          <div className="ml-2 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded bg-primary font-display text-[11px] font-bold text-primary-foreground">
+              O
+            </span>
+            <span className="font-display text-sm font-bold tracking-tight">
               Our CRM
-            </h1>
+            </span>
           </div>
         </header>
 
         <main className="flex-1 overflow-x-hidden">
-          <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">{children}</div>
+          <div className="p-4 md:p-6 max-w-6xl mx-auto w-full">{children}</div>
         </main>
       </div>
     </div>

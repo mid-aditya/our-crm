@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -38,88 +38,126 @@ export default function LoginPage() {
         setError('Check your email for confirmation link.')
         setMode('login')
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-secondary/20 to-background p-4">
-      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-black bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent">
-            Our CRM
-          </h1>
-          <p className="text-muted-foreground">
-            {mode === 'login' ? 'Sign in to your workspace' : 'Create your workspace'}
-          </p>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm rise">
+        {/* Brand */}
+        <div className="mb-6 flex items-center justify-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-display text-base font-bold text-primary-foreground">
+            O
+          </span>
+          <div>
+            <p className="font-display text-lg font-bold leading-tight tracking-tight">
+              Our CRM
+            </p>
+            <p className="microlabel text-muted-foreground">
+              {mode === 'login' ? 'Sign in to workspace' : 'Create workspace'}
+            </p>
+          </div>
         </div>
 
-        <Card className="p-8 shadow-2xl border-border/50">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === 'register' && (
-              <div className="space-y-2">
-                <label className="text-sm font-bold ml-1">Full Name</label>
+        <Card className="overflow-hidden">
+          {/* Accent bar */}
+          <div className="h-0.5 w-full bg-primary" />
+
+          <div className="p-5">
+            {/* Tab switch */}
+            <div className="mb-5 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
+              {(
+                [
+                  ['login', 'Sign in'],
+                  ['register', 'Register'],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setMode(id)
+                    setError('')
+                  }}
+                  className={
+                    'py-1.5 text-[13px] font-semibold transition-colors ' +
+                    (mode === id
+                      ? 'bg-secondary text-foreground'
+                      : 'bg-card text-muted-foreground hover:text-foreground')
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              {mode === 'register' && (
+                <div className="space-y-1.5">
+                  <label htmlFor="fullName" className="microlabel text-muted-foreground">
+                    Full name
+                  </label>
+                  <Input
+                    id="fullName"
+                    placeholder="John Doe"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label htmlFor="email" className="microlabel text-muted-foreground">
+                  Email
+                </label>
                 <Input
-                  placeholder="John Doe"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  id="email"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <label className="text-sm font-bold ml-1">Email</label>
-              <Input
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-bold ml-1">Password</label>
-              <Input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-              />
-            </div>
-
-            {error && (
-              <div className="bg-destructive/10 text-destructive text-sm font-medium px-4 py-3 rounded-xl">
-                {error}
+              <div className="space-y-1.5">
+                <label htmlFor="password" className="microlabel text-muted-foreground">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                  required
+                  minLength={6}
+                />
               </div>
-            )}
 
-            <Button type="submit" isLoading={loading} className="w-full h-12 text-base">
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
-            </Button>
-          </form>
+              {error && (
+                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-[13px] font-medium text-destructive">
+                  {error}
+                </p>
+              )}
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === 'login' ? 'register' : 'login')
-                setError('')
-              }}
-              className="text-sm text-muted-foreground hover:text-primary transition-colors font-medium"
-            >
-              {mode === 'login'
-                ? "Don't have an account? Register"
-                : 'Already have an account? Sign in'}
-            </button>
+              <Button type="submit" isLoading={loading} className="w-full">
+                {mode === 'login' ? 'Sign In' : 'Create Account'}
+              </Button>
+            </form>
           </div>
         </Card>
+
+        <p className="microlabel mt-6 text-center text-muted-foreground">
+          Omnichannel customer management
+        </p>
       </div>
     </div>
   )

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineX } from "react-icons/hi";
+
+const emptySubscribe = () => () => {};
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,10 +14,14 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, title, children }: ModalProps) {
-  const [mounted, setMounted] = useState(false);
+  // Hydration guard tanpa setState di effect
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   useEffect(() => {
-    setMounted(true);
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -37,17 +43,18 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
       
       {/* Content */}
-      <div className="relative w-full max-w-lg bg-card border border-border rounded-3xl shadow-2xl animate-in zoom-in-95 fade-in duration-300 overflow-hidden">
-        <div className="flex items-center justify-between p-6 border-b border-border">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <button 
+      <div className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+        <div className="flex items-center justify-between py-3 pl-4 pr-2 border-b border-border">
+          <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
+          <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-secondary transition-colors"
+            aria-label="Close dialog"
+            className="p-1.5 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
           >
-            <HiOutlineX className="w-5 h-5" />
+            <HiOutlineX className="w-4 h-4" />
           </button>
         </div>
-        <div className="p-6">
+        <div className="p-4">
           {children}
         </div>
       </div>

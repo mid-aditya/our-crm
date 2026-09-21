@@ -1,23 +1,23 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import type { Contact, Deal } from "@/types";
+import type { ActivityLog } from "@/types/database";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useContacts } from "@/lib/hooks/useContacts";
 import { useDeals } from "@/lib/hooks/useDeals";
 import { activityLogs } from "@/lib/supabase/queries";
 import { useState } from "react";
-import {
-  HiOutlineCurrencyDollar,
-  HiOutlineDocumentDownload,
-  HiOutlineTrendingUp,
-  HiOutlineUsers,
-} from "react-icons/hi";
+import { HiOutlineDocumentDownload } from "react-icons/hi";
 import * as XLSX from "xlsx";
 import { useQuery } from "@tanstack/react-query";
+
+/* ActivityLog dari query select include relasi actor (profiles) */
+type ActivityLogWithActor = ActivityLog & {
+  actor?: { full_name: string } | null;
+};
 
 export default function ReportsPage() {
   const { profile } = useAuth();
@@ -35,7 +35,7 @@ export default function ReportsPage() {
 
   const contacts: Contact[] = (contactsData?.data ?? []) as Contact[];
   const deals: Deal[] = (dealsData?.data ?? []) as Deal[];
-  const logs: any[] = logsData?.data ?? [];
+  const logs = (logsData?.data ?? []) as ActivityLogWithActor[];
 
   const totalRevenue = deals
     .filter((d) => d.stage === "deal")
@@ -70,121 +70,94 @@ export default function ReportsPage() {
   };
 
   const stats = [
-    {
-      name: "Total Revenue (Deal)",
-      value: totalRevenue,
-      icon: HiOutlineCurrencyDollar,
-      color: "text-emerald-600",
-      bg: "bg-emerald-500/10",
-    },
-    {
-      name: "Active Contacts",
-      value: contacts.length,
-      icon: HiOutlineUsers,
-      color: "text-blue-600",
-      bg: "bg-blue-500/10",
-    },
-    {
-      name: "Conversion Rate",
-      value: `${conversionRate}%`,
-      icon: HiOutlineTrendingUp,
-      color: "text-purple-600",
-      bg: "bg-purple-500/10",
-    },
+    { name: "Total Revenue", value: formatCurrency(totalRevenue) },
+    { name: "Active Contacts", value: String(contacts.length) },
+    { name: "Conversion Rate", value: `${conversionRate}%` },
+    { name: "Open Deals", value: String(deals.filter((d) => d.stage !== "deal" && d.stage !== "batal").length) },
   ];
 
   return (
-    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="rise space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">
-            Reports & Analytics
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">
+            Reports
           </h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Track business performance and export data.
+          <p className="text-sm text-muted-foreground">
+            Performa bisnis dan aktivitas tim dari data real.
           </p>
         </div>
         <Button
           onClick={exportToExcel}
           isLoading={exporting}
-          className="w-full md:w-auto h-12 shadow-xl"
+          className="w-full md:w-auto"
         >
-          {!exporting && <HiOutlineDocumentDownload className="mr-2 w-5 h-5" />}
+          {!exporting && <HiOutlineDocumentDownload className="h-4 w-4" />}
           Export Excel
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, i) => (
-          <Card
-            key={i}
-            className="group hover:shadow-2xl transition-all border-none bg-gradient-to-br from-card to-secondary/30"
-          >
-            <CardContent className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <div
-                  className={`${stat.bg} ${stat.color} p-4 rounded-2xl transition-transform group-hover:scale-110`}
-                >
-                  <stat.icon className="w-8 h-8" />
-                </div>
-                <Badge variant="outline" className="opacity-50">
-                  Total
-                </Badge>
-              </div>
-              <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] mb-1">
-                {stat.name}
-              </p>
-              <h3 className="text-3xl font-black tracking-tighter">
-                {typeof stat.value === "number"
-                  ? formatCurrency(stat.value)
-                  : stat.value}
-              </h3>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Stat strip — satu blok, garis pembagi, angka mono */}
+      <Card className="overflow-hidden p-0">
+        <dl className="grid grid-cols-2 divide-border md:grid-cols-4 md:divide-x">
+          {stats.map((stat, i) => (
+            <div
+              key={stat.name}
+              className={
+                "px-4 py-3.5 " +
+                (i < stats.length - 1
+                  ? "border-b border-border md:border-b-0 "
+                  : "") +
+                (i % 2 === 0 ? "border-r md:border-r-0 " : "")
+              }
+            >
+              <dt className="microlabel text-muted-foreground">{stat.name}</dt>
+              <dd className="num mt-1.5 text-lg font-semibold tracking-tight">
+                {stat.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Card>
 
-      <Card className="border-border/50 shadow-xl overflow-hidden">
-        <CardHeader className="bg-secondary/20 p-6">
-          <CardTitle className="text-xl">Recent Activity Log</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-border">
-            {logs.length === 0 ? (
-              <div className="p-10 text-center text-muted-foreground text-sm">
-                No activity recorded yet.
-              </div>
-            ) : (
-              logs.map((log) => (
-                <div
-                  key={log.id}
-                  className="flex items-center space-x-4 p-6 hover:bg-secondary/10 transition-colors"
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {(log as any).actor?.full_name?.charAt(0) ?? "?"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-tight">
-                      <span className="font-bold text-foreground">
-                        {(log as any).actor?.full_name ?? "System"}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        {log.action}
-                      </span>
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 font-medium">
-                      {formatDate(log.created_at)}
-                    </p>
-                  </div>
-                  <div className="hidden sm:block">
-                    <Badge variant="secondary">ACTIVITY</Badge>
-                  </div>
+      {/* Activity log */}
+      <Card className="overflow-hidden p-0">
+        <div className="border-b border-border px-4 py-3">
+          <h2 className="font-display text-sm font-bold tracking-tight">
+            Activity Log
+          </h2>
+        </div>
+        <div className="divide-y divide-border/70">
+          {logs.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
+              Belum ada aktivitas tercatat.
+            </div>
+          ) : (
+            logs.map((log) => (
+              <div
+                key={log.id}
+                className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-secondary/40"
+              >
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent">
+                  <span className="num text-[11px] font-semibold text-accent-foreground">
+                    {log.actor?.full_name?.charAt(0) ?? "?"}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] leading-tight">
+                    <span className="font-semibold">
+                      {log.actor?.full_name ?? "System"}
+                    </span>{" "}
+                    <span className="text-muted-foreground">{log.action}</span>
+                  </p>
+                  <p className="num mt-0.5 text-[11px] text-muted-foreground">
+                    {formatDate(log.created_at)}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </Card>
     </div>
   );

@@ -2,23 +2,37 @@ import { cn } from "@/lib/utils";
 import { HTMLAttributes } from "react";
 
 interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "secondary" | "destructive" | "outline" | "success" | "warning";
+  variant?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "success"
+    | "warning";
+  /** Microlabel mono — untuk tag/status singkat */
+  micro?: boolean;
 }
 
-export function Badge({ className, variant = "default", ...props }: BadgeProps) {
+export function Badge({
+  className,
+  variant = "default",
+  micro,
+  ...props
+}: BadgeProps) {
   const variants = {
-    default: "bg-primary text-primary-foreground",
+    default: "bg-primary/10 text-primary",
     secondary: "bg-secondary text-secondary-foreground",
     destructive: "bg-destructive/10 text-destructive",
     outline: "text-foreground border border-border",
-    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    success: "bg-success/10 text-success",
+    warning: "bg-warning/10 text-warning",
   };
 
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold transition-colors",
+        "inline-flex h-5 items-center gap-1 rounded px-1.5 text-[11px] font-semibold leading-none",
+        micro && "microlabel",
         variants[variant],
         className
       )}

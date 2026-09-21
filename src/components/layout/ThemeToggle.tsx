@@ -1,50 +1,39 @@
 "use client";
 
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { HiOutlineMoon, HiOutlineSun } from "react-icons/hi";
+
+const emptySubscribe = () => () => {};
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // Hydration guard tanpa setState di effect
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
 
   if (!mounted) {
-    return (
-      <div className="h-9 w-full rounded-lg bg-secondary/50 animate-pulse" />
-    );
+    return <div className="h-7 w-full rounded-md bg-white/5 animate-pulse" />;
   }
 
+  const isDark = theme === "dark";
+
   return (
-    <div className="flex items-center justify-between rounded-lg bg-secondary/50 p-1 w-full">
-      <button
-        onClick={() => setTheme("light")}
-        className={cn(
-          "flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-all",
-          theme === "light"
-            ? "bg-card text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <HiOutlineSun className="mr-2 h-4 w-4" />
-        Light
-      </button>
-      <button
-        onClick={() => setTheme("dark")}
-        className={cn(
-          "flex flex-1 items-center justify-center rounded-md px-3 py-1.5 text-sm font-medium transition-all",
-          theme === "dark"
-            ? "bg-card text-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <HiOutlineMoon className="mr-2 h-4 w-4" />
-        Dark
-      </button>
-    </div>
+    <button
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="flex w-full items-center justify-between rounded-md bg-white/5 px-2.5 py-1.5 text-[13px] font-medium text-ink-muted transition-colors hover:bg-white/10 hover:text-ink-foreground"
+    >
+      {isDark ? "Dark mode" : "Light mode"}
+      {isDark ? (
+        <HiOutlineMoon className="h-4 w-4" />
+      ) : (
+        <HiOutlineSun className="h-4 w-4" />
+      )}
+    </button>
   );
 }

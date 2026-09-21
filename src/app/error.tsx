@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect } from "react";
-import { HiOutlineRefresh, HiOutlineServer } from "react-icons/hi";
+import { HiOutlineArrowLeft, HiOutlineRefresh } from "react-icons/hi";
 
 export default function Error({
   error,
@@ -15,41 +16,37 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center text-center px-4">
-      <div className="relative mb-8">
-        <div className="absolute inset-0 bg-destructive/20 blur-3xl rounded-full" />
-        <h1 className="relative text-9xl font-black text-destructive/20 select-none">
-          500
-        </h1>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <HiOutlineServer className="w-20 h-20 text-destructive animate-bounce" />
-        </div>
-      </div>
-      
-      <h2 className="text-3xl font-bold mb-4 tracking-tight">Kesalahan Server Terjadi</h2>
-      <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
-        Terjadi masalah pada server kami (Error 500/505). Kami sedang berusaha memperbaikinya secepat mungkin.
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+      <p className="microlabel text-destructive">Error 500</p>
+      <p className="num mt-4 text-7xl font-semibold tracking-tighter text-destructive/25 select-none">
+        500
       </p>
-      
-      <div className="flex flex-col sm:flex-row gap-4">
+      <h1 className="mt-4 font-display text-2xl font-extrabold tracking-tight">
+        Terjadi kesalahan server
+      </h1>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+        Ada masalah di sisi kami. Coba muat ulang halaman.
+      </p>
+
+      <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <button
           onClick={() => reset()}
-          className="flex items-center justify-center space-x-2 bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <HiOutlineRefresh className="w-5 h-5" />
-          <span>Coba Lagi</span>
+          <HiOutlineRefresh className="h-4 w-4" />
+          Coba Lagi
         </button>
-        
-        <a
+        <Link
           href="/"
-          className="flex items-center justify-center space-x-2 bg-secondary text-foreground px-6 py-3 rounded-xl font-bold border border-border hover:bg-secondary/80 transition-all active:scale-95"
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-semibold transition-colors hover:bg-secondary"
         >
-          <span>Ke Beranda</span>
-        </a>
+          <HiOutlineArrowLeft className="h-4 w-4" />
+          Ke Beranda
+        </Link>
       </div>
-      
+
       {error.digest && (
-        <p className="mt-8 text-xs font-mono text-muted-foreground bg-secondary/50 px-3 py-1 rounded">
+        <p className="num mt-6 rounded bg-secondary px-2 py-1 text-[11px] text-muted-foreground">
           Error ID: {error.digest}
         </p>
       )}

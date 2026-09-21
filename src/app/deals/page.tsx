@@ -1,12 +1,11 @@
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
-import { Input } from "@/components/ui/Input";
-import { formatCurrency } from "@/lib/utils";
-import type { Deal, Contact } from "@/types";
+import { Input, inputClass } from "@/components/ui/Input";
+import { cn, formatCurrency } from "@/lib/utils";
+import type { Deal, Contact, DealStage } from "@/types";
 import {
   useDeals,
   useCreateDeal,
@@ -17,9 +16,8 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { useState } from "react";
 import {
   HiOutlineCalendar,
-  HiOutlineChevronRight,
-  HiOutlinePlus,
   HiOutlineExclamationCircle,
+  HiOutlinePlus,
 } from "react-icons/hi";
 
 const defaultStages = [
@@ -37,6 +35,15 @@ const stageLabels: Record<string, string> = {
   batal: "Batal",
 };
 
+/* Warna rail per stage: netral -> hangat -> hijau penuh -> mati */
+const stageRail: Record<string, string> = {
+  chat_masuk: "bg-muted-foreground/40",
+  tertarik: "bg-warning",
+  ditawar: "bg-warning",
+  deal: "bg-primary",
+  batal: "bg-destructive/60",
+};
+
 export default function DealsPage() {
   const { profile } = useAuth();
   const teamId = profile?.team_id ?? "";
@@ -46,7 +53,12 @@ export default function DealsPage() {
   const updateStage = useUpdateDealStage(teamId);
 
   const [showNewModal, setShowNewModal] = useState(false);
-  const [newDeal, setNewDeal] = useState({
+  const [newDeal, setNewDeal] = useState<{
+    title: string;
+    contact_id: string;
+    value: number;
+    stage: DealStage;
+  }>({
     title: "",
     contact_id: "",
     value: 0,
@@ -55,6 +67,11 @@ export default function DealsPage() {
 
   const deals: Deal[] = (dealsData?.data ?? []) as Deal[];
   const contacts: Contact[] = (contactsData?.data ?? []) as Contact[];
+
+  const stageValue = (stage: string) =>
+    deals
+      .filter((d) => d.stage === stage)
+      .reduce((sum, d) => sum + Number(d.value), 0);
 
   async function moveStage(dealId: string, newStage: string) {
     await updateStage.mutateAsync({ id: dealId, stage: newStage });
@@ -67,69 +84,79 @@ export default function DealsPage() {
       title: newDeal.title,
       contact_id: newDeal.contact_id || null,
       value: Number(newDeal.value) || 0,
-      stage: newDeal.stage as any,
+      stage: newDeal.stage,
     });
     setNewDeal({ title: "", contact_id: "", value: 0, stage: "chat_masuk" });
     setShowNewModal(false);
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="rise space-y-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">Deals Pipeline</h1>
-          <p className="text-muted-foreground mt-1 text-lg">
-            Manage your sales pipeline.
+          <h1 className="font-display text-2xl font-extrabold tracking-tight">
+            Deals Pipeline
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Tarik kartu antar kolom untuk memindahkan stage.
           </p>
         </div>
-        <Button
-          className="w-full md:w-auto shadow-xl"
-          onClick={() => setShowNewModal(true)}
-        >
-          <HiOutlinePlus className="mr-2 w-5 h-5" />
+        <Button onClick={() => setShowNewModal(true)} className="w-full md:w-auto">
+          <HiOutlinePlus className="h-4 w-4" />
           New Deal
         </Button>
       </div>
 
       {/* Loading */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        <div className="flex items-center justify-center py-16">
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       )}
 
       {/* Error */}
       {error && (
-        <Card className="p-8 flex items-center justify-center space-x-3 text-destructive">
-          <HiOutlineExclamationCircle className="w-6 h-6" />
-          <p className="font-medium">{(error as any).message}</p>
+        <Card className="flex items-center justify-center gap-2 p-6 text-destructive">
+          <HiOutlineExclamationCircle className="h-5 w-5" />
+          <p className="text-sm font-medium">
+            {error instanceof Error ? error.message : "Terjadi kesalahan"}
+          </p>
         </Card>
       )}
 
       {/* Kanban */}
       {!isLoading && !error && (
-        <div className="flex overflow-x-auto pb-8 space-x-6 min-h-[calc(100vh-280px)] -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="scroll-slim -mx-4 flex gap-3 overflow-x-auto px-4 pb-3 md:mx-0 md:px-0">
           {defaultStages.map((stage) => {
             const stageDeals = deals.filter((d) => d.stage === stage);
             return (
-              <div
+              <section
                 key={stage}
-                className="flex-shrink-0 w-[300px] md:w-80 flex flex-col group/stage"
+                className="flex w-[260px] shrink-0 flex-col"
+                aria-label={stageLabels[stage]}
               >
-                <div className="flex items-center justify-between mb-4 px-2">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-3 w-3 rounded-full bg-primary shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
-                    <h3 className="font-black text-foreground uppercase tracking-wider text-sm">
-                      {stageLabels[stage]}
-                    </h3>
-                  </div>
-                  <Badge variant="secondary" className="px-2 py-0.5">
+                {/* Column header */}
+                <div className="flex items-baseline justify-between border-b border-border px-0.5 pb-2">
+                  <h3 className="microlabel flex items-center gap-2 text-foreground">
+                    <span
+                      className={cn(
+                        "h-1.5 w-1.5 rounded-full",
+                        stageRail[stage] ?? "bg-muted-foreground/40",
+                      )}
+                    />
+                    {stageLabels[stage]}
+                  </h3>
+                  <span className="num text-xs text-muted-foreground">
                     {stageDeals.length}
-                  </Badge>
+                  </span>
                 </div>
+                <p className="num mt-1.5 px-0.5 text-[11px] text-muted-foreground">
+                  {formatCurrency(stageValue(stage))}
+                </p>
 
+                {/* Cards */}
                 <div
-                  className="flex-1 rounded-3xl bg-secondary/20 border-2 border-dashed border-border/50 p-3 space-y-4 transition-colors group-hover/stage:bg-secondary/30 group-hover/stage:border-primary/20"
+                  className="mt-2 flex-1 space-y-2 rounded-lg bg-secondary/40 p-2 transition-colors"
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => {
                     const id = e.dataTransfer.getData("dealId");
@@ -143,50 +170,46 @@ export default function DealsPage() {
                       onDragStart={(e) =>
                         e.dataTransfer.setData("dealId", deal.id)
                       }
-                      className="p-4 shadow-sm hover:shadow-xl hover:scale-[1.02] hover:border-primary/50 transition-all cursor-grab active:cursor-grabbing border-border/80 group/card relative overflow-hidden"
+                      className="group cursor-grab overflow-hidden p-0 transition-shadow hover:shadow-md active:cursor-grabbing"
                     >
-                      <div className="absolute top-0 left-0 w-1 h-full bg-primary transform -translate-x-full group-hover/card:translate-x-0 transition-transform" />
-
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-bold text-sm leading-tight group-hover/card:text-primary transition-colors pr-4">
-                          {deal.title}
-                        </h4>
-                        <HiOutlineChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover/card:opacity-100 transition-all" />
-                      </div>
-
-                      <div className="flex items-center space-x-2 text-xs mb-4">
-                        <div className="h-5 w-5 rounded-full bg-secondary flex items-center justify-center text-[10px] font-bold">
-                          {(deal as any).contact?.name?.charAt(0) ?? "?"}
-                        </div>
-                        <span className="font-medium text-muted-foreground">
-                          {(deal as any).contact?.name ?? "No contact"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-border/50">
-                        <div className="flex items-center text-primary font-black text-sm">
-                          <span className="text-[10px] mr-1 opacity-70">
-                            Rp
-                          </span>
-                          {formatCurrency(deal.value).replace("Rp", "").trim()}
-                        </div>
-                        {deal.reminder_at && (
-                          <div className="flex items-center text-orange-500 text-[10px] font-bold uppercase tracking-widest bg-orange-500/10 px-2 py-0.5 rounded-full">
-                            <HiOutlineCalendar className="w-3 h-3 mr-1" />
-                            Follow Up
+                      <div className="flex">
+                        {/* Stage rail */}
+                        <div
+                          className={cn(
+                            "w-1 shrink-0 self-stretch",
+                            stageRail[stage] ?? "bg-muted-foreground/40",
+                          )}
+                        />
+                        <div className="min-w-0 flex-1 p-2.5">
+                          <h4 className="truncate text-[13px] font-semibold leading-tight">
+                            {deal.title}
+                          </h4>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {deal.contact?.name ?? "No contact"}
+                          </p>
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            <span className="num text-[13px] font-semibold text-primary">
+                              {formatCurrency(deal.value)}
+                            </span>
+                            {deal.reminder_at && (
+                              <span className="microlabel flex items-center gap-1 rounded bg-warning/10 px-1.5 py-0.5 text-warning">
+                                <HiOutlineCalendar className="h-3 w-3" />
+                                Follow up
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
                       </div>
                     </Card>
                   ))}
 
                   {stageDeals.length === 0 && (
-                    <div className="h-32 flex items-center justify-center text-muted-foreground/30 text-xs font-bold uppercase tracking-widest italic">
-                      Drag items here
+                    <div className="microlabel flex h-20 items-center justify-center rounded-md border border-dashed border-border/70 text-muted-foreground/60">
+                      Kosong
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
             );
           })}
         </div>
@@ -198,10 +221,13 @@ export default function DealsPage() {
         onClose={() => setShowNewModal(false)}
         title="New Deal"
       >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Deal Title *</label>
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label htmlFor="deal-title" className="microlabel text-muted-foreground">
+              Deal title *
+            </label>
             <Input
+              id="deal-title"
               placeholder="e.g. Premium Subscription"
               value={newDeal.title}
               onChange={(e) =>
@@ -209,16 +235,19 @@ export default function DealsPage() {
               }
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Contact</label>
+          <div className="space-y-1.5">
+            <label htmlFor="deal-contact" className="microlabel text-muted-foreground">
+              Contact
+            </label>
             <select
-              className="flex h-11 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all"
+              id="deal-contact"
+              className={inputClass}
               value={newDeal.contact_id}
               onChange={(e) =>
                 setNewDeal({ ...newDeal, contact_id: e.target.value })
               }
             >
-              <option value="">Select contact...</option>
+              <option value="">Pilih kontak...</option>
               {contacts.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -226,19 +255,47 @@ export default function DealsPage() {
               ))}
             </select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold ml-1">Value (IDR)</label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={newDeal.value}
-              onChange={(e) =>
-                setNewDeal({ ...newDeal, value: Number(e.target.value) })
-              }
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor="deal-value" className="microlabel text-muted-foreground">
+                Value (IDR)
+              </label>
+              <Input
+                id="deal-value"
+                type="number"
+                min={0}
+                placeholder="0"
+                value={newDeal.value}
+                onChange={(e) =>
+                  setNewDeal({ ...newDeal, value: Number(e.target.value) })
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="deal-stage" className="microlabel text-muted-foreground">
+                Stage
+              </label>
+              <select
+                id="deal-stage"
+                className={inputClass}
+                value={newDeal.stage}
+                onChange={(e) =>
+                  setNewDeal({
+                    ...newDeal,
+                    stage: e.target.value as DealStage,
+                  })
+                }
+              >
+                {defaultStages.map((s) => (
+                  <option key={s} value={s}>
+                    {stageLabels[s]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <Button
-            className="w-full h-12 mt-4"
+            className="w-full"
             onClick={handleCreateDeal}
             isLoading={createDeal.isPending}
           >
