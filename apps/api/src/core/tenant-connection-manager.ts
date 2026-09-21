@@ -63,14 +63,23 @@ function evictLru(): void {
 }
 
 async function loadCompanyInfo(companyId: string) {
-  const redis = getRedis();
+  // Cache-aside: Redis boleh mati — fallback langsung ke master DB.
+  // Request tidak boleh gagal hanya karena cache down.
   const cacheKey = `tenant-conn:${companyId}`;
   const ttl = Number(process.env.TENANT_CONN_CACHE_TTL_SEC ?? 300);
-  const cached = await redis.get(cacheKey);
-  if (cached) return JSON.parse(cached) as Awaited<ReturnType<MasterLookup>>;
+  try {
+    const cached = await getRedis().get(cacheKey);
+    if (cached) return JSON.parse(cached) as Awaited<ReturnType<MasterLookup>>;
+  } catch {
+    /* lanjut ke master DB */
+  }
   if (!masterLookup) throw new Error("Master lookup belum di-set");
   const info = await masterLookup(companyId);
-  await redis.setex(cacheKey, ttl, JSON.stringify(info));
+  try {
+    await getRedis().setex(cacheKey, ttl, JSON.stringify(info));
+  } catch {
+    /* cache opsional */
+  }
   return info;
 }
 
