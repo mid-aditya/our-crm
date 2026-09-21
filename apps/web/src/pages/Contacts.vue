@@ -11,7 +11,7 @@
       <thead><tr><th>Nama</th><th>Email</th><th>HP</th><th>Perusahaan</th><th></th></tr></thead>
       <tbody>
         <tr v-for="c in list" :key="c.id">
-          <td class="font-medium">{{ c.fullName }}</td>
+          <td><div class="flex items-center gap-3"><span class="avatar" :class="avatarBg(c.fullName)">{{ initials(c.fullName) }}</span><span class="font-semibold">{{ c.fullName }}</span></div></td>
           <td>{{ c.email ?? "-" }}</td>
           <td>{{ c.phone ?? "-" }}</td>
           <td>{{ c.companyName ?? "-" }}</td>
@@ -61,8 +61,17 @@ const formError = ref("");
 const form = ref({ full_name: "", email: "", phone: "", company_name: "", source: "" });
 let timer: ReturnType<typeof setTimeout> | undefined;
 
-function debouncedLoad() {
-  clearTimeout(timer);
+const AVATAR_BG = ["bg-indigo-500", "bg-violet-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-sky-500"];
+function initials(name: string) {
+  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
+function avatarBg(name: string) {
+  let h = 0;
+  for (const ch of name) h += ch.charCodeAt(0);
+  return AVATAR_BG[h % AVATAR_BG.length];
+}
+
+function debouncedLoad() {  clearTimeout(timer);
   timer = setTimeout(() => load(true), 300);
 }
 

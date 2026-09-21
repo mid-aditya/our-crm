@@ -4,9 +4,12 @@
   <div class="toolbar mt-4"><button @click="openCreate" class="btn-primary btn-sm">+ Tambah project</button></div>
   <p v-if="error" class="error-box">{{ error }}</p>
   <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-    <RouterLink v-for="p in list" :key="p.id" :to="`/projects/${p.id}`" class="card-pad hover:shadow-md">
-      <div class="flex justify-between items-start">
-        <strong>{{ p.name }}</strong>
+    <RouterLink v-for="p in list" :key="p.id" :to="`/projects/${p.id}`" class="card-pad card-hover">
+      <div class="flex justify-between items-start gap-2">
+        <div class="flex items-center gap-3">
+          <div class="stat-icon bg-gradient-to-br from-indigo-500 to-violet-500 text-white text-lg">📁</div>
+          <strong>{{ p.name }}</strong>
+        </div>
         <span :class="p.status === 'active' ? 'badge-green' : 'badge-slate'">{{ p.status }}</span>
       </div>
       <p v-if="p.description" class="text-sm text-slate-500 mt-1 line-clamp-2">{{ p.description }}</p>

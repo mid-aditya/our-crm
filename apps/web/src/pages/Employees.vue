@@ -8,7 +8,7 @@
       <thead><tr><th>Nama</th><th>Posisi</th><th>Status</th><th></th></tr></thead>
       <tbody>
         <tr v-for="e in list" :key="e.id" :class="selected?.id === e.id ? 'bg-blue-50' : ''">
-          <td class="font-medium">{{ e.fullName }}</td>
+          <td><div class="flex items-center gap-3"><span class="avatar bg-gradient-to-br from-indigo-500 to-violet-500">{{ e.fullName.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() }}</span><span class="font-semibold">{{ e.fullName }}</span></div></td>
           <td>{{ e.position ?? "-" }}</td>
           <td><span class="badge-green">{{ e.status }}</span></td>
           <td class="text-right whitespace-nowrap">

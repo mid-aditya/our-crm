@@ -6,19 +6,23 @@
   </div>
   <p v-if="error" class="error-box">{{ error }}</p>
   <div class="grid md:grid-cols-5 gap-3">
-    <div v-for="s in stages" :key="s.id" class="card p-3">
-      <div class="font-semibold text-sm mb-2">{{ s.name }} <span class="badge-slate ml-1">{{ grouped[s.id]?.length ?? 0 }}</span></div>
+    <div v-for="(s, i) in stages" :key="s.id" class="kanban-col">
+      <div class="flex items-center gap-2 font-bold text-sm mb-2">
+        <span class="w-2.5 h-2.5 rounded-full" :class="stageDot(i)" />{{ s.name }}
+        <span class="badge-slate ml-auto">{{ grouped[s.id]?.length ?? 0 }}</span>
+      </div>
       <div class="space-y-2">
-        <div v-for="d in grouped[s.id] ?? []" :key="d.id" class="border rounded-lg p-2 text-sm bg-slate-50">
-          <div class="font-medium">{{ d.title }}</div>
-          <div class="text-slate-500 text-xs">{{ fmtMoney(d.value) }} {{ d.currency }}</div>
+        <div v-for="d in grouped[s.id] ?? []" :key="d.id" class="kanban-card">
+          <div class="font-semibold">{{ d.title }}</div>
+          <div class="text-emerald-700 font-bold text-xs mt-0.5">Rp{{ fmtMoney(d.value) }}</div>
           <div class="flex gap-1 mt-2">
             <select :value="d.stageId" @change="move(d, ($event.target as HTMLSelectElement).value)" class="input !py-1 !text-xs">
               <option v-for="st in stages" :key="st.id" :value="st.id">{{ st.name }}</option>
             </select>
-            <button @click="remove(d)" class="btn-danger btn-sm">×</button>
+            <button @click="remove(d)" title="Hapus" class="btn-danger btn-sm">×</button>
           </div>
         </div>
+        <p v-if="!(grouped[s.id]?.length)" class="text-xs text-slate-400 text-center py-3">— kosong —</p>
       </div>
     </div>
   </div>
@@ -73,6 +77,8 @@ const grouped = computed(() => {
 const ungrouped = computed(() => deals.value.filter((d) => !d.stageId || !stages.value.some((s) => s.id === d.stageId)));
 
 function fmtMoney(v: string) { return Number(v || 0).toLocaleString("id-ID"); }
+const STAGE_DOTS = ["bg-sky-500", "bg-indigo-500", "bg-amber-500", "bg-emerald-500", "bg-rose-500"];
+function stageDot(i: number) { return STAGE_DOTS[i % STAGE_DOTS.length]; }
 
 async function load() {
   error.value = "";

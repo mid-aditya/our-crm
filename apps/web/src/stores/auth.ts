@@ -4,6 +4,7 @@ import { api } from "../api/client";
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     accessToken: localStorage.getItem("access_token") ?? "",
+    email: localStorage.getItem("auth_email") ?? "",
     companies: [] as { company_id: string }[],
   }),
   actions: {
@@ -15,14 +16,18 @@ export const useAuthStore = defineStore("auth", {
       }
       const t = data as { access_token: string; refresh_token: string };
       this.accessToken = t.access_token;
+      this.email = email;
       localStorage.setItem("access_token", t.access_token);
       localStorage.setItem("refresh_token", t.refresh_token);
+      localStorage.setItem("auth_email", email);
       return "ok" as const;
     },
     logout() {
       this.accessToken = "";
+      this.email = "";
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
+      localStorage.removeItem("auth_email");
     },
   },
 });
