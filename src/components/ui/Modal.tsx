@@ -22,6 +22,15 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   );
 
   useEffect(() => {
+    if (!isOpen) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -38,12 +47,12 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
+        className="fixed inset-0 bg-background/80 backdrop-blur-sm overlay-fade"
         onClick={onClose}
       />
       
       {/* Content */}
-      <div className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl animate-in zoom-in-95 fade-in duration-200 overflow-hidden">
+      <div className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl pop-in overflow-hidden">
         <div className="flex items-center justify-between py-3 pl-4 pr-2 border-b border-border">
           <h2 className="font-display text-base font-bold tracking-tight">{title}</h2>
           <button

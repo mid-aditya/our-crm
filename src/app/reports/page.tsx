@@ -99,16 +99,14 @@ export default function ReportsPage() {
 
       {/* Stat strip — satu blok, garis pembagi, angka mono */}
       <Card className="overflow-hidden p-0">
-        <dl className="grid grid-cols-2 divide-border md:grid-cols-4 md:divide-x">
+        <dl className="grid grid-cols-2 md:grid-cols-4 md:divide-x md:divide-border">
           {stats.map((stat, i) => (
             <div
               key={stat.name}
               className={
                 "px-4 py-3.5 " +
-                (i < stats.length - 1
-                  ? "border-b border-border md:border-b-0 "
-                  : "") +
-                (i % 2 === 0 ? "border-r md:border-r-0 " : "")
+                (i < stats.length - 1 ? "border-b border-border md:border-b-0 " : "") +
+                (i % 2 === 0 ? "border-r border-border md:border-r-0 " : "")
               }
             >
               <dt className="microlabel text-muted-foreground">{stat.name}</dt>

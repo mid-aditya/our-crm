@@ -1,0 +1,66 @@
+
+> our-crm@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.60:3000
+
+✓ Starting...
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+✓ Ready in 12s
+⨯ Error: Your project's URL and Key are required to create a Supabase client!
+
+Check your Supabase project's API settings to find these values
+
+https://supabase.com/dashboard/project/_/settings/api
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at <unknown> (https://supabase.com/dashboard/project/_/settings/api)
+    at updateSession (src\lib\supabase\middleware.ts:7:38)
+    at middleware (src\middleware.ts:5:29)
+   5 |   let supabaseResponse = NextResponse.next({ request });
+   6 |
+>  7 |   const supabase = createServerClient(
+     |                                      ^
+   8 |     process.env.NEXT_PUBLIC_SUPABASE_URL!,
+   9 |     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  10 |     {
+✓ Compiled in 95ms
+○ Compiling / ...
+(node:23692) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ GET / 200 in 9.5s (compile: 9.2s, proxy.ts: 25ms, render: 314ms)
+ GET /login 200 in 769ms (compile: 693ms, proxy.ts: 7ms, render: 69ms)
+ GET /contacts 200 in 1833ms (compile: 1585ms, proxy.ts: 5ms, render: 243ms)
+ GET /deals 200 in 740ms (compile: 666ms, proxy.ts: 4ms, render: 70ms)
+ GET /tasks 200 in 803ms (compile: 714ms, proxy.ts: 6ms, render: 83ms)
+ GET /reports 200 in 688ms (compile: 579ms, proxy.ts: 4ms, render: 105ms)
+ GET /settings 200 in 588ms (compile: 524ms, proxy.ts: 4ms, render: 60ms)
+ GET /halaman-tak-ada 404 in 711ms (compile: 646ms, proxy.ts: 4ms, render: 62ms)
+ GET /contacts 200 in 88ms (compile: 10ms, proxy.ts: 7ms, render: 72ms)
+ GET / 200 in 90ms (compile: 6ms, proxy.ts: 5ms, render: 79ms)
+ GET /contacts 200 in 63ms (compile: 8ms, proxy.ts: 4ms, render: 51ms)
+ GET /contacts 200 in 69ms (compile: 5ms, proxy.ts: 4ms, render: 59ms)
+ GET /deals 200 in 86ms (compile: 13ms, proxy.ts: 5ms, render: 68ms)
+ GET /tasks 200 in 89ms (compile: 12ms, proxy.ts: 5ms, render: 72ms)
+ GET /reports 200 in 69ms (compile: 8ms, proxy.ts: 5ms, render: 57ms)
+ GET /settings 200 in 67ms (compile: 6ms, proxy.ts: 4ms, render: 56ms)
+ GET /contacts 200 in 310ms (compile: 24ms, proxy.ts: 10ms, render: 277ms)
+ GET /deals 200 in 227ms (compile: 13ms, proxy.ts: 16ms, render: 198ms)
+ GET /tasks 200 in 259ms (compile: 35ms, proxy.ts: 29ms, render: 195ms)
+ GET /reports 200 in 416ms (compile: 121ms, proxy.ts: 25ms, render: 271ms)
+ GET /settings 200 in 177ms (compile: 29ms, proxy.ts: 12ms, render: 136ms)
+ GET / 200 in 129ms (compile: 21ms, proxy.ts: 4ms, render: 105ms)
+ GET /login 200 in 511ms (compile: 271ms, proxy.ts: 6ms, render: 235ms)
+ GET /contacts 200 in 384ms (compile: 156ms, proxy.ts: 4ms, render: 224ms)
+ GET /deals 200 in 267ms (compile: 125ms, proxy.ts: 3ms, render: 139ms)
+ GET /tasks 200 in 277ms (compile: 113ms, proxy.ts: 3ms, render: 161ms)
+ GET /reports 200 in 410ms (compile: 145ms, proxy.ts: 3ms, render: 262ms)
+ GET /settings 200 in 62ms (compile: 11ms, proxy.ts: 3ms, render: 48ms)
+ GET /deals 200 in 502ms (compile: 24ms, proxy.ts: 11ms, render: 467ms)
+ GET /contacts 200 in 69ms (compile: 6ms, proxy.ts: 6ms, render: 57ms)
+ GET /deals 200 in 2.2s (compile: 1016ms, proxy.ts: 230ms, render: 948ms)
+ GET /tasks 200 in 569ms (compile: 329ms, proxy.ts: 7ms, render: 233ms)
+ GET /contacts 200 in 866ms (compile: 342ms, proxy.ts: 7ms, render: 518ms)
+ GET /deals 200 in 501ms (compile: 260ms, proxy.ts: 10ms, render: 230ms)
+ GET /tasks 200 in 407ms (compile: 168ms, proxy.ts: 7ms, render: 232ms)

@@ -53,6 +53,7 @@ export default function DealsPage() {
   const updateStage = useUpdateDealStage(teamId);
 
   const [showNewModal, setShowNewModal] = useState(false);
+  const [dragOverStage, setDragOverStage] = useState<string | null>(null);
   const [newDeal, setNewDeal] = useState<{
     title: string;
     contact_id: string;
@@ -156,9 +157,23 @@ export default function DealsPage() {
 
                 {/* Cards */}
                 <div
-                  className="mt-2 flex-1 space-y-2 rounded-lg bg-secondary/40 p-2 transition-colors"
-                  onDragOver={(e) => e.preventDefault()}
+                  className={cn(
+                    "mt-2 flex-1 space-y-2 rounded-lg bg-secondary/40 p-2 transition-colors",
+                    dragOverStage === stage &&
+                      "bg-primary/10 ring-1 ring-inset ring-primary/40",
+                  )}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (dragOverStage !== stage) setDragOverStage(stage);
+                  }}
+                  onDragLeave={(e) => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      setDragOverStage(null);
+                    }
+                  }}
                   onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverStage(null);
                     const id = e.dataTransfer.getData("dealId");
                     moveStage(id, stage);
                   }}
@@ -204,7 +219,7 @@ export default function DealsPage() {
                   ))}
 
                   {stageDeals.length === 0 && (
-                    <div className="microlabel flex h-20 items-center justify-center rounded-md border border-dashed border-border/70 text-muted-foreground/60">
+                    <div className="microlabel flex h-14 items-center justify-center rounded-md border border-dashed border-border/70 text-muted-foreground/60">
                       Kosong
                     </div>
                   )}

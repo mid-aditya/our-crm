@@ -7,6 +7,11 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 
+/** Mode lokal (tanpa env Supabase): login langsung masuk tanpa backend. */
+const isLocalMode =
+  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -35,6 +40,12 @@ export default function LoginPage() {
           options: { data: { full_name: fullName } },
         })
         if (signUpError) throw signUpError
+        if (isLocalMode) {
+          // Mock auth: tidak ada email confirmation — langsung masuk.
+          router.push('/contacts')
+          router.refresh()
+          return
+        }
         setError('Check your email for confirmation link.')
         setMode('login')
       }

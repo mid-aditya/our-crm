@@ -20,8 +20,15 @@ export function Dropdown({ trigger, children, align = "right", className }: Drop
         setIsOpen(false);
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsOpen(false);
+    }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   return (
@@ -33,7 +40,7 @@ export function Dropdown({ trigger, children, align = "right", className }: Drop
       {isOpen && (
         <div
           className={cn(
-            "absolute z-50 mt-1.5 min-w-[180px] origin-top rounded-lg border border-border bg-card p-1 shadow-xl animate-in fade-in zoom-in duration-150",
+            "absolute z-50 mt-1.5 min-w-[180px] origin-top rounded-lg border border-border bg-card p-1 shadow-xl pop-in",
             align === "right" ? "right-0" : "left-0"
           )}
         >
