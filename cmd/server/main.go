@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"crm-backend/internal/app"
 	"crm-backend/internal/config"
@@ -36,11 +37,15 @@ func main() {
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { middleware.WriteOK(w, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) { middleware.WriteOK(w, map[string]string{"status": "ok"}) })
 
-	mux.HandleFunc("POST /api/v1/auth/login", handlers.Login)
+	// Rate limit ketat untuk endpoint publik/sensitif (anti brute force).
+	strict := middleware.NewRateLimiter(10, time.Minute)
+	mux.Handle("POST /api/v1/auth/login", strict.Limit(http.HandlerFunc(handlers.Login)))
+	mux.Handle("POST /api/v1/signup", strict.Limit(http.HandlerFunc(handlers.Signup)))
+	mux.Handle("POST /api/v1/tickets/public", strict.Limit(http.HandlerFunc(handlers.TicketPublic)))
+	mux.Handle("POST /api/v1/wa-webhook/{channelID}", strict.Limit(http.HandlerFunc(handlers.Webhook)))
 	mux.HandleFunc("POST /api/v1/auth/refresh", handlers.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", handlers.Logout)
 	mux.HandleFunc("POST /api/v1/auth/switch-company", handlers.SwitchCompany)
-	mux.HandleFunc("POST /api/v1/signup", handlers.Signup)
 
 	mux.Handle("GET /api/v1/wa-channels", tenant("conversations.manage_channels", handlers.Channels))
 	mux.Handle("POST /api/v1/wa-channels", tenant("conversations.manage_channels", handlers.Channels))
@@ -50,7 +55,6 @@ func main() {
 	mux.Handle("GET /api/v1/conversations/{id}/messages", authed(handlers.ConversationMessages))
 	mux.Handle("POST /api/v1/conversations/{id}/reply", tenant("conversations.reply", handlers.ConversationReply))
 	mux.Handle("PATCH /api/v1/conversations/{id}", tenant("conversations.assign", handlers.ConversationPatch))
-	mux.HandleFunc("POST /api/v1/wa-webhook/{channelID}", handlers.Webhook)
 
 	mux.Handle("GET /api/v1/campaigns", tenant("campaigns.read", handlers.Campaigns))
 	mux.Handle("POST /api/v1/campaigns", tenant("campaigns.create", handlers.Campaigns))
@@ -63,7 +67,6 @@ func main() {
 	mux.Handle("GET /api/v1/tickets/{id}", tenant("tickets.read", handlers.TicketDetail))
 	mux.Handle("POST /api/v1/tickets/{id}/replies", tenant("tickets.update", handlers.TicketDetail))
 	mux.Handle("PATCH /api/v1/tickets/{id}", tenant("tickets.update", handlers.TicketDetail))
-	mux.HandleFunc("POST /api/v1/tickets/public", handlers.TicketPublic)
 
 	mux.Handle("GET /api/v1/reports/overview", tenant("reports.view", handlers.ReportOverview))
 	mux.Handle("GET /api/v1/reports/conversations", tenant("reports.view", handlers.ReportConversations))
@@ -83,7 +86,7 @@ func main() {
 	mux.Handle("PUT /api/v1/roles/{id}/permissions", tenant("settings.manage_roles", handlers.Roles))
 
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
-	wrapped := middleware.WithApp(a, middleware.CORS(cfg.CORSOrigins, mux))
+	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))
 
 	addr := ":" + strings.TrimSpace(cfg.Port)
 	fmt.Println("listening on", addr)

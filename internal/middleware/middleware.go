@@ -52,6 +52,13 @@ func WriteJSON(w http.ResponseWriter, status int, v any) {
 
 func WriteOK(w http.ResponseWriter, v any) { WriteJSON(w, 200, v) }
 
+// WritePage envelope list + meta pagination: {"data": [...], "meta": {...}}.
+func WritePage(w http.ResponseWriter, status int, v any, meta any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{"data": v, "meta": meta})
+}
+
 // Authenticate verifikasi JWT access token.
 func Authenticate(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

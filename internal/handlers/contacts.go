@@ -28,14 +28,18 @@ func Contacts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		search := r.URL.Query().Get("search")
+		limit, offset := middleware.Page(r)
 		q := `select id, full_name, email, phone, company_name, source, created_at from contacts where deleted_at is null`
 		var rowsOut []map[string]any
+		var total int
 		if search != "" {
-			rowsOut = contactRows(r, q+` and (full_name ilike $1 or email ilike $1 or phone ilike $1) order by created_at desc limit 20`, "%"+search+"%")
+			_ = pool.QueryRow(r.Context(), `select count(*) from contacts where deleted_at is null and (full_name ilike $1 or email ilike $1 or phone ilike $1)`, "%"+search+"%").Scan(&total)
+			rowsOut = contactRows(r, q+` and (full_name ilike $1 or email ilike $1 or phone ilike $1) order by created_at desc limit $2 offset $3`, "%"+search+"%", limit, offset)
 		} else {
-			rowsOut = contactRows(r, q+` order by created_at desc limit 20`)
+			_ = pool.QueryRow(r.Context(), `select count(*) from contacts where deleted_at is null`).Scan(&total)
+			rowsOut = contactRows(r, q+` order by created_at desc limit $1 offset $2`, limit, offset)
 		}
-		middleware.WriteJSON(w, 200, rowsOut)
+		middleware.WritePage(w, 200, rowsOut, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
 			FullName    string   `json:"full_name"`

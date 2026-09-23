@@ -15,14 +15,18 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		status := r.URL.Query().Get("status")
+		limit, offset := middleware.Page(r)
 		q := `select id, number, subject, description, contact_id, assignee_id, priority, status, source, resolved_at, created_at from tickets`
 		var rows []map[string]any
+		var total int
 		if status != "" {
-			rows = listTickets(r, q+` where status=$1 order by created_at desc limit 100`, status)
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where status=$1`, status).Scan(&total)
+			rows = listTickets(r, q+` where status=$1 order by created_at desc limit $2 offset $3`, status, limit, offset)
 		} else {
-			rows = listTickets(r, q+` order by created_at desc limit 100`)
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets`).Scan(&total)
+			rows = listTickets(r, q+` order by created_at desc limit $1 offset $2`, limit, offset)
 		}
-		middleware.WriteJSON(w, 200, rows)
+		middleware.WritePage(w, 200, rows, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
 			Subject     string `json:"subject"`

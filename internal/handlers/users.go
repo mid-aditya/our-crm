@@ -13,7 +13,10 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
 	switch r.Method {
 	case "GET":
-		rows, err := pool.Query(r.Context(), `select id, email, full_name, role_id, status from users order by created_at limit 100`)
+		limit, offset := middleware.Page(r)
+		var total int
+		_ = pool.QueryRow(r.Context(), `select count(*) from users`).Scan(&total)
+		rows, err := pool.Query(r.Context(), `select id, email, full_name, role_id, status from users order by created_at limit $1 offset $2`, limit, offset)
 		if err != nil {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return
@@ -26,7 +29,7 @@ func Users(w http.ResponseWriter, r *http.Request) {
 			_ = rows.Scan(&id, &email, &name, &role, &status)
 			out = append(out, map[string]any{"id": id, "email": email, "full_name": name, "role_id": role, "status": status})
 		}
-		middleware.WriteJSON(w, 200, out)
+		middleware.WritePage(w, 200, out, middleware.PageMeta(limit, offset, total))
 	case "POST": // invite
 		var in struct {
 			Email    string `json:"email"`

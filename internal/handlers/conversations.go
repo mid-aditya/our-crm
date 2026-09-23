@@ -14,14 +14,18 @@ func Conversations(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		status := r.URL.Query().Get("status")
+		limit, offset := middleware.Page(r)
 		q := `select id, channel_id, contact_id, assigned_agent_id, status, last_message_at, awaiting_since, created_at from conversations`
 		var out []map[string]any
+		var total int
 		if status != "" {
-			out = listConvs(r, q+` where status=$1 order by last_message_at desc nulls last limit 100`, status)
+			_ = pool.QueryRow(r.Context(), `select count(*) from conversations where status=$1`, status).Scan(&total)
+			out = listConvs(r, q+` where status=$1 order by last_message_at desc nulls last limit $2 offset $3`, status, limit, offset)
 		} else {
-			out = listConvs(r, q+` order by last_message_at desc nulls last limit 100`)
+			_ = pool.QueryRow(r.Context(), `select count(*) from conversations`).Scan(&total)
+			out = listConvs(r, q+` order by last_message_at desc nulls last limit $1 offset $2`, limit, offset)
 		}
-		middleware.WriteJSON(w, 200, out)
+		middleware.WritePage(w, 200, out, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
 			ChannelID string `json:"channel_id"`
@@ -95,7 +99,8 @@ func convID(r *http.Request) string {
 func ConversationMessages(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
 	id := convID(r)
-	rows, err := pool.Query(r.Context(), `select id, direction, sender_id, body, media_url, status, external_id, created_at from conversation_messages where conversation_id=$1 order by created_at limit 500`, id)
+	limit, offset := middleware.Page(r)
+	rows, err := pool.Query(r.Context(), `select id, direction, sender_id, body, media_url, status, external_id, created_at from conversation_messages where conversation_id=$1 order by created_at limit $2 offset $3`, id, limit, offset)
 	if err != nil {
 		middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 		return

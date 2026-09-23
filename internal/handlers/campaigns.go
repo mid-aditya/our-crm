@@ -14,7 +14,10 @@ func Campaigns(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
 	switch r.Method {
 	case "GET":
-		rows, err := pool.Query(r.Context(), `select id, name, channel_id, template, audience, scheduled_at, status, stats, created_at from campaigns order by created_at desc limit 100`)
+		limit, offset := middleware.Page(r)
+		var total int
+		_ = pool.QueryRow(r.Context(), `select count(*) from campaigns`).Scan(&total)
+		rows, err := pool.Query(r.Context(), `select id, name, channel_id, template, audience, scheduled_at, status, stats, created_at from campaigns order by created_at desc limit $1 offset $2`, limit, offset)
 		if err != nil {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return
@@ -29,7 +32,7 @@ func Campaigns(w http.ResponseWriter, r *http.Request) {
 			_ = rows.Scan(&id, &name, &chID, &tpl, &audience, &sched, &status, &stats, &created)
 			out = append(out, map[string]any{"id": id, "name": name, "channel_id": chID, "template": tpl, "audience": audience, "scheduled_at": sched, "status": status, "stats": stats})
 		}
-		middleware.WriteJSON(w, 200, out)
+		middleware.WritePage(w, 200, out, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
 			Name        string         `json:"name"`
