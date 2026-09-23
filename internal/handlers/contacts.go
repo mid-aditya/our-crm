@@ -55,9 +55,13 @@ func Contacts(w http.ResponseWriter, r *http.Request) {
 		if c != nil {
 			owner = &c.UserID
 		}
+		tags := in.Tags
+		if tags == nil {
+			tags = []string{}
+		}
 		var newID string
 		err := pool.QueryRow(r.Context(), `insert into contacts (full_name, email, phone, company_name, source, tags, owner_user_id) values ($1,$2,$3,$4,$5,$6,$7) returning id`,
-			in.FullName, nullStr(in.Email), phone, nullStr(in.CompanyName), nullStr(in.Source), in.Tags, owner).Scan(&newID)
+			in.FullName, nullStr(in.Email), phone, nullStr(in.CompanyName), nullStr(in.Source), tags, owner).Scan(&newID)
 		if err != nil {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return

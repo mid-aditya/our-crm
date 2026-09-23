@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"regexp"
 
 	"crm-backend/internal/middleware"
@@ -29,7 +30,22 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteErr(w, 400, "VALIDATION_ERROR", "company_name, slug, owner_name, owner_email valid & password min 8 wajib")
 		return
 	}
-	id, err := provision.Provision(r.Context(), a.Master, a.Cfg.MasterDSN, a.Cfg.TenantCredKey, "127.0.0.1", 5432, provision.SignupInput{
+	host, port := "127.0.0.1", 5432
+	if u, err := url.Parse(a.Cfg.MasterDSN); err == nil {
+		if u.Hostname() != "" {
+			host = u.Hostname()
+		}
+		if p := u.Port(); p != "" {
+			var n int
+			for _, ch := range p {
+				n = n*10 + int(ch-'0')
+			}
+			if n > 0 {
+				port = n
+			}
+		}
+	}
+	id, err := provision.Provision(r.Context(), a.Master, a.Cfg.MasterDSN, a.Cfg.TenantCredKey, host, port, provision.SignupInput{
 		CompanyName: in.CompanyName, Slug: in.Slug, OwnerName: in.OwnerName, OwnerEmail: in.OwnerEmail, Password: in.Password,
 	})
 	if err != nil {

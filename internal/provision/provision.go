@@ -56,16 +56,20 @@ type SignupInput struct {
 // Gagal di tengah -> rollback (drop DB) + status failed.
 func Provision(ctx context.Context, master *pgxpool.Pool, masterDSN, tenantCredKey, adminHost string, adminPort int, in SignupInput) (companyID string, err error) {
 	dbName := "crm_tenant_" + strings.ReplaceAll(newID()[0:16], "-", "")
-	dbUser := "tenant_" + strings.ReplaceAll(newID()[0:12], "-", "")
-	dbPass := newID() + newID()
+
+	// Lokal: pakai kredensial master untuk koneksi tenant (perusahaan berbagi
+	// server PG yang sama). Di prod: buat role least-privilege per tenant
+	// (CREATE ROLE + GRANT) lalu simpan kredensialnya.
+	storeUser := masterUser(masterDSN)
+	storePass := masterPass(masterDSN)
 
 	var enc string
 	// enkripsi disimpan di master
-	enc, err = encryptPass(tenantCredKey, dbPass)
+	enc, err = encryptPass(tenantCredKey, storePass)
 	if err != nil {
 		return "", err
 	}
-	err = insertCompany(ctx, master, in, adminHost, adminPort, dbName, dbUser, enc, &companyID)
+	err = insertCompany(ctx, master, in, adminHost, adminPort, dbName, storeUser, enc, &companyID)
 	if err != nil {
 		return "", err
 	}
@@ -86,10 +90,8 @@ func Provision(ctx context.Context, master *pgxpool.Pool, masterDSN, tenantCredK
 	if _, err := admin.Exec(ctx, `create database "`+dbName+`"`); err != nil {
 		return fail(fmt.Errorf("create db: %w", err))
 	}
-	// NOTE: user least-privilege dilewati di lokal (root superuser); di prod buat role terbatas.
-	tenantDSN := dsn(adminHost, adminPort, dbName, dbUser, dbPass)
-	// fallback: konek sebagai master user bila role tenant belum ada
-	tenantDSN = dsn(adminHost, adminPort, dbName, masterUser(masterDSN), masterPass(masterDSN))
+	// NOTE: user least-privilege per tenant hanya untuk prod (lihat atas).
+	tenantDSN := dsn(adminHost, adminPort, dbName, storeUser, storePass)
 	tpool, err := pgxpool.New(ctx, tenantDSN)
 	if err != nil {
 		return fail(err)
