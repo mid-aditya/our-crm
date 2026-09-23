@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CRM Backend (Go)
 
-## Getting Started
+Backend CRM multi-tenant (DB-per-company) untuk **conversation**,
+**blast message**, dan **ticketing** via WhatsApp **official**
+(Meta Cloud API) maupun **unofficial** (gateway Baileys via HTTP).
 
-First, run the development server:
+Arsip implementasi Node.js sebelumnya tersimpan di branch
+`archive/node-prototype`; project lama di `backup/pre-migration`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Stack
+
+- Go 1.26, `net/http` stdlib (routing pola Go 1.22+)
+- PostgreSQL 15+ via `pgx/v5` (pool per-tenant + LRU eviction, max 50)
+- JWT access (15 mnt) + refresh token (hash di DB, bisa revoke)
+- Password hashing argon2id (`golang.org/x/crypto`)
+- Kredensial DB tenant dienkripsi AES-256-GCM di master DB
+
+## Struktur
+
+```
+cmd/server/main.go          entrypoint + routing
+internal/config             env loader (fail fast)
+internal/db                 pool per-tenant + LRU
+internal/crypto_util        AES-256-GCM
+internal/auth               argon2id, JWT, refresh token
+internal/middleware         auth JWT, tenant resolver, RBAC, CORS
+internal/handlers           auth, signup, channels, conversations,
+                            campaigns, tickets, reports, contacts, users
+internal/wa                 sender official/unofficial + template {{var}}
+internal/provision          signup: create DB + migrasi + seed + aktif
+migrations/master_0001.sql  schema master (crm_master)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Jalan lokal (Flyenv Postgres)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```powershell
+Copy-Item .env.example .env
+# isi MASTER_DSN, JWT_*_SECRET, TENANT_CRED_KEY (64 hex)
+go run ./cmd/server
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buat database master sekali (via SQL editor):
+`psql -f migrations/master_0001.sql`, lalu seed plan/admin manual
+atau daftar company baru via `POST /api/v1/signup`.
 
-## Learn More
+## API (`/api/v1`)
 
-To learn more about Next.js, take a look at the following resources:
+- `GET /health`, `GET /api/v1/health`
+- Auth: `POST /auth/login|refresh|logout|switch-company`
+- `POST /signup` (provisioning sinkron di lokal)
+- Channels: `GET|POST /wa-channels`
+- Conversations: `GET|POST /conversations`, `GET .../messages`,
+  `POST .../reply`, `PATCH ...` (status/assign),
+  `POST /wa-webhook/{channelID}` (header `X-Company-Id`)
+- Campaigns: `GET|POST /campaigns`, `GET .../preview`,
+  `POST .../launch`, `DELETE ...`
+- Tickets: `GET|POST /tickets`, `GET|PATCH .../{id}`,
+  `POST .../{id}/replies`, `POST /tickets/public` (tanpa auth)
+- Reports: `GET /reports/overview|conversations|funnel|agents`
+- Contacts: `GET|POST /contacts`, `GET|PATCH|DELETE /contacts/{id}`
+- Users/Roles: `GET /users`, `POST /users/invite`,
+  `PATCH /users/{id}/role`, `GET /roles`, `PUT /roles/{id}/permissions`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Semua endpoint bisnis: `authenticate -> tenantResolver (company dari JWT)
+-> rbacGuard(permission) -> handler`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Test
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```powershell
+go test ./...
+```
