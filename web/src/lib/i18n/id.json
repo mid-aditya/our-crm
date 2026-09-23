@@ -1,0 +1,182 @@
+{
+	"nav": {
+		"dashboard": "Dashboard",
+		"conversations": "Percakapan",
+		"campaigns": "Kampanye",
+		"tickets": "Tiket",
+		"contacts": "Kontak",
+		"reports": "Laporan",
+		"settings": "Pengaturan"
+	},
+	"topbar": {
+		"menu": "Buka menu navigasi",
+		"profile": "Profil",
+		"logout": "Keluar",
+		"language": "Bahasa",
+		"theme": "Tema"
+	},
+	"theme": {
+		"title": "Tema",
+		"light": "Terang",
+		"dark": "Gelap",
+		"system": "Sistem"
+	},
+	"sidebar": {
+		"channels": "Saluran"
+	},
+	"dashboard": {
+		"greetingMorning": "Selamat pagi",
+		"greetingAfternoon": "Selamat siang",
+		"greetingEvening": "Selamat sore",
+		"subtitle": "Berikut ringkasan aktivitas workspace kamu hari ini.",
+		"newCampaign": "Buat kampanye",
+		"stats": {
+			"activeChats": "Percakapan aktif",
+			"delivered": "Pesan terkirim",
+			"openTickets": "Tiket terbuka",
+			"replyRate": "Tingkat balasan",
+			"fromYesterday": "{delta} dari kemarin"
+		},
+		"recent": {
+			"title": "Percakapan terbaru",
+			"viewAll": "Lihat semua"
+		},
+		"channels": {
+			"title": "Status saluran",
+			"new": "Saluran baru"
+		},
+		"channel": {
+			"official": "WhatsApp Official",
+			"gateway": "Gateway Baileys"
+		},
+		"status": {
+			"connected": "Terhubung",
+			"attention": "Perlu perhatian"
+		},
+		"channelDetail": {
+			"official": "Sinkron 2 menit lalu",
+			"gateway": "Sesi kedaluwarsa"
+		}
+	},
+	"contacts": {
+		"title": "Kontak",
+		"subtitle": "Kelola basis data pelanggan dan prospek WhatsApp kamu.",
+		"add": "Tambah kontak",
+		"search": "Cari nama, nomor, atau email…",
+		"group": {
+			"all": "Semua grup",
+			"customer": "Pelanggan",
+			"prospect": "Prospek",
+			"vip": "VIP"
+		},
+		"table": {
+			"contact": "Kontak",
+			"phone": "Nomor WhatsApp",
+			"group": "Grup",
+			"lastChat": "Terakhir chat",
+			"actions": "Tindakan"
+		},
+		"showing": "Menampilkan {count} kontak",
+		"empty": "Tidak ada kontak yang cocok dengan pencarian.",
+		"form": {
+			"title": "Tambah kontak",
+			"description": "Kontak baru bisa langsung menerima pesan kampanye.",
+			"name": "Nama lengkap",
+			"namePh": "cth. Rina Kusuma",
+			"phone": "Nomor WhatsApp",
+			"phonePh": "+62 812 3456 7890",
+			"email": "Email",
+			"emailPh": "nama@perusahaan.id",
+			"group": "Grup",
+			"save": "Simpan kontak",
+			"errName": "Nama wajib diisi.",
+			"errPhone": "Nomor WhatsApp wajib diisi."
+		},
+		"menu": {
+			"detail": "Lihat detail",
+			"message": "Kirim pesan",
+			"delete": "Hapus"
+		}
+	},
+	"campaigns": {
+		"title": "Kampanye",
+		"subtitle": "Blast message WhatsApp — kirim langsung atau terjadwal.",
+		"new": "Buat kampanye",
+		"status": {
+			"sent": "Terkirim",
+			"scheduled": "Terjadwal",
+			"draft": "Draf",
+			"running": "Berjalan"
+		},
+		"table": {
+			"campaign": "Kampanye",
+			"audience": "Audiens",
+			"channel": "Saluran",
+			"schedule": "Jadwal",
+			"progress": "Progres"
+		},
+		"audience": {
+			"all": "Semua kontak",
+			"customers": "Pelanggan",
+			"prospects": "Prospek"
+		},
+		"menu": {
+			"preview": "Lihat pratinjau",
+			"duplicate": "Duplikat",
+			"delete": "Hapus"
+		},
+		"form": {
+			"title": "Buat kampanye",
+			"description": "Pesan dikirim dari template dengan variabel terisi otomatis.",
+			"name": "Nama kampanye",
+			"namePh": "cth. Promo Gajian Juli",
+			"channel": "Saluran pengirim",
+			"audience": "Audiens",
+			"template": "Template pesan",
+			"templateHint": "Gunakan variabel untuk personalisasi:",
+			"now": "Kirim sekarang",
+			"schedule": "Jadwalkan",
+			"date": "Tanggal kirim",
+			"time": "Waktu",
+			"submit": "Simpan kampanye",
+			"errName": "Nama kampanye wajib diisi.",
+			"errTemplate": "Template pesan wajib diisi.",
+			"errDate": "Pilih tanggal kirim."
+		}
+	},
+	"empty": {
+		"conversationsTitle": "Belum ada percakapan",
+		"conversationsDesc": "Percakapan pelanggan akan muncul di sini setelah saluran WhatsApp terhubung.",
+		"conversationsCta": "Hubungkan saluran",
+		"ticketsTitle": "Belum ada tiket",
+		"ticketsDesc": "Tiket dukungan pelanggan akan tampil di sini begitu ada yang masuk.",
+		"reportsTitle": "Belum ada data laporan",
+		"reportsDesc": "Grafik akan terisi otomatis setelah percakapan dan kampanye berjalan."
+	},
+	"settings": {
+		"title": "Pengaturan",
+		"subtitle": "Preferensi tampilan, bahasa, dan workspace.",
+		"appearance": "Tampilan",
+		"theme": "Tema",
+		"themeDesc": "Terang, gelap, atau ikuti pengaturan sistem.",
+		"language": "Bahasa",
+		"languageDesc": "Bahasa untuk seluruh antarmuka.",
+		"workspace": "Workspace",
+		"company": "Nama perusahaan",
+		"timezone": "Zona waktu",
+		"save": "Simpan perubahan",
+		"saved": "Tersimpan",
+		"channels": "Saluran WhatsApp",
+		"channelsDesc": "Saluran untuk percakapan dan blast message.",
+		"connect": "Hubungkan"
+	},
+	"common": {
+		"cancel": "Batal",
+		"delete": "Hapus",
+		"close": "Tutup",
+		"clear": "Hapus tanggal",
+		"noDate": "Pilih tanggal",
+		"prevMonth": "Bulan sebelumnya",
+		"nextMonth": "Bulan berikutnya"
+	}
+}

@@ -1,0 +1,144 @@
+@import '@fontsource-variable/sora';
+@import '@fontsource-variable/ibm-plex-sans';
+@import '@fontsource-variable/jetbrains-mono';
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   Token desain — our-crm
+   Identitas: "signal" hijau neon di atas netral bernuansa hijau.
+   Terang: permukaan putih bersih, aksen neon lebih gelap agar kontras.
+   Gelap: hitam kehijauan, neon menyala dengan glow tipis.
+--------------------------------------------------------------------------- */
+:root {
+	--bg: #f3f7f2;
+	--surface: #ffffff;
+	--raised: #eef4ec;
+	--line: #dbe6d9;
+	--line-strong: #c3d4c2;
+	--ink: #0d1712;
+	--muted: #46584c;
+	--faint: #7b8d80;
+
+	--neon: #00c853;
+	--neon-strong: #00b34a;
+	--neon-text: #00843d;
+	--neon-soft: rgb(0 200 83 / 0.1);
+	--neon-glow: rgb(0 200 83 / 0.25);
+	--on-neon: #04120a;
+
+	--danger: #d33d4a;
+	--danger-soft: rgb(211 61 74 / 0.1);
+	--warn: #9a6b00;
+	--warn-soft: rgb(154 107 0 / 0.12);
+}
+
+.dark {
+	--bg: #070d09;
+	--surface: #0d140f;
+	--raised: #131c15;
+	--line: #1d2b21;
+	--line-strong: #2a3d30;
+	--ink: #e4f1e6;
+	--muted: #9cb2a1;
+	--faint: #64796b;
+
+	--neon: #3ce97f;
+	--neon-strong: #5cf397;
+	--neon-text: #4dee8a;
+	--neon-soft: rgb(60 233 127 / 0.12);
+	--neon-glow: rgb(60 233 127 / 0.3);
+	--on-neon: #051209;
+
+	--danger: #ff6b74;
+	--danger-soft: rgb(255 107 116 / 0.12);
+	--warn: #ffb224;
+	--warn-soft: rgb(255 178 36 / 0.14);
+}
+
+@theme inline {
+	--color-bg: var(--bg);
+	--color-surface: var(--surface);
+	--color-raised: var(--raised);
+	--color-line: var(--line);
+	--color-line-strong: var(--line-strong);
+	--color-ink: var(--ink);
+	--color-muted: var(--muted);
+	--color-faint: var(--faint);
+	--color-neon: var(--neon);
+	--color-neon-strong: var(--neon-strong);
+	--color-neon-text: var(--neon-text);
+	--color-neon-soft: var(--neon-soft);
+	--color-on-neon: var(--on-neon);
+	--color-danger: var(--danger);
+	--color-danger-soft: var(--danger-soft);
+	--color-warn: var(--warn);
+	--color-warn-soft: var(--warn-soft);
+
+	--font-display: 'Sora Variable', 'Sora', ui-sans-serif, system-ui, sans-serif;
+	--font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+@layer base {
+	html {
+		scrollbar-gutter: stable;
+	}
+	html.dark {
+		color-scheme: dark;
+	}
+	body {
+		@apply bg-bg font-sans text-ink antialiased;
+	}
+	::selection {
+		background: var(--neon-glow);
+	}
+	:focus-visible {
+		outline: 2px solid var(--neon);
+		outline-offset: 2px;
+	}
+
+	/* Scrollbar tipis, senada tema */
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--line-strong) transparent;
+	}
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+	::-webkit-scrollbar-thumb {
+		background: var(--line-strong);
+		border-radius: 999px;
+	}
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+}
+
+/* Dot status "hidup" untuk indikator saluran */
+@keyframes dot-pulse {
+	0% {
+		box-shadow: 0 0 0 0 var(--neon-glow);
+	}
+	70% {
+		box-shadow: 0 0 0 6px transparent;
+	}
+	100% {
+		box-shadow: 0 0 0 0 transparent;
+	}
+}
+@utility dot-pulse {
+	animation: dot-pulse 2.2s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}

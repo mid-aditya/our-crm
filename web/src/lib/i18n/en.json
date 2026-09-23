@@ -1,0 +1,182 @@
+{
+	"nav": {
+		"dashboard": "Dashboard",
+		"conversations": "Conversations",
+		"campaigns": "Campaigns",
+		"tickets": "Tickets",
+		"contacts": "Contacts",
+		"reports": "Reports",
+		"settings": "Settings"
+	},
+	"topbar": {
+		"menu": "Open navigation menu",
+		"profile": "Profile",
+		"logout": "Log out",
+		"language": "Language",
+		"theme": "Theme"
+	},
+	"theme": {
+		"title": "Theme",
+		"light": "Light",
+		"dark": "Dark",
+		"system": "System"
+	},
+	"sidebar": {
+		"channels": "Channels"
+	},
+	"dashboard": {
+		"greetingMorning": "Good morning",
+		"greetingAfternoon": "Good afternoon",
+		"greetingEvening": "Good evening",
+		"subtitle": "Here's today's activity summary for your workspace.",
+		"newCampaign": "New campaign",
+		"stats": {
+			"activeChats": "Active chats",
+			"delivered": "Messages delivered",
+			"openTickets": "Open tickets",
+			"replyRate": "Reply rate",
+			"fromYesterday": "{delta} from yesterday"
+		},
+		"recent": {
+			"title": "Recent conversations",
+			"viewAll": "View all"
+		},
+		"channels": {
+			"title": "Channel status",
+			"new": "New channel"
+		},
+		"channel": {
+			"official": "WhatsApp Official",
+			"gateway": "Baileys Gateway"
+		},
+		"status": {
+			"connected": "Connected",
+			"attention": "Needs attention"
+		},
+		"channelDetail": {
+			"official": "Synced 2 minutes ago",
+			"gateway": "Session expired"
+		}
+	},
+	"contacts": {
+		"title": "Contacts",
+		"subtitle": "Manage your WhatsApp customer and prospect database.",
+		"add": "Add contact",
+		"search": "Search name, number, or email…",
+		"group": {
+			"all": "All groups",
+			"customer": "Customer",
+			"prospect": "Prospect",
+			"vip": "VIP"
+		},
+		"table": {
+			"contact": "Contact",
+			"phone": "WhatsApp number",
+			"group": "Group",
+			"lastChat": "Last chat",
+			"actions": "Actions"
+		},
+		"showing": "Showing {count} contacts",
+		"empty": "No contacts match your search.",
+		"form": {
+			"title": "Add contact",
+			"description": "New contacts can immediately receive campaign messages.",
+			"name": "Full name",
+			"namePh": "e.g. Rina Kusuma",
+			"phone": "WhatsApp number",
+			"phonePh": "+62 812 3456 7890",
+			"email": "Email",
+			"emailPh": "name@company.id",
+			"group": "Group",
+			"save": "Save contact",
+			"errName": "Name is required.",
+			"errPhone": "WhatsApp number is required."
+		},
+		"menu": {
+			"detail": "View detail",
+			"message": "Send message",
+			"delete": "Delete"
+		}
+	},
+	"campaigns": {
+		"title": "Campaigns",
+		"subtitle": "WhatsApp blast messages — send now or schedule.",
+		"new": "New campaign",
+		"status": {
+			"sent": "Sent",
+			"scheduled": "Scheduled",
+			"draft": "Draft",
+			"running": "Running"
+		},
+		"table": {
+			"campaign": "Campaign",
+			"audience": "Audience",
+			"channel": "Channel",
+			"schedule": "Schedule",
+			"progress": "Progress"
+		},
+		"audience": {
+			"all": "All contacts",
+			"customers": "Customers",
+			"prospects": "Prospects"
+		},
+		"menu": {
+			"preview": "Preview",
+			"duplicate": "Duplicate",
+			"delete": "Delete"
+		},
+		"form": {
+			"title": "New campaign",
+			"description": "Messages are sent from a template with variables filled in.",
+			"name": "Campaign name",
+			"namePh": "e.g. Payday Promo July",
+			"channel": "Sender channel",
+			"audience": "Audience",
+			"template": "Message template",
+			"templateHint": "Use variables for personalization:",
+			"now": "Send now",
+			"schedule": "Schedule",
+			"date": "Send date",
+			"time": "Time",
+			"submit": "Save campaign",
+			"errName": "Campaign name is required.",
+			"errTemplate": "Message template is required.",
+			"errDate": "Pick a send date."
+		}
+	},
+	"empty": {
+		"conversationsTitle": "No conversations yet",
+		"conversationsDesc": "Customer conversations will appear here once a WhatsApp channel is connected.",
+		"conversationsCta": "Connect a channel",
+		"ticketsTitle": "No tickets yet",
+		"ticketsDesc": "Customer support tickets will show up here as they come in.",
+		"reportsTitle": "No report data yet",
+		"reportsDesc": "Charts will fill in automatically once conversations and campaigns are running."
+	},
+	"settings": {
+		"title": "Settings",
+		"subtitle": "Appearance, language, and workspace preferences.",
+		"appearance": "Appearance",
+		"theme": "Theme",
+		"themeDesc": "Light, dark, or follow your system.",
+		"language": "Language",
+		"languageDesc": "Language for the whole interface.",
+		"workspace": "Workspace",
+		"company": "Company name",
+		"timezone": "Timezone",
+		"save": "Save changes",
+		"saved": "Saved",
+		"channels": "WhatsApp channels",
+		"channelsDesc": "Channels for conversations and blast messages.",
+		"connect": "Connect"
+	},
+	"common": {
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"close": "Close",
+		"clear": "Clear date",
+		"noDate": "Pick a date",
+		"prevMonth": "Previous month",
+		"nextMonth": "Next month"
+	}
+}

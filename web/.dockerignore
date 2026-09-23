@@ -1,0 +1,4 @@
+# SvelteKit SPA output
+node_modules/
+.svelte-kit/
+build/
