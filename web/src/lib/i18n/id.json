@@ -1,6 +1,8 @@
 {
 	"nav": {
 		"dashboard": "Dashboard",
+		"livechat": "Live Chat",
+		"companies": "Companies",
 		"conversations": "Percakapan",
 		"campaigns": "Kampanye",
 		"tickets": "Tiket",
@@ -199,7 +201,8 @@
 		"clear": "Hapus tanggal",
 		"noDate": "Pilih tanggal",
 		"prevMonth": "Bulan sebelumnya",
-		"nextMonth": "Bulan berikutnya"
+		"nextMonth": "Bulan berikutnya",
+		"resolved": "Selesai"
 	},
 	"channels": {
 		"configure": "Konfigurasi",

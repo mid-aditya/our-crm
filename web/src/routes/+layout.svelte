@@ -39,6 +39,14 @@
 	$effect(() => {
 		if ($locale) document.documentElement.lang = $locale;
 	});
+
+	// Redirect authenticated users away from landing page to dashboard
+	$effect(() => {
+		if (!browser) return;
+		if (page.url.pathname === '/' && getToken()) {
+			goto('/dashboard');
+		}
+	});
 </script>
 
 {#if isPublic}

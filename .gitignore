@@ -1,3 +1,5 @@
 .env
 crm-backend
 crm-backend.exe
+server.exe
+web/build.log

@@ -1,6 +1,8 @@
 {
 	"nav": {
 		"dashboard": "Dashboard",
+		"livechat": "Live Chat",
+		"companies": "Companies",
 		"conversations": "Conversations",
 		"campaigns": "Campaigns",
 		"tickets": "Tickets",
@@ -199,7 +201,8 @@
 		"clear": "Clear date",
 		"noDate": "Pick a date",
 		"prevMonth": "Previous month",
-		"nextMonth": "Next month"
+		"nextMonth": "Next month",
+		"resolved": "Resolved"
 	},
 	"channels": {
 		"configure": "Configure",

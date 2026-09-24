@@ -62,11 +62,22 @@ class AgentLivechatStore {
 
 		source.onmessage = (e) => {
 			try {
-				const event = JSON.parse(e.data);
-				if (event.type === 'queue_update') {
-					this.queue = event.data;
-				} else if (event.type === 'agent_update') {
-					this.agents = event.data;
+				const sev = JSON.parse(e.data);
+				if (sev.type === 'queue_update') {
+					this.queue = sev.payload ?? [];
+				} else if (sev.type === 'agent_update') {
+					this.agents = sev.payload ?? [];
+				} else if (sev.type === 'new_message') {
+					// update session in queue with new last_message
+					const { session_id, message } = sev.payload ?? {};
+					if (session_id) {
+						const idx = this.queue.findIndex((s) => s.id === session_id);
+						if (idx >= 0) {
+							this.queue = this.queue.map((s, i) =>
+								i === idx ? { ...s, last_message: (message as any)?.body ?? s.last_message } : s
+							);
+					}
+					}
 				}
 			} catch {
 				// ignore malformed
@@ -102,7 +113,7 @@ class AgentLivechatStore {
 
 		const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 		const host = window.location.host;
-		const wsUrl = `${protocol}//${host}/api/v1/livechat/ws?session_id=${sessionId}&company_id=${this.companyId}`;
+		const wsUrl = `${protocol}//${host}/ws/livechat?session_id=${sessionId}&company_id=${this.companyId}&role=agent`;
 
 		const ws = new WebSocket(wsUrl);
 

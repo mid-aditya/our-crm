@@ -31,6 +31,7 @@ func main() {
 	secret := cfg.JWTAccessSecret
 	auth := func(h http.Handler) http.Handler { return middleware.Authenticate(secret, h) }
 	authed := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
+	adminAuth := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
 	tenant := func(perm string, h http.HandlerFunc) http.Handler {
 		return middleware.Chain(h, auth, middleware.TenantResolver, func(next http.Handler) http.Handler {
 			return middleware.RBACGuard(perm, next)
@@ -105,6 +106,22 @@ func main() {
 	mux.Handle("GET /api/v1/livechat/agents", authed(livechat.AgentsHandler))
 	mux.Handle("GET /api/v1/livechat/distribution", authed(livechat.GetDistributionHandler))
 	mux.Handle("POST /api/v1/livechat/distribution", authed(livechat.SetDistributionHandler))
+
+	// Channel management (company tenant level)
+	mux.Handle("GET /api/v1/channel-types", tenant("channels.read", handlers.ChannelTypes))
+	mux.Handle("GET /api/v1/company/channels", tenant("channels.read", handlers.CompanyChannels))
+	mux.Handle("GET /api/v1/company/channels/{typeId}", tenant("channels.read", handlers.GetCompanyChannel))
+	mux.Handle("POST /api/v1/company/channels", tenant("channels.manage", handlers.EnableChannel))
+	mux.Handle("DELETE /api/v1/company/channels/{typeId}", tenant("channels.manage", handlers.DisableChannel))
+	mux.Handle("GET /api/v1/company/channels/{typeId}/configs", tenant("channels.read", handlers.GetCompanyChannel))
+	mux.Handle("POST /api/v1/company/channels/{typeId}/configs", tenant("channels.manage", handlers.SaveChannelConfig))
+
+	// Platform admin: manage companies (JWT + tenant, no RBAC for demo compatibility)
+	mux.Handle("GET /api/v1/admin/companies", adminAuth(handlers.AdminCompanies))
+	mux.Handle("POST /api/v1/admin/companies", adminAuth(handlers.CreateAdminCompany))
+	mux.Handle("GET /api/v1/admin/companies/{id}", adminAuth(handlers.GetAdminCompany))
+	mux.Handle("PATCH /api/v1/admin/companies/{id}", adminAuth(handlers.UpdateAdminCompany))
+	mux.Handle("DELETE /api/v1/admin/companies/{id}", adminAuth(handlers.DeleteAdminCompany))
 
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
 	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))
