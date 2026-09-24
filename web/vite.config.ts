@@ -7,7 +7,8 @@ export default defineConfig({
 	server: {
 		proxy: {
 			// Backend Go default: API_PORT 3001 (lihat internal/config)
-			'/api': { target: 'http://localhost:3001', changeOrigin: true }
+			'/api': { target: 'http://localhost:3001', changeOrigin: true },
+			'/ws': { target: 'ws://localhost:3001', ws: true, changeOrigin: true }
 		}
 	}
 });

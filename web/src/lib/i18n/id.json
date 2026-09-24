@@ -170,6 +170,28 @@
 		"channelsDesc": "Saluran untuk percakapan dan blast message.",
 		"connect": "Hubungkan"
 	},
+	"livechat": {
+		"title": "Live Chat",
+		"queue": "Antrian",
+		"waiting": "Menunggu",
+		"assignedToYou": "Ditugaskan ke Anda",
+		"assigned": "Ditugaskan",
+		"resolve": "Selesaikan",
+		"sendMessage": "Kirim pesan…",
+		"visitorSays": "{name} berkata",
+		"noQueue": "Tidak ada percakapan di antrian.",
+		"selectSession": "Pilih percakapan dari antrian untuk memulai.",
+		"distribution": {
+			"title": "Distribusi",
+			"manual": "Manual",
+			"auto": "Otomatis (Round-robin)",
+			"manualDesc": "Pilih agen secara manual",
+			"autoDesc": "Agen dengan sedikit obrolan aktif dipilih otomatis"
+		},
+		"assign": "Tugaskan ke…",
+		"take": "Ambil",
+		"agentsOnline": "{count} agen online"
+	},
 	"common": {
 		"cancel": "Batal",
 		"delete": "Hapus",

@@ -10,6 +10,7 @@ import (
 	"crm-backend/internal/app"
 	"crm-backend/internal/config"
 	"crm-backend/internal/handlers"
+	"crm-backend/internal/livechat"
 	"crm-backend/internal/middleware"
 
 	"github.com/joho/godotenv"
@@ -84,6 +85,21 @@ func main() {
 	mux.Handle("PATCH /api/v1/users/{id}/role", tenant("settings.manage_roles", handlers.UserRole))
 	mux.Handle("GET /api/v1/roles", tenant("settings.manage_roles", handlers.Roles))
 	mux.Handle("PUT /api/v1/roles/{id}/permissions", tenant("settings.manage_roles", handlers.Roles))
+
+	// Livechat routes
+	mux.HandleFunc("GET /ws/livechat", livechat.WebSocketHandler)
+	mux.HandleFunc("GET /api/v1/livechat/queue", livechat.QueueHandler)
+	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}", livechat.SessionHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions", livechat.CreateSessionHandler)
+	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}/messages", livechat.MessagesHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/messages", livechat.SendMessageHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/assign", livechat.AssignHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/take", livechat.TakeHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/resolve", livechat.ResolveHandler)
+	mux.HandleFunc("GET /api/v1/livechat/sse", livechat.SSEHandler)
+	mux.HandleFunc("GET /api/v1/livechat/agents", livechat.AgentsHandler)
+	mux.HandleFunc("GET /api/v1/livechat/distribution", livechat.GetDistributionHandler)
+	mux.HandleFunc("POST /api/v1/livechat/distribution", livechat.SetDistributionHandler)
 
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
 	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))

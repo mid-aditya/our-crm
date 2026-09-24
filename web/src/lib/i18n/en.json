@@ -170,6 +170,28 @@
 		"channelsDesc": "Channels for conversations and blast messages.",
 		"connect": "Connect"
 	},
+	"livechat": {
+		"title": "Live Chat",
+		"queue": "Queue",
+		"waiting": "Waiting",
+		"assignedToYou": "Assigned to you",
+		"assigned": "Assigned",
+		"resolve": "Resolve",
+		"sendMessage": "Send a message…",
+		"visitorSays": "{name} says",
+		"noQueue": "No conversations in queue.",
+		"selectSession": "Select a conversation from the queue to start.",
+		"distribution": {
+			"title": "Distribution",
+			"manual": "Manual",
+			"auto": "Auto (Round-robin)",
+			"manualDesc": "Choose agents manually",
+			"autoDesc": "Agent with fewest active chats is selected automatically"
+		},
+		"assign": "Assign to…",
+		"take": "Take",
+		"agentsOnline": "{count} agents online"
+	},
 	"common": {
 		"cancel": "Cancel",
 		"delete": "Delete",
