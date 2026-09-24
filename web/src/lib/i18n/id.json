@@ -178,5 +178,75 @@
 		"noDate": "Pilih tanggal",
 		"prevMonth": "Bulan sebelumnya",
 		"nextMonth": "Bulan berikutnya"
+	},
+	"channels": {
+		"configure": "Konfigurasi",
+		"connect": "Sambungkan",
+		"disconnect": "Putuskan",
+		"status": {
+			"connected": "Terhubung",
+			"connecting": "Menyambungkan…",
+			"disconnected": "Belum terhubung",
+			"error": "Gagal"
+		},
+		"whatsappOfficial": {
+			"name": "WhatsApp Official",
+			"description": "Meta Cloud API — template pesan &balasan via graph.facebook.com"
+		},
+		"whatsappBaileys": {
+			"name": "WhatsApp Unofficial (Baileys)",
+			"description": "Gateway Baileys — koneksi langsung via HTTP"
+		},
+		"livechat": {
+			"name": "Live Chat",
+			"description": "WebSocket real-time chat di website"
+		},
+		"facebook": {
+			"name": "Facebook Messenger",
+			"description": "Page messaging via Facebook Graph API"
+		},
+		"instagram": {
+			"name": "Instagram Direct",
+			"description": "IG messaging via Instagram Graph API"
+		},
+		"line": {
+			"name": "LINE Official",
+			"description": "LINE Messaging API"
+		},
+		"shopee": {
+			"name": "Shopee Chat",
+			"description": "Chat buyer-seller di Shopee"
+		},
+		"telegram": {
+			"name": "Telegram Bot",
+			"description": "Bot Telegram via Bot API"
+		},
+		"fields": {
+			"accessToken": "Access Token",
+			"accessTokenHelp": "Token dari Meta Developer Console",
+			"phoneNumberId": "Phone Number ID",
+			"webhookUrl": "Webhook URL",
+			"verifyToken": "Verify Token",
+			"verifyTokenHelp": "Token untuk verifikasi webhook Meta",
+			"gatewayUrl": "Gateway URL",
+			"baileysGatewayHelp": "Contoh: http://localhost:8081",
+			"authKey": "Auth Key",
+			"deviceName": "Nama Perangkat",
+			"wssUrl": "WebSocket URL",
+			"livechatWssHelp": "wss:// atau ws:// URL endpoint live chat",
+			"apiKey": "API Key",
+			"pageAccessToken": "Page Access Token",
+			"pageId": "Page ID",
+			"appId": "App ID",
+			"igAccountId": "Instagram Account ID",
+			"channelAccessToken": "Channel Access Token",
+			"lineTokenHelp": "Long-lived token dari LINE Developers Console",
+			"channelSecret": "Channel Secret",
+			"shopId": "Shop ID",
+			"partnerId": "Partner ID",
+			"partnerKey": "Partner Key",
+			"botToken": "Bot Token",
+			"telegramBotHelp": "Dapat dari @BotFather di Telegram"
+		}
 	}
 }

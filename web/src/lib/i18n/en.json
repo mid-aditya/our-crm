@@ -178,5 +178,75 @@
 		"noDate": "Pick a date",
 		"prevMonth": "Previous month",
 		"nextMonth": "Next month"
+	},
+	"channels": {
+		"configure": "Configure",
+		"connect": "Connect",
+		"disconnect": "Disconnect",
+		"status": {
+			"connected": "Connected",
+			"connecting": "Connecting…",
+			"disconnected": "Not connected",
+			"error": "Failed"
+		},
+		"whatsappOfficial": {
+			"name": "WhatsApp Official",
+			"description": "Meta Cloud API — reply templates via graph.facebook.com"
+		},
+		"whatsappBaileys": {
+			"name": "WhatsApp Unofficial (Baileys)",
+			"description": "Baileys gateway — direct connection via HTTP"
+		},
+		"livechat": {
+			"name": "Live Chat",
+			"description": "Real-time website chat via WebSocket"
+		},
+		"facebook": {
+			"name": "Facebook Messenger",
+			"description": "Page messaging via Facebook Graph API"
+		},
+		"instagram": {
+			"name": "Instagram Direct",
+			"description": "IG messaging via Instagram Graph API"
+		},
+		"line": {
+			"name": "LINE Official",
+			"description": "LINE Messaging API"
+		},
+		"shopee": {
+			"name": "Shopee Chat",
+			"description": "Buyer-seller chat on Shopee"
+		},
+		"telegram": {
+			"name": "Telegram Bot",
+			"description": "Telegram bot via Bot API"
+		},
+		"fields": {
+			"accessToken": "Access Token",
+			"accessTokenHelp": "Token from Meta Developer Console",
+			"phoneNumberId": "Phone Number ID",
+			"webhookUrl": "Webhook URL",
+			"verifyToken": "Verify Token",
+			"verifyTokenHelp": "Token for Meta webhook verification",
+			"gatewayUrl": "Gateway URL",
+			"baileysGatewayHelp": "Example: http://localhost:8081",
+			"authKey": "Auth Key",
+			"deviceName": "Device Name",
+			"wssUrl": "WebSocket URL",
+			"livechatWssHelp": "wss:// or ws:// live chat endpoint URL",
+			"apiKey": "API Key",
+			"pageAccessToken": "Page Access Token",
+			"pageId": "Page ID",
+			"appId": "App ID",
+			"igAccountId": "Instagram Account ID",
+			"channelAccessToken": "Channel Access Token",
+			"lineTokenHelp": "Long-lived token from LINE Developers Console",
+			"channelSecret": "Channel Secret",
+			"shopId": "Shop ID",
+			"partnerId": "Partner ID",
+			"partnerKey": "Partner Key",
+			"botToken": "Bot Token",
+			"telegramBotHelp": "Get it from @BotFather in Telegram"
+		}
 	}
 }

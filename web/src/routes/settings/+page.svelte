@@ -1,15 +1,16 @@
 <script lang="ts">
 	import { t, locale as currentLocale } from 'svelte-i18n';
-	import { Check, Languages, Monitor, Moon, Sun, TriangleAlert } from '@lucide/svelte';
-	import Badge from '$lib/components/ui/Badge.svelte';
+	import { Check, Languages, Monitor, Moon, Sun } from '@lucide/svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Field from '$lib/components/ui/Field.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import { channelDefs } from '$lib/channels/definitions';
+	import { channelStore } from '$lib/channels/store';
+	import ChannelCard from '$lib/components/ui/ChannelCard.svelte';
 	import { theme, setTheme, type Theme } from '$lib/theme.svelte';
 	import { setLocale, locales, localeNames, type AppLocale } from '$lib/i18n';
-	import { mockChannels } from '$lib/mock';
 	import { cn } from '$lib/utils';
 
 	let company = $state('PT Maju Jaya');
@@ -115,32 +116,10 @@
 	</Card>
 
 	<Card title={$t('settings.channels')} description={$t('settings.channelsDesc')}>
-		<ul class="space-y-3">
-			{#each mockChannels as channel (channel.id)}
-				<li class="flex items-center gap-3 rounded-lg border border-line px-3 py-3">
-					<span
-						class="flex size-9 shrink-0 items-center justify-center rounded-lg {channel.status ===
-						'connected'
-							? 'bg-neon-soft text-neon-text'
-							: 'bg-warn-soft text-warn'}"
-					>
-						{#if channel.status === 'connected'}
-							<Check size={16} />
-						{:else}
-							<TriangleAlert size={16} />
-						{/if}
-					</span>
-					<div class="min-w-0 flex-1">
-						<p class="text-sm font-medium">{$t(`dashboard.channel.${channel.id}`)}</p>
-						<p class="text-xs text-muted">{$t(`dashboard.channelDetail.${channel.id}`)}</p>
-					</div>
-					{#if channel.status === 'connected'}
-						<Badge variant="success" dot>{$t('dashboard.status.connected')}</Badge>
-					{:else}
-						<Button variant="outline" size="sm">{$t('settings.connect')}</Button>
-					{/if}
-				</li>
+		<div class="grid gap-3 sm:grid-cols-2">
+			{#each channelDefs as def (def.id)}
+				<ChannelCard {def} />
 			{/each}
-		</ul>
+		</div>
 	</Card>
 </div>
