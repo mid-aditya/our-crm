@@ -16,11 +16,6 @@
 		Zap
 	} from '@lucide/svelte';
 
-	// Set company ID for the livechat widget (public landing page)
-	if (typeof window !== 'undefined') {
-		(window as any).__LIVECHAT_COMPANY_ID__ = 'demo-company';
-	}
-
 	const channels = [
 		{ icon: Phone, name: 'WhatsApp Official', color: '#25D366' },
 		{ icon: MessageCircle, name: 'WhatsApp Unofficial', color: '#128C7E' },

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"crm-backend/internal/livechat"
 	"crm-backend/internal/middleware"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
 )
 
@@ -28,12 +30,12 @@ func main() {
 	mux := http.NewServeMux()
 	secret := cfg.JWTAccessSecret
 	auth := func(h http.Handler) http.Handler { return middleware.Authenticate(secret, h) }
+	authed := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
 	tenant := func(perm string, h http.HandlerFunc) http.Handler {
-		return middleware.Chain(h, auth, middleware.TenantResolver, func(n http.Handler) http.Handler {
-			return middleware.RBACGuard(perm, n)
+		return middleware.Chain(h, auth, middleware.TenantResolver, func(next http.Handler) http.Handler {
+			return middleware.RBACGuard(perm, next)
 		})
 	}
-	authed := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) { middleware.WriteOK(w, map[string]string{"status": "ok"}) })
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) { middleware.WriteOK(w, map[string]string{"status": "ok"}) })
@@ -41,6 +43,7 @@ func main() {
 	// Rate limit ketat untuk endpoint publik/sensitif (anti brute force).
 	strict := middleware.NewRateLimiter(10, time.Minute)
 	mux.Handle("POST /api/v1/auth/login", strict.Limit(http.HandlerFunc(handlers.Login)))
+	mux.Handle("POST /api/v1/auth/demo-login", strict.Limit(http.HandlerFunc(demoLoginHandler(secret, a))))
 	mux.Handle("POST /api/v1/signup", strict.Limit(http.HandlerFunc(handlers.Signup)))
 	mux.Handle("POST /api/v1/tickets/public", strict.Limit(http.HandlerFunc(handlers.TicketPublic)))
 	mux.Handle("POST /api/v1/wa-webhook/{channelID}", strict.Limit(http.HandlerFunc(handlers.Webhook)))
@@ -86,20 +89,22 @@ func main() {
 	mux.Handle("GET /api/v1/roles", tenant("settings.manage_roles", handlers.Roles))
 	mux.Handle("PUT /api/v1/roles/{id}/permissions", tenant("settings.manage_roles", handlers.Roles))
 
-	// Livechat routes
+	// Livechat routes — agent endpoints require auth, visitor session creation is public
 	mux.HandleFunc("GET /ws/livechat", livechat.WebSocketHandler)
-	mux.HandleFunc("GET /api/v1/livechat/queue", livechat.QueueHandler)
-	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}", livechat.SessionHandler)
-	mux.HandleFunc("POST /api/v1/livechat/sessions", livechat.CreateSessionHandler)
+	mux.HandleFunc("POST /api/v1/livechat/sessions", livechat.CreateSessionHandler) // public — visitor creates session
+	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}", livechat.SessionHandler)   // public — visitor/agent read session
 	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}/messages", livechat.MessagesHandler)
 	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/messages", livechat.SendMessageHandler)
-	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/assign", livechat.AssignHandler)
-	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/take", livechat.TakeHandler)
-	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/resolve", livechat.ResolveHandler)
-	mux.HandleFunc("GET /api/v1/livechat/sse", livechat.SSEHandler)
-	mux.HandleFunc("GET /api/v1/livechat/agents", livechat.AgentsHandler)
-	mux.HandleFunc("GET /api/v1/livechat/distribution", livechat.GetDistributionHandler)
-	mux.HandleFunc("POST /api/v1/livechat/distribution", livechat.SetDistributionHandler)
+
+	// Agent-only — require JWT auth + tenant (uses authed middleware)
+	mux.Handle("GET /api/v1/livechat/queue", authed(livechat.QueueHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/assign", authed(livechat.AssignHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", authed(livechat.TakeHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/resolve", authed(livechat.ResolveHandler))
+	mux.Handle("GET /api/v1/livechat/sse", authed(livechat.SSEHandler))
+	mux.Handle("GET /api/v1/livechat/agents", authed(livechat.AgentsHandler))
+	mux.Handle("GET /api/v1/livechat/distribution", authed(livechat.GetDistributionHandler))
+	mux.Handle("POST /api/v1/livechat/distribution", authed(livechat.SetDistributionHandler))
 
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
 	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))
@@ -107,4 +112,77 @@ func main() {
 	addr := ":" + strings.TrimSpace(cfg.Port)
 	fmt.Println("listening on", addr)
 	log.Fatal(http.ListenAndServe(addr, wrapped))
+}
+
+// demoLoginHandler returns a handler that generates a JWT for the demo company + role.
+func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			Role string `json:"role"` // "agent" or "admin"
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			middleware.WriteErr(w, 400, "INVALID_REQUEST", "Invalid request body")
+			return
+		}
+		if in.Role == "" {
+			in.Role = "agent"
+		}
+
+		// Demo company UUID — must match the seeded company in migrations.
+		demoCompanyID := "00000000-0000-0000-0000-000000000001"
+		roleID := "00000000-0000-0000-0000-000000000002" // default role for demo
+
+		// Verify demo company exists
+		var exists bool
+		err := a.Master.QueryRow(r.Context(),
+			`SELECT EXISTS(SELECT 1 FROM companies WHERE id=$1)`,
+			demoCompanyID).Scan(&exists)
+		if err != nil || !exists {
+			middleware.WriteErr(w, 404, "DEMO_NOT_SETUP", "Demo company not found. Run migrations first.")
+			return
+		}
+
+		// Get or create a demo user
+		demoUserID := "00000000-0000-0000-0000-000000000001"
+		_, err = a.Master.Exec(r.Context(),
+			`INSERT INTO users (id, company_id, email, full_name, role_id, status)
+			 VALUES ($1, $2, $3, $4, $5, 'active')
+			 ON CONFLICT (id) DO UPDATE SET status='active', role_id=excluded.role_id`,
+			demoUserID, demoCompanyID, "demo@demo.com",
+			map[string]string{"agent": "Demo Agent", "admin": "Demo Admin"}[in.Role],
+			roleID)
+
+		// Generate JWT access token
+		ttl := 24 * time.Hour
+		access, err := signDemoAccess(secret, demoUserID, demoCompanyID, roleID, ttl)
+		if err != nil {
+			middleware.WriteErr(w, 500, "TOKEN_ERROR", "Failed to generate token")
+			return
+		}
+
+		middleware.WriteOK(w, map[string]any{
+			"access_token": access,
+			"token_type":   "Bearer",
+			"user": map[string]string{
+				"id":    demoUserID,
+				"email": "demo@demo.com",
+				"name":  map[string]string{"agent": "Demo Agent", "admin": "Demo Admin"}[in.Role],
+				"role":  in.Role,
+			},
+			"company_id": demoCompanyID,
+		})
+	}
+}
+
+func signDemoAccess(secret, userID, companyID, roleID string, ttl time.Duration) (string, error) {
+	now := time.Now()
+	claims := jwt.MapClaims{
+		"user_id":    userID,
+		"company_id": companyID,
+		"role_id":    roleID,
+		"iat":        now.Unix(),
+		"exp":        now.Add(ttl).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(secret))
 }

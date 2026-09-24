@@ -2,15 +2,14 @@
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { Search, Send, CheckCircle, Users, ChevronDown } from '@lucide/svelte';
-	import { getToken } from '$lib/api';
+	import { getToken, getCompanyId } from '$lib/api';
 	import { agentStore } from '$lib/livechat/agent-store.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 
-	// ponytail: demo data, replace with real companyId from auth/user context
-	const COMPANY_ID = 'demo-company';
+	const COMPANY_ID = getCompanyId() ?? '00000000-0000-0000-0000-000000000001';
 
 	let search = $state('');
 	let messageInput = $state('');

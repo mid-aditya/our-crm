@@ -4,7 +4,7 @@ import type { VisitorSession } from './api';
 
 const COMPANY_ID = (typeof window !== 'undefined'
 	? (window as any).__LIVECHAT_COMPANY_ID__
-	: null) ?? 'demo-company';
+	: null) ?? '00000000-0000-0000-0000-000000000001';
 
 class LivechatStore {
 	session = $state<VisitorSession | null>(null);
