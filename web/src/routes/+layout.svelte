@@ -2,21 +2,22 @@
 	import '../app.css';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
 	import { theme, resolveTheme } from '$lib/theme.svelte';
 	import { locale } from 'svelte-i18n';
-	import { getToken } from '$lib/api';
+	import { getToken, tokenVersion } from '$lib/api';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Topbar from '$lib/components/layout/Topbar.svelte';
 
 	let { children } = $props();
 
-	// Determine if we're on the public landing page (no dashboard chrome)
-	const isPublic = $derived(
-		page.url.pathname === '/' && !getToken()
-	);
-
 	let sidebarOpen = $state(false);
+
+	// Determine if we're on the public landing page (no dashboard chrome).
+	// Access tokenVersion to re-evaluate when token changes (logout/login).
+	const isPublic = $derived.by(() => {
+		void tokenVersion; // track reactive change
+		return page.url.pathname === '/' && !getToken();
+	});
 
 	// Apply theme
 	$effect(() => {

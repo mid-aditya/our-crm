@@ -11,14 +11,27 @@ export class ApiError extends Error {
 	}
 }
 
+// Token with localStorage sync. Exposed as a plain variable so callers
+// can mutate it directly — no runes needed.
+export let tokenValue: string | null = browser ? localStorage.getItem(TOKEN_KEY) : null;
+
 export function getToken(): string | null {
-	return browser ? localStorage.getItem(TOKEN_KEY) : null;
+	return tokenValue;
 }
 
-export function setToken(token: string | null) {
-	if (!browser) return;
-	if (token) localStorage.setItem(TOKEN_KEY, token);
-	else localStorage.removeItem(TOKEN_KEY);
+	export function setToken(token: string | null) {
+		if (!browser) return;
+		if (token) localStorage.setItem(TOKEN_KEY, token);
+		else localStorage.removeItem(TOKEN_KEY);
+		tokenValue = token;
+		bumpTokenVersion(); // force re-render of $derived in layout
+	}
+
+// Counter incremented on token change — used by components to force re-render
+export let tokenVersion = 0;
+
+export function bumpTokenVersion() {
+	tokenVersion++;
 }
 
 export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
