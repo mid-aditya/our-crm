@@ -29,14 +29,6 @@
 
 	const onlineAgents = $derived(agentStore.agents.length);
 
-	const agentOptions = $derived([
-		{ value: 'take', label: $t('livechat.take') },
-		...agentStore.agents.map((a: typeof agentStore.agents[0]) => ({
-			value: a.id,
-			label: `${a.full_name} (${a.active_sessions})`
-		}))
-	]);
-
 	$effect(() => {
 		if (messagesEl && agentStore.messages.length) {
 			messagesEl.scrollTop = messagesEl.scrollHeight;

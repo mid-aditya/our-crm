@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { t } from 'svelte-i18n';
 	import { ArrowLeft, Settings2, CheckCircle, XCircle, AlertCircle, Phone, MessageCircle, MessageSquare, User, Hash, ShoppingBag, Send } from '@lucide/svelte';
-	import { getCompany, getChannelTypes, getCompanyChannels, enableChannel, disableChannel, saveChannelConfig, type ChannelType, type CompanyChannel, type ChannelDetail } from '$lib/api-channels';
+	import { getCompany, getChannelTypes, getCompanyChannels, enableChannel, disableChannel, saveChannelConfig, getCompanyChannel, type ChannelType, type CompanyChannel, type ChannelDetail } from '$lib/api-channels';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
@@ -87,19 +87,10 @@
 		configValues = {};
 		configLoading = true;
 		try {
-			const detail = await getCompanyChannels().then(channels => {
-				const found = channels.find((c: CompanyChannel) => c.channel_type_id === ch.id);
-				if (!found) return null;
-				return getCompanyChannel(ch.id);
-			});
-			// @ts-ignore
-			if (detail) {
-				channelDetail = await detail;
-				if (channelDetail?.configs?.[0]?.config) {
-					configValues = { ...channelDetail.configs[0].config };
-				}
-			} else {
-				channelDetail = null;
+			const detail = await getCompanyChannel(ch.id);
+			channelDetail = detail;
+			if (channelDetail?.configs?.[0]?.config) {
+				configValues = { ...channelDetail.configs[0].config };
 			}
 		} catch (e: any) {
 			configError = e.message;
@@ -130,7 +121,7 @@
 </script>
 
 <div class="mb-6">
-	<button onclick={() => goto('/dashboard/companies')} class="mb-3 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors">
+	<button onclick={() => goto('/companies')} class="mb-3 inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors">
 		<ArrowLeft size={14} />
 		Semua Companies
 	</button>

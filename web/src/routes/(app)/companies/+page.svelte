@@ -33,7 +33,6 @@
 	}
 
 	$effect(() => {
-		// Reload when search changes
 		void search;
 		load();
 	});
@@ -179,7 +178,7 @@
 									<Button
 										variant="ghost"
 										size="sm"
-										onclick={() => goto(`/dashboard/companies/${company.id}`)}
+										onclick={() => goto(`/companies/${company.id}`)}
 									>
 										<ExternalLink size={14} />
 										Channels

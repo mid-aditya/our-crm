@@ -17,8 +17,8 @@ import type { Component } from 'svelte';
 		icon: Component<any>;
 	}> = [
 		{ href: '/dashboard', key: 'nav.dashboard', icon: LayoutDashboard },
-		{ href: '/dashboard/livechat', key: 'nav.livechat', icon: MessageSquareText },
-		{ href: '/dashboard/companies', key: 'nav.companies', icon: Building2 },
+		{ href: '/livechat', key: 'nav.livechat', icon: MessageSquareText },
+		{ href: '/companies', key: 'nav.companies', icon: Building2 },
 		{ href: '/conversations', key: 'nav.conversations', icon: MessagesSquare },
 		{ href: '/campaigns', key: 'nav.campaigns', icon: Megaphone },
 		{ href: '/tickets', key: 'nav.tickets', icon: Ticket },
