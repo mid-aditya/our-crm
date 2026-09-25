@@ -27,8 +27,8 @@ class AgentLivechatStore {
 		if (!this.companyId) return;
 		try {
 			this.queue = await api.getQueue(this.companyId);
-		} catch {
-			// silent fail, UI will show empty queue
+		} catch (e) {
+			console.warn('livechat queue gagal dimuat:', e);
 		}
 	}
 
@@ -36,8 +36,8 @@ class AgentLivechatStore {
 		if (!this.companyId) return;
 		try {
 			this.agents = await api.getAgents(this.companyId);
-		} catch {
-			// silent fail
+		} catch (e) {
+			console.warn('livechat agents gagal dimuat:', e);
 		}
 	}
 
@@ -56,7 +56,7 @@ class AgentLivechatStore {
 		this.disconnectSSE();
 
 		const source = new EventSource(
-			`/api/v1/livechat/sse?company_id=${this.companyId}`,
+			`/api/v1/livechat/sse?company_id=${this.companyId}&token=${encodeURIComponent(this.token)}`,
 			{ withCredentials: true }
 		);
 

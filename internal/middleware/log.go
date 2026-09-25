@@ -34,3 +34,11 @@ func (s *statusRecorder) WriteHeader(code int) {
 	s.status = code
 	s.ResponseWriter.WriteHeader(code)
 }
+
+// Flush teruskan ke writer asli agar SSE (http.Flusher) tidak rusak.
+// Tanpa ini SSEHandler selalu 500 SSE_NOT_SUPPORTED.
+func (s *statusRecorder) Flush() {
+	if f, ok := s.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}

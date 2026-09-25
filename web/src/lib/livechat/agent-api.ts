@@ -29,7 +29,7 @@ export type Agent = {
 	active_sessions: number;
 };
 
-const BASE = '/api/v1/livechat';
+const BASE = '/livechat';
 
 export async function getQueue(companyId: string): Promise<LivechatSession[]> {
 	return api<LivechatSession[]>(`${BASE}/queue?company_id=${companyId}`);

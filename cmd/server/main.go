@@ -24,6 +24,14 @@ import (
 // agar auto-assign dan GET /livechat/agents menemukan agent.
 // Mengembalikan effective user id (reuse baris by email bila sudah ada).
 func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, email, name, role string) string {
+	// Self-heal: demo company memakai master sebagai tenant pool dan tenant lama
+	// belum tentu punya tabel RBAC/livechat/channel → buat bila belum ada.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS roles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, is_system_role BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS permissions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "key" VARCHAR(128) NOT NULL UNIQUE, description TEXT, module TEXT)`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS role_permissions (role_id UUID NOT NULL, permission_id UUID NOT NULL, PRIMARY KEY (role_id, permission_id))`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_sessions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID, visitor_id VARCHAR(64) NOT NULL, visitor_name VARCHAR(255), visitor_email VARCHAR(255), assigned_agent_id UUID, status VARCHAR(32) NOT NULL DEFAULT 'waiting', last_message TEXT, last_message_at TIMESTAMPTZ, waiting_since TIMESTAMPTZ NOT NULL DEFAULT now(), resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(company_id, visitor_id))`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_messages (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), session_id UUID NOT NULL REFERENCES livechat_sessions(id) ON DELETE CASCADE, direction VARCHAR(16) NOT NULL, sender_id UUID, sender_name VARCHAR(255), body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_distribution (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID UNIQUE, mode VARCHAR(16) NOT NULL DEFAULT 'manual', round_robin_index INT NOT NULL DEFAULT 0, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	permKeys := []string{"livechat.read", "livechat.reply", "livechat.assign", "channels.read"}
 	if role == "admin" {
 		permKeys = append(permKeys, "livechat.manage", "channels.manage")
@@ -53,16 +61,25 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 			_, _ = tpool.Exec(ctx, `insert into role_permissions (role_id, permission_id) values ($1,$2) on conflict do nothing`, tenantRoleID, pid)
 		}
 	}
-	// Satu upsert by email (email UNIQUE di tenant): reuse id yang sudah ada agar
-	// JWT user_id selalu menunjuk baris yang benar.
+	// Upsert skema-agnostik (master: UNIQUE(company_id,email), tenant: UNIQUE(email)):
+	// cari by email dulu, lalu UPDATE atau INSERT by id.
 	var existingID string
-	_ = tpool.QueryRow(ctx, `select id from users where email=$1`, email).Scan(&existingID)
+	_ = tpool.QueryRow(ctx, `select id from users where email=$1 limit 1`, email).Scan(&existingID)
 	effectiveID := userID
 	if existingID != "" {
 		effectiveID = existingID
+		_, _ = tpool.Exec(ctx, `update users set status='active', role_id=$2, full_name=$3, email=$4 where id=$1`, effectiveID, nullUUID(tenantRoleID), name, email)
+	} else {
+		_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'',$3,$4,'active')`, effectiveID, email, name, nullUUID(tenantRoleID))
 	}
-	_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'', $3,$4,'active') on conflict (email) do update set status='active', role_id=excluded.role_id, full_name=excluded.full_name`, effectiveID, email, name, tenantRoleID)
 	return effectiveID
+}
+
+func nullUUID(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func main() {
