@@ -140,3 +140,37 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 			: raw;
 	return data as T;
 }
+
+// apiPage: untuk endpoint paginated (WritePage → {"data": [...], "meta": {...}}).
+// api() biasa akan meng-unwrap hingga array dan meta hilang — helper ini
+// mempertahankan keduanya.
+export async function apiPage<T>(
+	path: string,
+	options: RequestInit = {}
+): Promise<{ data: T; meta: { total: number; limit: number; offset: number } }> {
+	const headers = new Headers(options.headers);
+	if (options.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+	let token: string | null = null;
+	tokenStore.subscribe((v) => (token = v))();
+	if (token) headers.set('Authorization', `Bearer ${token}`);
+
+	const res = await fetch(`${BASE}${path}`, { ...options, headers });
+	const raw = await res.json().catch(() => null);
+
+	if (!res.ok) {
+		const errObj =
+			raw && typeof raw === 'object' && 'error' in raw
+				? (raw as { error: unknown }).error
+				: null;
+		const message =
+			typeof errObj === 'string'
+				? errObj
+				: errObj && typeof errObj === 'object' && 'message' in errObj
+					? String((errObj as { message: unknown }).message)
+					: res.statusText || `Request failed (${res.status})`;
+		throw new ApiError(res.status, message);
+	}
+	const data = (raw as any)?.data ?? [];
+	const meta = (raw as any)?.meta ?? { total: (data as any[]).length ?? 0, limit: 20, offset: 0 };
+	return { data: data as T, meta };
+}

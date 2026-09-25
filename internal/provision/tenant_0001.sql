@@ -44,6 +44,80 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+-- Livechat (per-tenant; company_id dipertahankan agar query existing tetap jalan,
+-- diisi dengan company id saat seed/demo-login).
+CREATE TABLE IF NOT EXISTS livechat_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid,
+  visitor_id varchar(64) NOT NULL,
+  visitor_name varchar(255),
+  visitor_email varchar(255),
+  assigned_agent_id uuid,
+  status varchar(32) NOT NULL DEFAULT 'waiting',
+  last_message text,
+  last_message_at timestamptz,
+  waiting_since timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(visitor_id)
+);
+CREATE INDEX IF NOT EXISTS idx_livechat_sessions_status ON livechat_sessions(status);
+
+CREATE TABLE IF NOT EXISTS livechat_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL REFERENCES livechat_sessions(id) ON DELETE CASCADE,
+  direction varchar(16) NOT NULL,
+  sender_id uuid,
+  sender_name varchar(255),
+  body text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_livechat_messages_session ON livechat_messages(session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS livechat_distribution (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid UNIQUE,
+  mode varchar(16) NOT NULL DEFAULT 'manual',
+  round_robin_index int NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Channels (per-tenant: tanpa company_id; channel_types katalog global di-seed per tenant).
+CREATE TABLE IF NOT EXISTS channel_types (
+  id varchar(32) PRIMARY KEY,
+  name varchar(64) NOT NULL,
+  icon varchar(32) NOT NULL,
+  color varchar(7) NOT NULL,
+  description text,
+  config_schema jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS company_channels (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id uuid,
+  channel_type_id varchar(32) NOT NULL REFERENCES channel_types(id),
+  status varchar(16) NOT NULL DEFAULT 'inactive',
+  enabled_at timestamptz,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(channel_type_id)
+);
+
+CREATE TABLE IF NOT EXISTS channel_configs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_channel_id uuid NOT NULL REFERENCES company_channels(id) ON DELETE CASCADE,
+  config jsonb NOT NULL DEFAULT '{}',
+  webhook_url varchar(512),
+  webhook_secret varchar(256),
+  is_default boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_channel_configs_cc ON channel_configs(company_channel_id);
+
 CREATE TABLE IF NOT EXISTS contacts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   full_name text NOT NULL,

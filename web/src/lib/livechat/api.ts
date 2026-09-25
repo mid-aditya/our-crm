@@ -25,14 +25,23 @@ export async function createSession(
 			body: JSON.stringify({ visitor_id: visitorId, visitor_name: visitorName, visitor_email: visitorEmail })
 		}
 	);
-	if (!res.ok) throw new Error('Failed to create session');
-	return res.json();
+	if (!res.ok) {
+		const raw = await res.json().catch(() => null);
+		const e = (raw as any)?.error;
+		throw new Error(typeof e === 'string' ? e : e?.message || 'Failed to create session');
+	}
+	const raw = await res.json();
+	// Backend Go: envelope {"data": {...}}
+	return ((raw as any)?.data ?? raw) as VisitorSession;
 }
 
 export async function getSessionMessages(sessionId: string): Promise<any[]> {
 	const res = await fetch(`${BASE}/api/v1/livechat/sessions/${sessionId}/messages`);
 	if (!res.ok) return [];
-	return res.json();
+	const raw = await res.json().catch(() => null);
+	// WritePage → {"data": [...], "meta": {...}} ; fallback langsung array
+	const data = (raw as any)?.data ?? raw;
+	return Array.isArray(data) ? data : [];
 }
 
 export function wsUrl(sessionId: string, companyId: string): string {

@@ -280,18 +280,18 @@ func AssignHandler(w http.ResponseWriter, r *http.Request) {
 
 // autoAssignAgent finds the agent with the fewest active chats (round-robin)
 func autoAssignAgent(ctx context.Context, pool *pgxpool.Pool, companyID string, startIndex int) (string, string, error) {
-	// Get all agents with their active chat counts
+	// Skema tenant: users.role_id langsung (tanpa user_roles, tanpa users.company_id —
+	// tenant DB sudah per-company). Sama seperti RBACGuard.
 	rows, err := pool.Query(ctx, `
 		select u.id, u.full_name,
 			   (select count(*) from livechat_sessions ls where ls.assigned_agent_id = u.id and ls.status = 'assigned') as active_chats
 		from users u
-		join user_roles ur on ur.user_id = u.id
-		join roles r on r.id = ur.role_id
+		join roles r on r.id = u.role_id
 		join role_permissions rp on rp.role_id = r.id
 		join permissions p on p.id = rp.permission_id
-		where u.company_id = $1 and u.status = 'active' and p.key = 'livechat.reply'
+		where u.status = 'active' and p.key = 'livechat.reply'
 		order by active_chats asc, u.id asc
-	`, companyID)
+	`)
 	if err != nil {
 		return "", "", err
 	}
@@ -370,17 +370,16 @@ func SSEHandler(w http.ResponseWriter, r *http.Request) {
 func AgentsHandler(w http.ResponseWriter, r *http.Request) {
 	companyID := middleware.Claims(r).CompanyID
 
-	// Get agents from DB
+	// Get agents from DB (skema tenant: users.role_id langsung, tanpa user_roles/company_id)
 	pool := middleware.Tenant(r)
 	rows, err := pool.Query(r.Context(), `
-		select u.id, u.full_name, u.email
+		select distinct u.id, u.full_name, u.email
 		from users u
-		join user_roles ur on ur.user_id = u.id
-		join roles r on r.id = ur.role_id
+		join roles r on r.id = u.role_id
 		join role_permissions rp on rp.role_id = r.id
 		join permissions p on p.id = rp.permission_id
-		where u.company_id = $1 and u.status = 'active' and p.key = 'livechat.reply'
-	`, companyID)
+		where u.status = 'active' and p.key = 'livechat.reply'
+	`)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal mengambil agents")
 		return

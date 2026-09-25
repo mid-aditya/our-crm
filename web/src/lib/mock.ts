@@ -50,7 +50,9 @@ export type Stat = {
 	spark: number[];
 };
 
-export const currentUser = { name: 'Galih Saputra', role: 'Owner' };
+// Catatan: user sesi berasal dari backend via userStore ($lib/api) —
+// konstanta mock di bawah hanya untuk data contoh tampilan.
+export const mockUser = { name: 'Demo', role: 'agent' };
 
 export const mockContacts: Contact[] = [
 	{ id: 'c1', name: 'Rina Kusuma', phone: '+62 812-3456-7890', email: 'rina@tokokita.id', group: 'customer', lastChat: '2026-09-22' },

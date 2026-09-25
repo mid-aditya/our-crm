@@ -60,7 +60,7 @@
 		</nav>
 		<div class="flex items-center gap-3">
 			<Button variant="ghost" onclick={() => goto('/login')}>Masuk</Button>
-			<Button onclick={() => goto('/signup')}>Daftar Gratis</Button>
+			<Button onclick={() => goto('/login')}>Daftar Gratis</Button>
 		</div>
 	</div>
 </header>
@@ -89,11 +89,11 @@
 					Kelola WhatsApp, Live Chat, Facebook, Instagram, LINE, dan Telegram dari satu inbox. Kirim blast campaign, distribute ke agen, dan pantau laporan — semua real-time.
 				</p>
 				<div class="mt-8 flex flex-wrap items-center gap-4">
-					<Button size="lg" onclick={() => goto('/signup')}>
+					<Button size="lg" onclick={() => goto('/login')}>
 						Mulai Gratis
 						<MessageSquare size={18} />
 					</Button>
-					<Button size="lg" variant="outline" onclick={() => goto('/dashboard')}>
+					<Button size="lg" variant="outline" onclick={() => goto('/login')}>
 						Lihat Demo
 					</Button>
 				</div>
@@ -261,8 +261,8 @@
 			<h2 class="font-display text-3xl font-bold text-neon-text md:text-4xl">Siap tingkatkan<br />customer experience?</h2>
 			<p class="mt-4 text-muted">Mulai gratis sekarang. Tidak perlu kartu kredit. Setup dalam 5 menit.</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-4">
-				<Button size="lg" onclick={() => goto('/signup')}>Daftar Gratis Sekarang</Button>
-				<Button size="lg" variant="outline" onclick={() => goto('/dashboard')}>Masuk</Button>
+				<Button size="lg" onclick={() => goto('/login')}>Daftar Gratis Sekarang</Button>
+				<Button size="lg" variant="outline" onclick={() => goto('/login')}>Masuk</Button>
 			</div>
 		</div>
 	</div>

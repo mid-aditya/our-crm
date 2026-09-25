@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -15,8 +16,54 @@ import (
 	"crm-backend/internal/middleware"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 )
+
+// ensureDemoTenantUser membuat user + role + permission livechat di tenant DB
+// agar auto-assign dan GET /livechat/agents menemukan agent.
+// Mengembalikan effective user id (reuse baris by email bila sudah ada).
+func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, email, name, role string) string {
+	permKeys := []string{"livechat.read", "livechat.reply", "livechat.assign", "channels.read"}
+	if role == "admin" {
+		permKeys = append(permKeys, "livechat.manage", "channels.manage")
+	}
+	permIDs := make([]string, 0, len(permKeys))
+	for _, k := range permKeys {
+		var pid string
+		_ = tpool.QueryRow(ctx, `insert into permissions ("key", module) values ($1,'livechat') on conflict ("key") do update set "key"=excluded."key" returning id`, k).Scan(&pid)
+		if pid == "" {
+			_ = tpool.QueryRow(ctx, `select id from permissions where "key"=$1`, k).Scan(&pid)
+		}
+		if pid != "" {
+			permIDs = append(permIDs, pid)
+		}
+	}
+	roleName := map[string]string{"agent": "Agent", "admin": "Admin"}[role]
+	if roleName == "" {
+		roleName = "Agent"
+	}
+	var tenantRoleID string
+	_ = tpool.QueryRow(ctx, `select id from roles where name=$1 limit 1`, roleName).Scan(&tenantRoleID)
+	if tenantRoleID == "" {
+		_ = tpool.QueryRow(ctx, `insert into roles (name) values ($1) returning id`, roleName).Scan(&tenantRoleID)
+	}
+	for _, pid := range permIDs {
+		if tenantRoleID != "" {
+			_, _ = tpool.Exec(ctx, `insert into role_permissions (role_id, permission_id) values ($1,$2) on conflict do nothing`, tenantRoleID, pid)
+		}
+	}
+	// Satu upsert by email (email UNIQUE di tenant): reuse id yang sudah ada agar
+	// JWT user_id selalu menunjuk baris yang benar.
+	var existingID string
+	_ = tpool.QueryRow(ctx, `select id from users where email=$1`, email).Scan(&existingID)
+	effectiveID := userID
+	if existingID != "" {
+		effectiveID = existingID
+	}
+	_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'', $3,$4,'active') on conflict (email) do update set status='active', role_id=excluded.role_id, full_name=excluded.full_name`, effectiveID, email, name, tenantRoleID)
+	return effectiveID
+}
 
 func main() {
 	_ = godotenv.Load()
@@ -30,7 +77,6 @@ func main() {
 	mux := http.NewServeMux()
 	secret := cfg.JWTAccessSecret
 	auth := func(h http.Handler) http.Handler { return middleware.Authenticate(secret, h) }
-	authed := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
 	adminAuth := func(h http.HandlerFunc) http.Handler { return middleware.Chain(h, auth, middleware.TenantResolver) }
 	tenant := func(perm string, h http.HandlerFunc) http.Handler {
 		return middleware.Chain(h, auth, middleware.TenantResolver, func(next http.Handler) http.Handler {
@@ -48,16 +94,16 @@ func main() {
 	mux.Handle("POST /api/v1/signup", strict.Limit(http.HandlerFunc(handlers.Signup)))
 	mux.Handle("POST /api/v1/tickets/public", strict.Limit(http.HandlerFunc(handlers.TicketPublic)))
 	mux.Handle("POST /api/v1/wa-webhook/{channelID}", strict.Limit(http.HandlerFunc(handlers.Webhook)))
-	mux.HandleFunc("POST /api/v1/auth/refresh", handlers.Refresh)
-	mux.HandleFunc("POST /api/v1/auth/logout", handlers.Logout)
-	mux.HandleFunc("POST /api/v1/auth/switch-company", handlers.SwitchCompany)
+	mux.Handle("POST /api/v1/auth/refresh", strict.Limit(http.HandlerFunc(handlers.Refresh)))
+	mux.Handle("POST /api/v1/auth/logout", strict.Limit(http.HandlerFunc(handlers.Logout)))
+	mux.Handle("POST /api/v1/auth/switch-company", strict.Limit(http.HandlerFunc(handlers.SwitchCompany)))
 
 	mux.Handle("GET /api/v1/wa-channels", tenant("conversations.manage_channels", handlers.Channels))
 	mux.Handle("POST /api/v1/wa-channels", tenant("conversations.manage_channels", handlers.Channels))
 
 	mux.Handle("GET /api/v1/conversations", tenant("conversations.read", handlers.Conversations))
 	mux.Handle("POST /api/v1/conversations", tenant("conversations.reply", handlers.Conversations))
-	mux.Handle("GET /api/v1/conversations/{id}/messages", authed(handlers.ConversationMessages))
+	mux.Handle("GET /api/v1/conversations/{id}/messages", tenant("conversations.read", handlers.ConversationMessages))
 	mux.Handle("POST /api/v1/conversations/{id}/reply", tenant("conversations.reply", handlers.ConversationReply))
 	mux.Handle("PATCH /api/v1/conversations/{id}", tenant("conversations.assign", handlers.ConversationPatch))
 
@@ -97,15 +143,15 @@ func main() {
 	mux.HandleFunc("GET /api/v1/livechat/sessions/{id}/messages", livechat.MessagesHandler)
 	mux.HandleFunc("POST /api/v1/livechat/sessions/{id}/messages", livechat.SendMessageHandler)
 
-	// Agent-only — require JWT auth + tenant (uses authed middleware)
-	mux.Handle("GET /api/v1/livechat/queue", authed(livechat.QueueHandler))
-	mux.Handle("POST /api/v1/livechat/sessions/{id}/assign", authed(livechat.AssignHandler))
-	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", authed(livechat.TakeHandler))
-	mux.Handle("POST /api/v1/livechat/sessions/{id}/resolve", authed(livechat.ResolveHandler))
-	mux.Handle("GET /api/v1/livechat/sse", authed(livechat.SSEHandler))
-	mux.Handle("GET /api/v1/livechat/agents", authed(livechat.AgentsHandler))
-	mux.Handle("GET /api/v1/livechat/distribution", authed(livechat.GetDistributionHandler))
-	mux.Handle("POST /api/v1/livechat/distribution", authed(livechat.SetDistributionHandler))
+	// Agent-only — JWT + tenant + RBAC livechat
+	mux.Handle("GET /api/v1/livechat/queue", tenant("livechat.read", livechat.QueueHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/assign", tenant("livechat.assign", livechat.AssignHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", tenant("livechat.reply", livechat.TakeHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/resolve", tenant("livechat.assign", livechat.ResolveHandler))
+	mux.Handle("GET /api/v1/livechat/sse", tenant("livechat.read", livechat.SSEHandler))
+	mux.Handle("GET /api/v1/livechat/agents", tenant("livechat.read", livechat.AgentsHandler))
+	mux.Handle("GET /api/v1/livechat/distribution", tenant("livechat.read", livechat.GetDistributionHandler))
+	mux.Handle("POST /api/v1/livechat/distribution", tenant("livechat.manage", livechat.SetDistributionHandler))
 
 	// Channel management (company tenant level)
 	mux.Handle("GET /api/v1/channel-types", tenant("channels.read", handlers.ChannelTypes))
@@ -180,9 +226,17 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 			 ON CONFLICT (id) DO UPDATE SET status='active', role_id=excluded.role_id, full_name=excluded.full_name, email=excluded.email`,
 			demoUserID, demoCompanyID, demoEmail, demoName, roleID)
 
+		// Mirror ke tenant DB: auto-assign & daftar agent baca dari tenant pool,
+		// sedangkan demo-login sebelumnya hanya menulis ke master → agent selalu kosong.
+		// JWT memakai effective id dari tenant agar RBACGuard menemukan user.
+		effectiveID := demoUserID
+		if tpool, terr := a.TenantPool(r.Context(), demoCompanyID); terr == nil && tpool != nil {
+			effectiveID = ensureDemoTenantUser(r.Context(), tpool, demoUserID, demoEmail, demoName, in.Role)
+		}
+
 		// Generate JWT access token
 		ttl := 24 * time.Hour
-		access, err := signDemoAccess(secret, demoUserID, demoCompanyID, roleID, in.Role, ttl)
+		access, err := signDemoAccess(secret, effectiveID, demoCompanyID, roleID, in.Role, ttl)
 		if err != nil {
 			middleware.WriteErr(w, 500, "TOKEN_ERROR", "Failed to generate token")
 			return
@@ -192,7 +246,7 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 			"access_token": access,
 			"token_type":   "Bearer",
 			"user": map[string]string{
-				"id":    demoUserID,
+				"id":    effectiveID,
 				"email": demoEmail,
 				"name":  demoName,
 				"role":  in.Role,

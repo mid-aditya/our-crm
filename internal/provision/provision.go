@@ -29,6 +29,9 @@ var defaultPerms = [][3]string{
 	{"campaigns.launch", "Luncurkan blasting", "campaigns"}, {"campaigns.delete", "Hapus campaign", "campaigns"},
 	{"tickets.create", "Buat tiket", "tickets"}, {"tickets.read", "Lihat tiket", "tickets"},
 	{"tickets.update", "Ubah & balas tiket", "tickets"}, {"tickets.delete", "Hapus tiket", "tickets"},
+	{"channels.read", "Lihat channel", "channels"}, {"channels.manage", "Kelola channel", "channels"},
+	{"livechat.read", "Lihat livechat", "livechat"}, {"livechat.reply", "Balas livechat", "livechat"},
+	{"livechat.assign", "Assign livechat", "livechat"}, {"livechat.manage", "Kelola livechat", "livechat"},
 	{"reports.view", "Lihat laporan", "reports"}, {"reports.export", "Export laporan", "reports"},
 	{"settings.manage_roles", "Kelola role & permission", "settings"}, {"settings.manage_billing", "Kelola billing", "settings"},
 }
@@ -39,6 +42,7 @@ var memberPerms = []string{
 	"activities.create", "activities.read", "activities.update",
 	"conversations.read", "conversations.reply", "campaigns.read",
 	"tickets.create", "tickets.read", "tickets.update", "reports.view",
+	"livechat.read", "livechat.reply", "channels.read",
 }
 
 var _ = embed.FS{}
@@ -163,7 +167,28 @@ func seedTenant(ctx context.Context, tpool *pgxpool.Pool, in SignupInput) (strin
 	}
 	var ownerID string
 	err = tpool.QueryRow(ctx, `insert into users (email, password_hash, full_name, role_id, status) values ($1,$2,$3,$4,'active') returning id`, in.OwnerEmail, hash, in.OwnerName, ownerRole).Scan(&ownerID)
-	return ownerID, err
+	if err != nil {
+		return "", err
+	}
+	seedChannelTypes(ctx, tpool)
+	return ownerID, nil
+}
+
+// seedChannelTypes mengisi katalog channel global ke tenant baru.
+func seedChannelTypes(ctx context.Context, tpool *pgxpool.Pool) {
+	types := [][6]string{
+		{"wa_official", "WhatsApp Official", "Phone", "#25D366", "WhatsApp via Meta Business API (Cloud-hosted).", "{}"},
+		{"wa_unofficial", "WhatsApp Unofficial", "MessageCircle", "#128C7E", "WhatsApp via third-party gateway.", "{}"},
+		{"livechat", "Live Chat (Web)", "MessageSquare", "#6366F1", "Live chat widget di website.", "{}"},
+		{"facebook", "Facebook Messenger", "MessageCircle", "#1877F2", "Facebook Page Messenger.", "{}"},
+		{"instagram", "Instagram DM", "User", "#E1306C", "Instagram Direct Message.", "{}"},
+		{"line", "LINE Messaging", "Hash", "#00B900", "LINE Messaging API.", "{}"},
+		{"shopee", "Shopee Chat", "ShoppingBag", "#EE4D2D", "Shopee Open Platform API.", "{}"},
+		{"telegram", "Telegram Bot", "Send", "#0088CC", "Telegram Bot via @BotFather.", "{}"},
+	}
+	for _, t := range types {
+		_, _ = tpool.Exec(ctx, `insert into channel_types (id, name, icon, color, description, config_schema) values ($1,$2,$3,$4,$5,$6::jsonb) on conflict (id) do nothing`, t[0], t[1], t[2], t[3], t[4], t[5])
+	}
 }
 
 func insertCompany(ctx context.Context, master *pgxpool.Pool, in SignupInput, host string, port int, dbName, dbUser, enc string, out *string) error {
