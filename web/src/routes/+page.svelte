@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { t } from 'svelte-i18n';
+	import { t, locale as currentLocale } from 'svelte-i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Widget from '$lib/livechat/Widget.svelte';
+	import idMsgs from '$lib/i18n/id.json';
+	import enMsgs from '$lib/i18n/en.json';
 	import {
 		Bot,
 		Hash,
@@ -38,6 +40,12 @@
 	];
 
 	const testiIdx = [0, 1, 2];
+
+	// Teks list (fitur & testimoni) diambil langsung dari kamus sesuai locale —
+	// reaktif terhadap ganti bahasa, tanpa path dinamis.
+	const L = $derived(
+		($currentLocale ?? 'id').startsWith('en') ? enMsgs.landing : idMsgs.landing
+	);
 </script>
 
 <Widget />
@@ -195,8 +203,8 @@
 					<div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-neon-soft text-neon-text">
 						<svelte:component this={f.icon} size={20} />
 					</div>
-					<h3 class="font-display text-base font-semibold">{$t(`landing.feat.${i}.title`)}</h3>
-					<p class="mt-2 text-sm text-muted leading-relaxed">{$t(`landing.feat.${i}.desc`)}</p>
+					<h3 class="font-display text-base font-semibold">{L.feat[i].title}</h3>
+					<p class="mt-2 text-sm text-muted leading-relaxed">{L.feat[i].desc}</p>
 				</div>
 			{/each}
 		</div>
@@ -237,12 +245,12 @@
 					<div class="mb-4 flex gap-1">
 						{#each [1,2,3,4,5] as _}<Star size={14} class="fill-neon text-neon" />{/each}
 					</div>
-					<blockquote class="text-sm text-muted leading-relaxed">"{$t(`landing.testi.${i}.quote`)}"</blockquote>
+					<blockquote class="text-sm text-muted leading-relaxed">"{L.testi[i].quote}"</blockquote>
 					<div class="mt-4 flex items-center gap-3">
-						<div class="flex size-9 items-center justify-center rounded-full bg-neon-soft font-semibold text-neon-text">{($t(`landing.testi.${i}.name`) as string)[0]}</div>
+						<div class="flex size-9 items-center justify-center rounded-full bg-neon-soft font-semibold text-neon-text">{L.testi[i].name[0]}</div>
 						<div>
-							<p class="text-sm font-medium">{$t(`landing.testi.${i}.name`)}</p>
-							<p class="text-xs text-faint">{$t(`landing.testi.${i}.role`)}</p>
+							<p class="text-sm font-medium">{L.testi[i].name}</p>
+							<p class="text-xs text-faint">{L.testi[i].role}</p>
 						</div>
 					</div>
 				</div>

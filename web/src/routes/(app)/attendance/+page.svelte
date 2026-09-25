@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
+	import { type DateValue } from '@internationalized/date';
 	import { getUser } from '$lib/api';
 	import {
 		getMyAttendance,
@@ -20,6 +21,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
+	import DatePicker from '$lib/components/ui/DatePicker.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
 	import { cn } from '$lib/utils';
@@ -37,6 +39,29 @@
 	let leaveForm = $state({ leave_type_id: '', start_date: '', end_date: '', reason: '' });
 	let newTypeName = $state('');
 	let busy = $state(false);
+
+	// DatePicker (bits-ui, styled) <-> string ISO untuk API.
+	let startDV = $state<DateValue | undefined>(undefined);
+	let endDV = $state<DateValue | undefined>(undefined);
+	let teamDV = $state<DateValue | undefined>(undefined);
+
+	function dvToISO(v: DateValue | undefined): string {
+		return v ? v.toString().slice(0, 10) : '';
+	}
+
+	$effect(() => {
+		leaveForm.start_date = dvToISO(startDV);
+	});
+	$effect(() => {
+		leaveForm.end_date = dvToISO(endDV);
+	});
+	$effect(() => {
+		const iso = dvToISO(teamDV);
+		if (iso && iso !== teamDate) {
+			teamDate = iso;
+			void loadTeam();
+		}
+	});
 
 	const today = $derived(new Date().toISOString().slice(0, 10));
 	const todayRow = $derived(mine.find((r) => r.date === today));
@@ -92,6 +117,8 @@
 		try {
 			await requestLeave(leaveForm);
 			leaveForm = { leave_type_id: '', start_date: '', end_date: '', reason: '' };
+			startDV = undefined;
+			endDV = undefined;
 			await loadMyLeaves();
 		} finally { busy = false; }
 	}
@@ -151,7 +178,7 @@
 					<div class="flex items-center justify-between rounded-md bg-raised px-3 py-1.5 text-xs">
 						<span class="font-medium">{r.date}</span>
 						<span class="text-muted">{fmtTime(r.check_in)} → {fmtTime(r.check_out)}</span>
-						<Badge variant="neutral">{r.status}</Badge>
+						<Badge variant={r.status === 'present' ? 'success' : 'warn'}>{r.status}</Badge>
 					</div>
 				{:else}
 					<p class="py-4 text-center text-xs text-muted">{$t('attendance.noAttendance')}</p>
@@ -161,7 +188,7 @@
 		{#if canSupervise}
 			<Card title={$t('attendance.team')}>
 				{#snippet actions()}
-					<Input type="date" bind:value={teamDate} class="w-40" />
+					<DatePicker bind:value={teamDV} placeholder={teamDate} class="w-44" />
 					<Button size="sm" variant="outline" onclick={loadTeam}>{$t('attendance.view')}</Button>
 				{/snippet}
 				<div class="space-y-1">
@@ -169,7 +196,7 @@
 						<div class="flex items-center justify-between rounded-md bg-raised px-3 py-1.5 text-xs">
 							<span class="font-medium">{r.full_name}</span>
 							<span class="text-muted">{r.date} • {fmtTime(r.check_in)} → {fmtTime(r.check_out)}</span>
-							<Badge variant="neutral">{r.status}</Badge>
+							<Badge variant={r.status === 'present' ? 'success' : 'warn'}>{r.status}</Badge>
 						</div>
 					{:else}
 						<p class="py-4 text-center text-xs text-muted">{$t('attendance.noData')}</p>
@@ -189,8 +216,8 @@
 					options={leaveTypes.map((t) => ({ value: t.id, label: t.name }))}
 				/>
 				<div class="grid grid-cols-2 gap-2">
-					<Input type="date" bind:value={leaveForm.start_date} aria-label={$t('attendance.view')} />
-					<Input type="date" bind:value={leaveForm.end_date} aria-label={$t('attendance.view')} />
+					<DatePicker bind:value={startDV} placeholder={$t('attendance.startDate')} />
+					<DatePicker bind:value={endDV} placeholder={$t('attendance.endDate')} />
 				</div>
 				<textarea
 					bind:value={leaveForm.reason}

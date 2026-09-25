@@ -4,12 +4,19 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { beforeNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import { getToken, clearSession, ensureUserFromToken } from '$lib/api';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Topbar from '$lib/components/layout/Topbar.svelte';
+	import { cn } from '$lib/utils';
 
 	let { children } = $props();
 	let sidebarOpen = $state(false);
+
+	// Halaman kerja lebar (percakapan, kanban) mengisi ruang kosong.
+	const wide = $derived(
+		page.url.pathname.startsWith('/conversations') || page.url.pathname.startsWith('/kanban')
+	);
 
 	// Auth guard: semua route di grup (app) adalah protected.
 	// Cukup cek token — tidak perlu whitelist per-path (dulu hanya 3 route,
@@ -38,7 +45,7 @@
 	<Sidebar bind:open={sidebarOpen} />
 	<div class="flex min-w-0 flex-1 flex-col">
 		<Topbar onMenu={() => (sidebarOpen = true)} />
-		<main class="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8">
+		<main class={cn('mx-auto w-full flex-1 px-4 py-6 md:px-8', wide ? 'max-w-none' : 'max-w-6xl')}>
 			{@render children()}
 		</main>
 	</div>

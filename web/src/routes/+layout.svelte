@@ -1,5 +1,8 @@
 <script lang="ts">
 	import '../app.css';
+	// Penting: init i18n (addMessages + initial locale) SEBELUM route mana pun
+	// me-render $t — tanpanya halaman tanpa chrome (landing) crash saat format.
+	import '$lib/i18n';
 	import { browser } from '$app/environment';
 	import { theme, resolveTheme } from '$lib/theme.svelte';
 	import { locale } from 'svelte-i18n';

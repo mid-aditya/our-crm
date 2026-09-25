@@ -399,6 +399,8 @@
 		"noData": "Tidak ada data.",
 		"requestTitle": "Ajukan cuti / izin",
 		"leaveTypePh": "Jenis cuti/izin…",
+		"startDate": "Tanggal mulai",
+		"endDate": "Tanggal selesai",
 		"reasonPh": "Alasan…",
 		"submit": "Kirim pengajuan",
 		"myRequests": "Pengajuan saya",

@@ -44,8 +44,8 @@
 		aria-label={rest['aria-label'] ?? label}
 		onchange={handleChange}
 		class={cn(
-			'w-full appearance-none rounded-lg border border-line bg-surface px-3 py-2 pr-9 text-sm text-ink',
-			'transition-colors hover:border-line-strong focus:border-neon focus:outline-none focus:ring-2 focus:ring-neon/20',
+			'w-full appearance-none rounded-xl border border-line bg-surface px-3 py-2 pr-9 text-sm text-ink shadow-sm',
+			'transition-all hover:border-line-strong hover:shadow focus:border-neon focus:outline-none focus:ring-2 focus:ring-neon/25 focus:shadow-[0_0_12px_var(--neon-glow)]',
 			'disabled:cursor-not-allowed disabled:opacity-50',
 			!value && 'text-faint'
 		)}
@@ -55,10 +55,9 @@
 			<option value={opt.value}>{opt.label}</option>
 		{/each}
 	</select>
-	<ChevronDown
-		size={15}
-		class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted"
-	/>
+	<span class="pointer-events-none absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-raised text-muted">
+		<ChevronDown size={14} />
+	</span>
 </div>
 
 <style>

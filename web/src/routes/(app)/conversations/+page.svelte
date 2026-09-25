@@ -15,9 +15,7 @@
 		type LivechatSession,
 		type ChatTab
 	} from '$lib/livechat/agent-api';
-	import { getMyPresence, setMyPresence } from '$lib/team/api';
-	import { getTicketFields, type TicketField } from '$lib/team/api';
-	import {
+	import { getTicketFields, type TicketField } from '$lib/team/api';	import {
 		getConversations,
 		getConvMessages,
 		replyConversation,
@@ -67,8 +65,7 @@
 	let activeItem = $derived(items.find((i) => i.id === activeId) ?? null);
 	let chatTab = $state<ChatTab | 'all'>('all');
 
-	// status aux + mode distribusi (dipindah dari menu livechat lama)
-	let presence = $state('offline');
+	// status aux global ada di header; di sini hanya mode distribusi
 	let distributionMode = $state<'manual' | 'auto'>('manual');
 
 	type Msg = { id: string; direction: string; body: string; sender?: string | null; created_at: string };
@@ -131,22 +128,11 @@
 			ticketFields = [];
 		}
 		try {
-			const p = await getMyPresence();
-			presence = p.status;
-		} catch { /* abaikan */ }
-		try {
 			const d = await getDistribution(COMPANY_ID);
 			distributionMode = d.mode;
 		} catch { /* abaikan */ }
 		await loadList();
 	});
-
-	async function changePresence(status: string) {
-		presence = status;
-		try {
-			await setMyPresence(status);
-		} catch { /* abaikan */ }
-	}
 
 	async function changeDistribution(mode: 'manual' | 'auto') {
 		try {
@@ -431,20 +417,8 @@
 				{ch.name}
 			</button>
 		{/each}
-		<!-- Status aux + distribusi (dari menu livechat lama) -->
+		<!-- Distribusi (status aux ada di header global) -->
 		<div class="ml-auto flex shrink-0 items-center gap-1.5">
-			<Select
-				value={presence}
-				aria-label={$t('team.presenceTitle')}
-				class="w-28"
-				options={[
-					{ value: 'online', label: $t('team.presence.online') },
-					{ value: 'aux', label: $t('team.presence.aux') },
-					{ value: 'break', label: $t('team.presence.break') },
-					{ value: 'offline', label: $t('team.presence.offline') }
-				]}
-				onchange={(v) => v && changePresence(v)}
-			/>
 			<div class="grid grid-cols-2 gap-1 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label={$t('team.distribution')}>
 				<button
 					type="button"

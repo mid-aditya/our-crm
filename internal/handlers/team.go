@@ -300,7 +300,9 @@ func AttendanceList(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.Claims(r).UserID
 	if r.URL.Query().Get("all") == "1" {
 		date := r.URL.Query().Get("date")
-		q := `select a.user_id, u.full_name, a.date::text, a.check_in, a.check_out, a.status from attendance a join users u on u.id=a.user_id`
+		q := `select a.user_id, u.full_name, a.date::text, a.check_in, a.check_out, a.status,
+			(select lt.name from leave_requests lr join leave_types lt on lt.id=lr.leave_type_id where lr.user_id=a.user_id and lr.status='approved' and a.date between lr.start_date and lr.end_date limit 1)
+			from attendance a join users u on u.id=a.user_id`
 		var r2 pgx.Rows
 		var err error
 		if date != "" {
@@ -316,7 +318,9 @@ func AttendanceList(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteJSON(w, 200, scanAttendance(r2))
 		return
 	}
-	r2, err := pool.Query(r.Context(), `select user_id, date::text, check_in, check_out, status from attendance where user_id=$1 order by date desc limit 31`, uid)
+	r2, err := pool.Query(r.Context(), `select user_id, date::text, check_in, check_out, status,
+		(select lt.name from leave_requests lr join leave_types lt on lt.id=lr.leave_type_id where lr.user_id=attendance.user_id and lr.status='approved' and attendance.date between lr.start_date and lr.end_date limit 1)
+		from attendance where user_id=$1 order by date desc limit 31`, uid)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal memuat")
 		return
@@ -326,8 +330,12 @@ func AttendanceList(w http.ResponseWriter, r *http.Request) {
 	for r2.Next() {
 		var uid2, date, status string
 		var in, out2 *time.Time
-		_ = r2.Scan(&uid2, &date, &in, &out2, &status)
-		out = append(out, map[string]any{"date": date, "check_in": in, "check_out": out2, "status": status})
+		var leave *string
+		_ = r2.Scan(&uid2, &date, &in, &out2, &status, &leave)
+		if leave != nil && *leave != "" {
+			status = *leave
+		}
+		out = append(out, map[string]any{"date": date, "check_in": in, "check_out": out2, "status": status, "leave": leave})
 	}
 	middleware.WriteJSON(w, 200, out)
 }
@@ -337,8 +345,13 @@ func scanAttendance(r2 pgx.Rows) []map[string]any {
 	for r2.Next() {
 		var uid, name, date, status string
 		var in, out2 *time.Time
-		_ = r2.Scan(&uid, &name, &date, &in, &out2, &status)
-		out = append(out, map[string]any{"user_id": uid, "full_name": name, "date": date, "check_in": in, "check_out": out2, "status": status})
+		var leave *string
+		_ = r2.Scan(&uid, &name, &date, &in, &out2, &status, &leave)
+		// Sakit/izin/cuti yang di-approve menutupi hari itu.
+		if leave != nil && *leave != "" {
+			status = *leave
+		}
+		out = append(out, map[string]any{"user_id": uid, "full_name": name, "date": date, "check_in": in, "check_out": out2, "status": status, "leave": leave})
 	}
 	return out
 }

@@ -400,6 +400,8 @@
 		"noData": "No data.",
 		"requestTitle": "Request leave",
 		"leaveTypePh": "Leave type…",
+		"startDate": "Start date",
+		"endDate": "End date",
 		"reasonPh": "Reason…",
 		"submit": "Submit request",
 		"myRequests": "My requests",
