@@ -17,7 +17,8 @@
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { mockConversations, mockChannels, mockStats, currentUser, type Stat } from '$lib/mock';
+	import { mockConversations, mockChannels, mockStats, type Stat } from '$lib/mock';
+	import { userStore } from '$lib/api';
 	import { bcp } from '$lib/i18n';
 	import { initials } from '$lib/utils';
 
@@ -51,7 +52,7 @@
 <div class="mb-5 flex flex-wrap items-end justify-between gap-3">
 	<div class="min-w-0">
 		<h2 class="font-display text-xl font-semibold tracking-tight md:text-2xl">
-			{$t(greetingKey)}, {currentUser.name.split(' ')[0]}
+			{$t(greetingKey)}, {($userStore?.name ?? '').split(' ')[0] || '—'}
 		</h2>
 		<p class="mt-1 text-sm text-muted">{today} — {$t('dashboard.subtitle')}</p>
 	</div>

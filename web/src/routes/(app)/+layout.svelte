@@ -4,41 +4,31 @@
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { beforeNavigate } from '$app/navigation';
-	import { page } from '$app/state';
-	import { getToken, setToken, setCompanyId } from '$lib/api';
+	import { getToken, clearSession, ensureUserFromToken } from '$lib/api';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Topbar from '$lib/components/layout/Topbar.svelte';
 
 	let { children } = $props();
 	let sidebarOpen = $state(false);
 
-	// Auth guard: redirect to /login if no token AND on a protected route.
-	// Only guards routes that start with /dashboard, /companies, /livechat.
+	// Auth guard: semua route di grup (app) adalah protected.
+	// Cukup cek token — tidak perlu whitelist per-path (dulu hanya 3 route,
+	// sehingga /tickets, /contacts, dll lolos tanpa login & tanpa chrome).
 	$effect(() => {
 		if (!browser) return;
 		const token = getToken();
-		const pathname = page.url.pathname;
-		const onProtectedRoute =
-			pathname.startsWith('/dashboard') ||
-			pathname.startsWith('/companies') ||
-			pathname.startsWith('/livechat');
-		if (!token && onProtectedRoute) {
+		if (!token) {
 			goto('/login');
+		} else {
+			ensureUserFromToken();
 		}
 	});
 
 	// Logout: clear token BEFORE navigating away to prevent sidebar flash.
 	// The root layout has no chrome, so clearing here ensures clean transition.
 	beforeNavigate((navigation) => {
-		if (
-			browser &&
-			navigation.to?.url.pathname === '/' &&
-			!navigation.to?.url.pathname.startsWith('/dashboard') &&
-			!navigation.to?.url.pathname.startsWith('/companies') &&
-			!navigation.to?.url.pathname.startsWith('/livechat')
-		) {
-			setToken(null);
-			setCompanyId(null);
+		if (browser && navigation.to?.url.pathname === '/') {
+			clearSession();
 		}
 	});
 </script>

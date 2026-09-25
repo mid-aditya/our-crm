@@ -4,6 +4,9 @@ import { writable } from 'svelte/store';
 const BASE = '/api/v1';
 const TOKEN_KEY = 'crm.token';
 const COMPANY_KEY = 'crm.company_id';
+const USER_KEY = 'crm.user';
+
+export type SessionUser = { id: string; email: string; name: string; role: string };
 
 export class ApiError extends Error {
 	status: number;
@@ -22,6 +25,63 @@ export const tokenStore = writable<string | null>(
 export const companyIdStore = writable<string | null>(
 	browser ? localStorage.getItem(COMPANY_KEY) : null
 );
+
+function readStoredUser(): SessionUser | null {
+	if (!browser) return null;
+	try {
+		const raw = localStorage.getItem(USER_KEY);
+		return raw ? (JSON.parse(raw) as SessionUser) : null;
+	} catch {
+		return null;
+	}
+}
+
+// Reactive user store — diisi saat login dari respons backend,
+// bukan dari mock, agar role agent/admin tampil sesuai pilihan login.
+export const userStore = writable<SessionUser | null>(readStoredUser());
+
+export function getUser(): SessionUser | null {
+	let val: SessionUser | null = null;
+	userStore.subscribe((v) => (val = v))();
+	return val;
+}
+
+export function setUser(user: SessionUser | null) {
+	if (!browser) return;
+	if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
+	else localStorage.removeItem(USER_KEY);
+	userStore.set(user);
+}
+
+export function clearSession() {
+	setToken(null);
+	setCompanyId(null);
+	setUser(null);
+}
+
+// Fallback untuk sesi lama (token tersimpan sebelum user disimpan):
+// ambil role/user_id dari payload JWT tanpa verifikasi signature,
+// hanya untuk label UI — otoritas tetap di backend.
+export function ensureUserFromToken(): SessionUser | null {
+	const existing = getUser();
+	if (existing) return existing;
+	const token = getToken();
+	if (!token) return null;
+	try {
+		const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+		const role = typeof payload?.role === 'string' ? payload.role : 'agent';
+		const fallback: SessionUser = {
+			id: String(payload?.user_id ?? ''),
+			email: '',
+			name: role === 'admin' ? 'Demo Admin' : 'Demo Agent',
+			role
+		};
+		setUser(fallback);
+		return fallback;
+	} catch {
+		return null;
+	}
+}
 
 export function getToken(): string | null {
 	let val: string | null = null;
@@ -57,14 +117,26 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 	if (token) headers.set('Authorization', `Bearer ${token}`);
 
 	const res = await fetch(`${BASE}${path}`, { ...options, headers });
-	const data = res.status === 204 ? null : await res.json().catch(() => null);
+	const raw = res.status === 204 ? null : await res.json().catch(() => null);
 
 	if (!res.ok) {
+		const errObj =
+			raw && typeof raw === 'object' && 'error' in raw
+				? (raw as { error: unknown }).error
+				: null;
 		const message =
-			data && typeof data === 'object' && 'error' in data
-				? String((data as { error: unknown }).error)
-				: res.statusText;
+			typeof errObj === 'string'
+				? errObj
+				: errObj && typeof errObj === 'object' && 'message' in errObj
+					? String((errObj as { message: unknown }).message)
+					: res.statusText;
 		throw new ApiError(res.status, message);
 	}
+	// Backend Go membungkus sukses dalam envelope {"data": ...} — unwrap otomatis
+	// agar caller bisa langsung pakai {access_token, ...} / array / object.
+	const data =
+		raw && typeof raw === 'object' && 'data' in (raw as Record<string, unknown>)
+			? (raw as Record<string, unknown>).data
+			: raw;
 	return data as T;
 }

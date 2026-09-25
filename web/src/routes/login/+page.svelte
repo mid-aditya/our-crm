@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { setToken, setCompanyId } from '$lib/api';
+	import { setToken, setCompanyId, setUser } from '$lib/api';
 
 	let loading = $state(false);
 	let error = $state('');
@@ -14,10 +14,19 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ role })
 			});
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.error?.message || 'Login failed');
+			const raw = await res.json();
+			if (!res.ok) {
+				const e = (raw as any)?.error;
+				throw new Error(
+					typeof e === 'string' ? e : e?.message || 'Login failed'
+				);
+			}
+			// Backend Go: {"data": {access_token, company_id, ...}}
+			const data = (raw as any)?.data ?? raw;
+			if (!data?.access_token) throw new Error('Login failed: token kosong');
 			setToken(data.access_token);
 			setCompanyId(data.company_id);
+			if (data?.user) setUser(data.user);
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message;

@@ -141,13 +141,27 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 			middleware.WriteErr(w, 400, "INVALID_REQUEST", "Invalid request body")
 			return
 		}
-		if in.Role == "" {
+		if in.Role != "agent" && in.Role != "admin" {
 			in.Role = "agent"
 		}
 
 		// Demo company UUID — must match the seeded company in migrations.
 		demoCompanyID := "00000000-0000-0000-0000-000000000001"
-		roleID := "00000000-0000-0000-0000-000000000002" // default role for demo
+		// Bedakan user + role per pilihan login agar "login sebagai agent"
+		// tidak berubah jadi owner/admin di dashboard.
+		var demoUserID, demoEmail, demoName, roleID string
+		switch in.Role {
+		case "admin":
+			demoUserID = "00000000-0000-0000-0000-000000000002"
+			demoEmail = "admin@demo.com"
+			demoName = "Demo Admin"
+			roleID = "00000000-0000-0000-0000-000000000003" // admin/owner
+		default:
+			demoUserID = "00000000-0000-0000-0000-000000000001"
+			demoEmail = "demo@demo.com"
+			demoName = "Demo Agent"
+			roleID = "00000000-0000-0000-0000-000000000002" // agent
+		}
 
 		// Verify demo company exists
 		var exists bool
@@ -160,18 +174,15 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 		}
 
 		// Get or create a demo user
-		demoUserID := "00000000-0000-0000-0000-000000000001"
 		_, err = a.Master.Exec(r.Context(),
 			`INSERT INTO users (id, company_id, email, full_name, role_id, status)
 			 VALUES ($1, $2, $3, $4, $5, 'active')
-			 ON CONFLICT (id) DO UPDATE SET status='active', role_id=excluded.role_id`,
-			demoUserID, demoCompanyID, "demo@demo.com",
-			map[string]string{"agent": "Demo Agent", "admin": "Demo Admin"}[in.Role],
-			roleID)
+			 ON CONFLICT (id) DO UPDATE SET status='active', role_id=excluded.role_id, full_name=excluded.full_name, email=excluded.email`,
+			demoUserID, demoCompanyID, demoEmail, demoName, roleID)
 
 		// Generate JWT access token
 		ttl := 24 * time.Hour
-		access, err := signDemoAccess(secret, demoUserID, demoCompanyID, roleID, ttl)
+		access, err := signDemoAccess(secret, demoUserID, demoCompanyID, roleID, in.Role, ttl)
 		if err != nil {
 			middleware.WriteErr(w, 500, "TOKEN_ERROR", "Failed to generate token")
 			return
@@ -182,8 +193,8 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 			"token_type":   "Bearer",
 			"user": map[string]string{
 				"id":    demoUserID,
-				"email": "demo@demo.com",
-				"name":  map[string]string{"agent": "Demo Agent", "admin": "Demo Admin"}[in.Role],
+				"email": demoEmail,
+				"name":  demoName,
 				"role":  in.Role,
 			},
 			"company_id": demoCompanyID,
@@ -191,12 +202,13 @@ func demoLoginHandler(secret string, a *app.App) http.HandlerFunc {
 	}
 }
 
-func signDemoAccess(secret, userID, companyID, roleID string, ttl time.Duration) (string, error) {
+func signDemoAccess(secret, userID, companyID, roleID, role string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	claims := jwt.MapClaims{
 		"user_id":    userID,
 		"company_id": companyID,
 		"role_id":    roleID,
+		"role":       role,
 		"iat":        now.Unix(),
 		"exp":        now.Add(ttl).Unix(),
 	}

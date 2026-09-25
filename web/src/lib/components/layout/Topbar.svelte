@@ -15,8 +15,7 @@
 		UserRound
 	} from '@lucide/svelte';
 	import { navItems } from '$lib/navigation';
-	import { currentUser } from '$lib/mock';
-	import { setToken, setCompanyId } from '$lib/api';
+	import { clearSession, userStore } from '$lib/api';
 	import { setLocale, locales, localeNames, type AppLocale } from '$lib/i18n';
 	import { setTheme, theme, resolveTheme, type Theme } from '$lib/theme.svelte';
 	import { cn, initials } from '$lib/utils';
@@ -44,8 +43,7 @@
 	];
 
 	function logout() {
-		setToken(null);
-		setCompanyId(null);
+		clearSession();
 		goto('/');
 	}
 </script>
@@ -123,11 +121,11 @@
 				<span
 					class="flex size-7 items-center justify-center rounded-md bg-neon font-mono text-[11px] font-bold text-on-neon"
 				>
-					{initials(currentUser.name)}
+					{initials($userStore?.name ?? '?')}
 				</span>
 				<span class="hidden text-left sm:block">
-					<span class="block text-xs font-semibold leading-tight">{currentUser.name}</span>
-					<span class="block text-[10px] leading-tight text-faint">{currentUser.role}</span>
+					<span class="block text-xs font-semibold leading-tight">{$userStore?.name ?? '—'}</span>
+					<span class="block text-[10px] leading-tight text-faint capitalize">{$userStore?.role ?? ''}</span>
 				</span>
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Portal>
