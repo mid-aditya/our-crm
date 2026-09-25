@@ -121,10 +121,12 @@ func GetAdminCompany(w http.ResponseWriter, r *http.Request) {
 	var name, slug, status string
 	var planID *string
 	var createdAt, updatedAt time.Time
+	var dbHost, dbName, dbUser string
+	var dbPort int
 	err := a.Master.QueryRow(r.Context(), `
-		SELECT name, slug, status, plan_id, created_at, updated_at
+		SELECT name, slug, status, plan_id, created_at, updated_at, db_host, db_port, db_name, db_user
 		FROM companies WHERE id=$1`, id).
-		Scan(&name, &slug, &status, &planID, &createdAt, &updatedAt)
+		Scan(&name, &slug, &status, &planID, &createdAt, &updatedAt, &dbHost, &dbPort, &dbName, &dbUser)
 	if err != nil {
 		middleware.WriteErr(w, 404, "NOT_FOUND", "Company tidak ditemukan")
 		return
@@ -134,10 +136,25 @@ func GetAdminCompany(w http.ResponseWriter, r *http.Request) {
 	a.Master.QueryRow(r.Context(),
 		`SELECT COUNT(*) FROM company_user_index WHERE company_id=$1`, id).Scan(&userCount)
 
+	// Versi boilerplate skema DB company (tiap company DB berbeda).
+	schemaVers := []string{}
+	if pool, perr := a.TenantPool(r.Context(), id); perr == nil && pool != nil {
+		if rows, qerr := pool.Query(r.Context(), `select version from tenant_migrations order by applied_at`); qerr == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var v string
+				_ = rows.Scan(&v)
+				schemaVers = append(schemaVers, v)
+			}
+		}
+	}
+
 	middleware.WriteOK(w, map[string]interface{}{
 		"id": id, "name": name, "slug": slug, "status": status,
 		"plan_id": planID, "user_count": userCount,
 		"created_at": createdAt, "updated_at": updatedAt,
+		"db": map[string]any{"host": dbHost, "port": dbPort, "name": dbName, "user": dbUser},
+		"schema_versions": schemaVers,
 	})
 }
 

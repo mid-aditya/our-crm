@@ -1,17 +1,42 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from 'svelte-i18n';
 	import { Send, X, MessageSquare, Loader2 } from '@lucide/svelte';
 	import { livechatStore } from '$lib/livechat/store.svelte';
+	import { getHours } from '$lib/team/api';
 
 	let inputEl = $state<HTMLTextAreaElement | null>(null);
 	let messageEl = $state<HTMLDivElement | null>(null);
 	let msgInput = $state('');
 	let nameInput = $state('');
 	let showName = $state(false);
+	let isOpenHours = $state<boolean | null>(null);
 
 	onMount(() => {
 		livechatStore.init();
+		void checkHours();
 	});
+
+	async function checkHours() {
+		try {
+			const hours = await getHours();
+			if (hours.length === 0) {
+				isOpenHours = null;
+				return;
+			}
+			const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+			const dow = now.getDay();
+			const h = hours.find((x) => x.day_of_week === dow);
+			if (!h || h.is_closed || !h.open_time || !h.close_time) {
+				isOpenHours = false;
+				return;
+			}
+			const cur = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+			isOpenHours = cur >= h.open_time.slice(0, 5) && cur <= h.close_time.slice(0, 5);
+		} catch {
+			isOpenHours = null;
+		}
+	}
 
 	// Auto-scroll on new messages
 	$effect(() => {
@@ -55,7 +80,7 @@
 	class="fixed bottom-6 right-6 z-50 flex size-14 items-center justify-center rounded-full shadow-xl shadow-neon/30 transition-all hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon"
 	style="background: var(--neon); color: var(--on-neon);"
 	onclick={() => livechatStore.toggleChat()}
-	aria-label="Open chat"
+	aria-label={$t('widget.openChat')}
 >
 	{#if livechatStore.open}
 		<X size={22} />
@@ -70,7 +95,7 @@
 	<div
 		class="fixed bottom-24 right-6 z-50 flex w-80 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl shadow-neon/10"
 		role="dialog"
-		aria-label="Live chat"
+		aria-label={$t('widget.title')}
 		style="height: 520px; max-height: calc(100svh - 120px);"
 	>
 		<!-- Header -->
@@ -80,7 +105,7 @@
 		>
 			<div class="flex items-center gap-2">
 				<MessageSquare size={18} class="text-on-neon" />
-				<span class="font-display text-sm font-semibold text-on-neon">Live Chat</span>
+				<span class="font-display text-sm font-semibold text-on-neon">{$t('widget.title')}</span>
 			</div>
 			<div class="flex items-center gap-2">
 				{#if livechatStore.connected}
@@ -90,7 +115,7 @@
 					type="button"
 					class="flex size-7 items-center justify-center rounded-lg text-on-neon opacity-80 transition-opacity hover:opacity-100"
 					onclick={() => livechatStore.closeChat()}
-					aria-label="Close"
+					aria-label={$t('widget.close')}
 				>
 					<X size={16} />
 				</button>
@@ -105,17 +130,23 @@
 					<div class="rounded-full bg-neon-soft p-4">
 						<MessageSquare size={28} class="text-neon-text" />
 					</div>
+					{#if isOpenHours === false}
+						<div>
+							<p class="font-display text-sm font-semibold">{$t('widget.closedHours')}</p>
+							<p class="mt-1 text-xs text-muted">{$t('widget.closedHoursDesc')}</p>
+						</div>
+					{/if}
 					<div>
-						<p class="font-display text-sm font-semibold">Selamat datang! 👋</p>
+						<p class="font-display text-sm font-semibold">{$t('widget.welcome')}</p>
 						<p class="mt-1 text-xs text-muted">
-							{nameInput.trim() ? `Hai ${nameInput.trim()}, kamu bisa mulai chat sekarang.` : 'Isi nama kamu untuk memulai.'}
+							{nameInput.trim() ? $t('widget.helloName', { values: { name: nameInput.trim() } }) : $t('widget.askName')}
 						</p>
 					</div>
 					{#if showName}
 						<input
 							type="text"
 							bind:value={nameInput}
-							placeholder="Nama kamu"
+							placeholder={$t('widget.yourName')}
 							class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm placeholder:text-faint focus:border-neon focus:outline-none"
 							onkeydown={(e) => { if (e.key === 'Enter') startChat(); }}
 						/>
@@ -125,7 +156,7 @@
 							style="background: var(--neon); color: var(--on-neon);"
 							onclick={startChat}
 						>
-							Mulai Chat
+							{$t('widget.startChat')}
 						</button>
 					{:else}
 						<button
@@ -134,7 +165,7 @@
 							style="background: var(--neon); color: var(--on-neon);"
 							onclick={startChat}
 						>
-							Mulai Chat
+							{$t('widget.startChat')}
 						</button>
 					{/if}
 				</div>
@@ -148,19 +179,24 @@
 								<div class="size-2 animate-bounce rounded-full bg-muted [animation-delay:150ms]"></div>
 								<div class="size-2 animate-bounce rounded-full bg-muted [animation-delay:300ms]"></div>
 							</div>
-							<p class="text-xs text-muted">Menunggu agen…</p>
+							<p class="text-xs text-muted">{$t('widget.waitingAgent')}</p>
 						</div>
 					{/if}
 
 					{#each livechatStore.messages as msg (msg.id)}
 						<div class="flex {msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}">
-							<div
-								class="max-w-[75%] rounded-2xl px-3 py-2 text-sm {msg.direction === 'outbound'
-									? 'rounded-br-sm'
-									: 'rounded-bl-sm bg-raised text-ink'}"
-								style={msg.direction === 'outbound' ? `background: var(--neon); color: var(--on-neon);` : ''}
-							>
-								{msg.body}
+							<div class="max-w-[75%]">
+								{#if msg.direction === 'inbound' && msg.sender_name && msg.sender_name !== 'Guest'}
+									<p class="mb-0.5 px-1 text-[10px] font-medium text-neon-text">{msg.sender_name}</p>
+								{/if}
+								<div
+									class="rounded-2xl px-3 py-2 text-sm {msg.direction === 'outbound'
+										? 'rounded-br-sm'
+										: 'rounded-bl-sm bg-raised text-ink'}"
+									style={msg.direction === 'outbound' ? `background: var(--neon); color: var(--on-neon);` : ''}
+								>
+									{msg.body}
+								</div>
 							</div>
 						</div>
 					{/each}
@@ -178,7 +214,7 @@
 					{#if livechatStore.session?.assigned_agent_name && livechatStore.status === 'chatting'}
 						<div class="flex flex-col items-center gap-1 py-2 text-center">
 							<div class="h-px w-16 bg-line"></div>
-							<p class="text-[10px] text-faint">😀 {livechatStore.session.assigned_agent_name} sudah bergabung</p>
+							<p class="text-[10px] text-faint">😀 {$t('widget.joined', { values: { name: livechatStore.session.assigned_agent_name } })}</p>
 						</div>
 					{/if}
 				</div>
@@ -192,7 +228,7 @@
 								bind:value={msgInput}
 								onkeydown={handleKeydown}
 								oninput={() => livechatStore.sendTyping()}
-								placeholder="Ketik pesan…"
+								placeholder={$t('widget.typeMessage')}
 								rows="1"
 								class="flex-1 resize-none rounded-xl border border-line bg-surface px-3 py-2 text-sm placeholder:text-faint focus:border-neon focus:outline-none"
 								style="min-height: 40px; max-height: 100px;"
@@ -203,7 +239,7 @@
 								style="background: var(--neon); color: var(--on-neon);"
 								disabled={!msgInput.trim() || livechatStore.status === 'waiting'}
 								onclick={send}
-								aria-label="Send"
+								aria-label={$t('widget.send')}
 							>
 								<Send size={15} />
 							</button>
@@ -211,7 +247,7 @@
 					</div>
 				{:else}
 					<div class="border-t border-line p-4 text-center">
-						<p class="text-xs text-muted">Percakapan selesai. 💬</p>
+						<p class="text-xs text-muted">{$t('widget.resolvedNote')}</p>
 					</div>
 				{/if}
 			{/if}

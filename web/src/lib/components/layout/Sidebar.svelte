@@ -1,14 +1,37 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { t } from 'svelte-i18n';
 	import { Activity, X } from '@lucide/svelte';
 	import { navItems } from '$lib/navigation';
 	import { mockChannels } from '$lib/mock';
+	import { myMenus } from '$lib/api';
 	import { cn } from '$lib/utils';
 
 	type Props = { open?: boolean };
 
 	let { open = $bindable(false) }: Props = $props();
+
+	// Menu yang boleh dilihat user. null = belum dimuat (tampilkan semua dulu
+	// agar tidak kedip), [] = agent tanpa grant.
+	let allowedKeys = $state<string[] | null>(null);
+
+	onMount(async () => {
+		const res = await myMenus();
+		const role = (res.role ?? '').toLowerCase();
+		// Developer/admin/spv selalu full menu; agent/developer-label dari JWT demo juga full.
+		if (role === '' || role === 'developer' || role === 'admin' || role === 'owner' || role === 'spv') {
+			allowedKeys = null;
+		} else {
+			allowedKeys = res.menus ?? [];
+		}
+	});
+
+	const visibleItems = $derived(
+		allowedKeys === null
+			? navItems
+			: navItems.filter((n) => (allowedKeys as string[]).includes(n.key))
+	);
 
 	const isActive = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
@@ -46,7 +69,7 @@
 	</div>
 
 	<nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
-		{#each navItems as item (item.href)}
+		{#each visibleItems as item (item.href)}
 			{@const Icon = item.icon}
 			{@const active = isActive(item.href)}
 			<a
@@ -65,7 +88,7 @@
 					)}
 				></span>
 				<Icon size={18} class={active ? 'text-neon-text' : ''} />
-				{$t(item.key)}
+				{$t(item.label)}
 			</a>
 		{/each}
 	</nav>

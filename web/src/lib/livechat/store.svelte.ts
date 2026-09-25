@@ -69,6 +69,8 @@ class LivechatStore {
 			try {
 				const msg = JSON.parse(e.data);
 				if (msg.type === 'visitor_message') {
+					// Abaikan echo pesan sendiri (sudah optimistic update saat kirim).
+					if (msg.sender_id && msg.sender_id === this.visitorId) return;
 					this.messages = [...this.messages, {
 						id: msg.id ?? crypto.randomUUID(),
 						direction: 'inbound',
@@ -83,7 +85,7 @@ class LivechatStore {
 				} else if (msg.type === 'agent_message') {
 					this.messages = [...this.messages, {
 						id: msg.id ?? crypto.randomUUID(),
-						direction: 'outbound',
+						direction: 'inbound',
 						body: msg.body,
 						sender_name: msg.sender_name,
 						created_at: new Date().toISOString()
@@ -120,6 +122,7 @@ class LivechatStore {
 		const msg = {
 			type: 'visitor_message',
 			body: body.trim(),
+			sender_id: this.visitorId,
 			sender_name: 'Guest'
 		};
 

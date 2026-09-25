@@ -104,11 +104,12 @@ func u32str(v uint32) string {
 
 func u8str(v uint8) string { return u32str(uint32(v)) }
 
-// JWT access token: user_id, company_id, role_id, exp pendek.
+// JWT access token: user_id, company_id, role_id, role (label), exp pendek.
 type AccessClaims struct {
 	UserID    string `json:"user_id"`
 	CompanyID string `json:"company_id"`
 	RoleID    string `json:"role_id"`
+	Role      string `json:"role,omitempty"`
 	jwt.RegisteredClaims
 }
 

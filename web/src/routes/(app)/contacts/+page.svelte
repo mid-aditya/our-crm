@@ -105,7 +105,7 @@
 	<Select
 		options={groupOptions}
 		bind:value={groupFilter}
-		ariaLabel={$t('contacts.table.group')}
+		aria-label={$t('contacts.table.group')}
 		class="w-44"
 	/>
 	<Button onclick={() => (dialogOpen = true)}>

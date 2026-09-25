@@ -59,6 +59,26 @@ export function clearSession() {
 	setUser(null);
 }
 
+// Menu yang di-approve untuk user saat ini (sidebar agent dibatasi via ini).
+export async function myMenus(): Promise<{ role: string; menus: string[] }> {
+	try {
+		return await api<{ role: string; menus: string[] }>('/menu-grants');
+	} catch {
+		return { role: '', menus: [] };
+	}
+}
+
+export async function getUserMenus(userId: string): Promise<string[]> {
+	const res = await api<{ menus: string[] }>(`/users/${userId}/menus`);
+	return res.menus ?? [];
+}
+
+export async function setUserMenus(userId: string, menus: string[]): Promise<void> {
+	await api(`/users/${userId}/menus`, {
+		method: 'PUT',
+		body: JSON.stringify({ menus })
+	});
+}
 // Fallback untuk sesi lama (token tersimpan sebelum user disimpan):
 // ambil role/user_id dari payload JWT tanpa verifikasi signature,
 // hanya untuk label UI — otoritas tetap di backend.

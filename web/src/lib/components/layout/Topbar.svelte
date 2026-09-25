@@ -56,7 +56,7 @@
 	</button>
 
 	<h1 class="truncate font-display text-sm font-semibold tracking-tight">
-		{current ? $t(current.key) : $t('nav.dashboard')}
+		{current ? $t(current.label) : $t('nav.dashboard')}
 	</h1>
 
 	<div class="ml-auto flex items-center gap-1">

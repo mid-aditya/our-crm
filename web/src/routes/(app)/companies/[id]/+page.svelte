@@ -128,6 +128,18 @@
 	{#if company}
 		<h1 class="font-display text-2xl font-bold">{company.name}</h1>
 		<p class="mt-1 text-sm text-muted">/{company.slug} · {company.user_count} users</p>
+		{#if company.db}
+			<div class="mt-3 flex flex-wrap items-center gap-1.5 text-[11px]">
+				<Badge variant="neutral">🗄️ {company.db.host}:{company.db.port}/{company.db.name}</Badge>
+				{#each company.schema_versions ?? [] as v (v)}
+					<Badge variant="success">{v}</Badge>
+				{/each}
+				{#if (company.schema_versions ?? []).length === 0}
+					<Badge variant="warn">schema: unknown</Badge>
+				{/if}
+			</div>
+			<p class="mt-1 text-[11px] text-faint">{$t('team.dbNote')}</p>
+		{/if}
 	{/if}
 </div>
 

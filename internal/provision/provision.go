@@ -32,6 +32,12 @@ var defaultPerms = [][3]string{
 	{"channels.read", "Lihat channel", "channels"}, {"channels.manage", "Kelola channel", "channels"},
 	{"livechat.read", "Lihat livechat", "livechat"}, {"livechat.reply", "Balas livechat", "livechat"},
 	{"livechat.assign", "Assign livechat", "livechat"}, {"livechat.manage", "Kelola livechat", "livechat"},
+	{"livechat.serve", "Melayani livechat sebagai agent", "livechat"},
+	{"team.manage", "Supervisi tim (approve menu & cuti, lihat presence)", "team"},
+	{"activity.read", "Lihat log aktivitas", "activity"},
+	{"leave.manage", "Kelola jenis cuti & approval", "leave"},
+	{"attendance.read", "Lihat absensi tim", "attendance"},
+	{"kanban.read", "Lihat kanban", "kanban"}, {"kanban.manage", "Kelola kanban", "kanban"},
 	{"reports.view", "Lihat laporan", "reports"}, {"reports.export", "Export laporan", "reports"},
 	{"settings.manage_roles", "Kelola role & permission", "settings"}, {"settings.manage_billing", "Kelola billing", "settings"},
 }
@@ -42,7 +48,50 @@ var memberPerms = []string{
 	"activities.create", "activities.read", "activities.update",
 	"conversations.read", "conversations.reply", "campaigns.read",
 	"tickets.create", "tickets.read", "tickets.update", "reports.view",
-	"livechat.read", "livechat.reply", "channels.read",
+	"livechat.read", "livechat.reply", "livechat.serve", "channels.read",
+}
+
+// AllPermKeys semua permission key (untuk role Developer/demo Admin).
+func AllPermKeys() []string {
+	keys := make([]string, 0, len(defaultPerms))
+	for _, p := range defaultPerms {
+		keys = append(keys, p[0])
+	}
+	return keys
+}
+
+// AgentPermKeys hak role Agent.
+func AgentPermKeys() []string { return append([]string{}, agentPerms...) }
+
+// SpvPermKeys hak role SPV (admin minus billing & manage_roles).
+func SpvPermKeys() []string {
+	out := []string{}
+	for _, p := range defaultPerms {
+		if p[0] != "settings.manage_billing" && p[0] != "settings.manage_roles" {
+			out = append(out, p[0])
+		}
+	}
+	return out
+}
+
+// AdminPermKeys hak role Admin (semua minus billing).
+func AdminPermKeys() []string {
+	out := []string{}
+	for _, p := range defaultPerms {
+		if p[0] != "settings.manage_billing" {
+			out = append(out, p[0])
+		}
+	}
+	return out
+}
+var agentPerms = []string{
+	"contacts.create", "contacts.read", "contacts.update",
+	"deals.create", "deals.read", "deals.update",
+	"activities.create", "activities.read", "activities.update",
+	"conversations.read", "conversations.reply", "campaigns.read",
+	"tickets.create", "tickets.read", "tickets.update", "reports.view",
+	"livechat.read", "livechat.reply", "livechat.serve", "channels.read",
+	"kanban.read", "kanban.manage",
 }
 
 var _ = embed.FS{}
@@ -124,9 +173,9 @@ func seedTenant(ctx context.Context, tpool *pgxpool.Pool, in SignupInput) (strin
 		}
 		permIDs[p[0]] = id
 	}
-	mkRole := func(name string, sys bool, keys []string) (string, error) {
+	mkRole := func(name string, sys bool, level int, keys []string) (string, error) {
 		var id string
-		if err := tpool.QueryRow(ctx, `insert into roles (name, is_system_role) values ($1,$2) returning id`, name, sys).Scan(&id); err != nil {
+		if err := tpool.QueryRow(ctx, `insert into roles (name, is_system_role, level) values ($1,$2,$3) returning id`, name, sys, level).Scan(&id); err != nil {
 			return "", err
 		}
 		for _, k := range keys {
@@ -141,21 +190,36 @@ func seedTenant(ctx context.Context, tpool *pgxpool.Pool, in SignupInput) (strin
 		allKeys = append(allKeys, p[0])
 	}
 	adminKeys := []string{}
+	spvKeys := []string{}
 	for _, k := range allKeys {
 		if k != "settings.manage_billing" {
 			adminKeys = append(adminKeys, k)
 		}
+		// SPV: 1 tingkat di atas agent, di bawah admin — tanpa billing & manage_roles.
+		if k != "settings.manage_billing" && k != "settings.manage_roles" {
+			spvKeys = append(spvKeys, k)
+		}
 	}
-	ownerRole, err := mkRole("Owner", true, allKeys)
+	ownerRole, err := mkRole("Developer", true, 100, allKeys)
 	if err != nil {
 		return "", err
 	}
-	if _, err := mkRole("Admin", true, adminKeys); err != nil {
+	if _, err := mkRole("Admin", true, 80, adminKeys); err != nil {
 		return "", err
 	}
-	if _, err := mkRole("Member", false, memberPerms); err != nil {
+	if _, err := mkRole("SPV", false, 50, spvKeys); err != nil {
 		return "", err
 	}
+	if _, err := mkRole("Agent", false, 10, agentPerms); err != nil {
+		return "", err
+	}
+	if _, err := mkRole("Member", false, 10, memberPerms); err != nil {
+		return "", err
+	}
+	seedOperationalHours(ctx, tpool)
+	seedLeaveTypes(ctx, tpool)
+	// Tandai versi boilerplate skema yang dipakai company ini.
+	_, _ = tpool.Exec(ctx, `insert into tenant_migrations (version) values ('tenant_0001') on conflict do nothing`)
 	stages := [][4]any{{"Chat Masuk", 0, false, false}, {"Tertarik", 1, false, false}, {"Ditawar", 2, false, false}, {"Deal", 3, true, false}, {"Batal", 4, false, true}}
 	// deal_stages: kolom (name, order_index, is_won_stage, is_lost_stage)
 	for _, s := range stages {
@@ -174,7 +238,25 @@ func seedTenant(ctx context.Context, tpool *pgxpool.Pool, in SignupInput) (strin
 	return ownerID, nil
 }
 
-// seedChannelTypes mengisi katalog channel global ke tenant baru.
+// seedOperationalHours: Senin–Jumat 09:00–17:00, Sabtu–Minggu tutup.
+func seedOperationalHours(ctx context.Context, tpool *pgxpool.Pool) {
+	for d := 0; d <= 6; d++ {
+		closed := d == 0 || d == 6
+		var open, close *string
+		if !closed {
+			o, c := "09:00", "17:00"
+			open, close = &o, &c
+		}
+		_, _ = tpool.Exec(ctx, `insert into operational_hours (day_of_week, open_time, close_time, is_closed) values ($1,$2,$3,$4) on conflict (day_of_week) do nothing`, d, open, close, closed)
+	}
+}
+
+// seedLeaveTypes: label bisa di-custom admin via API.
+func seedLeaveTypes(ctx context.Context, tpool *pgxpool.Pool) {
+	for _, name := range []string{"Cuti Tahunan", "Izin", "Sakit"} {
+		_, _ = tpool.Exec(ctx, `insert into leave_types (name) values ($1) on conflict (name) do nothing`, name)
+	}
+}
 func seedChannelTypes(ctx context.Context, tpool *pgxpool.Pool) {
 	types := [][6]string{
 		{"wa_official", "WhatsApp Official", "Phone", "#25D366", "WhatsApp via Meta Business API (Cloud-hosted).", "{}"},

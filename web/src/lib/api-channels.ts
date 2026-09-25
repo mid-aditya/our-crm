@@ -97,6 +97,8 @@ export type AdminCompany = {
 	user_count: number;
 	created_at: string;
 	updated_at: string;
+	db?: { host: string; port: number; name: string; user: string };
+	schema_versions?: string[];
 };
 
 export async function getCompanies(params?: { status?: string; search?: string; page?: number }): Promise<{ data: AdminCompany[]; meta: { total: number; limit: number; offset: number } }> {

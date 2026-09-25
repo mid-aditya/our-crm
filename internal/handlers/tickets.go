@@ -29,11 +29,12 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 		middleware.WritePage(w, 200, rows, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
-			Subject     string `json:"subject"`
-			Description string `json:"description"`
-			ContactID   string `json:"contact_id"`
-			Priority    string `json:"priority"`
-			AssigneeID  string `json:"assignee_id"`
+			Subject      string            `json:"subject"`
+			Description  string            `json:"description"`
+			ContactID    string            `json:"contact_id"`
+			Priority     string            `json:"priority"`
+			AssigneeID   string            `json:"assignee_id"`
+			CustomFields map[string]string `json:"custom_fields"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Subject == "" {
 			middleware.WriteErr(w, 400, "VALIDATION_ERROR", "subject wajib")
@@ -60,6 +61,7 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return
 		}
+		saveTicketCustomValues(r, id, in.CustomFields)
 		middleware.WriteJSON(w, 201, map[string]string{"id": id, "number": number})
 	default:
 		middleware.WriteErr(w, 405, "METHOD_NOT_ALLOWED", "Metode tidak didukung")
@@ -143,6 +145,7 @@ func TicketDetail(w http.ResponseWriter, r *http.Request) {
 			"id": t.ID, "number": t.Number, "subject": t.Subject, "description": t.Desc, "contact_id": t.ContactID,
 			"assignee_id": t.AssigneeID, "priority": t.Priority, "status": t.Status, "source": t.Source,
 			"resolved_at": t.Resolved, "created_at": t.Created,
+			"custom_values": ticketCustomValues(r, id),
 		}, "meta": map[string]any{"replies": replies}})
 		return
 	}

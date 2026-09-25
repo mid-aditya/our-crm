@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"crm-backend/internal/handlers"
 	"crm-backend/internal/middleware"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -37,19 +38,34 @@ func sessionIDFromPath(r *http.Request) string {
 }
 
 // QueueHandler GET /api/livechat/queue - list waiting sessions for a company
+// ?status=active (waiting+assigned, default) | waiting | assigned | resolved | all
+// Kolom bot_handled & unread_count untuk tab bot/unread/read/resolved.
 func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
 	companyID := middleware.Claims(r).CompanyID
 
+	statusFilter := r.URL.Query().Get("status")
+	where := `where company_id=$1 and status in ('waiting','assigned')`
+	countWhere := `where company_id=$1 and status in ('waiting','assigned')`
+	switch statusFilter {
+	case "waiting", "assigned", "resolved":
+		where = `where company_id=$1 and status='` + statusFilter + `'`
+		countWhere = where
+	case "all":
+		where = `where company_id=$1`
+		countWhere = where
+	}
+
 	limit, offset := middleware.Page(r)
 	var total int
-	_ = pool.QueryRow(r.Context(), `select count(*) from livechat_sessions where company_id=$1 and status='waiting'`, companyID).Scan(&total)
+	_ = pool.QueryRow(r.Context(), `select count(*) from livechat_sessions `+countWhere, companyID).Scan(&total)
 
 	rows, err := pool.Query(r.Context(), `
 		select id, company_id, visitor_id, visitor_name, visitor_email, assigned_agent_id,
-			   status, last_message, last_message_at, waiting_since, resolved_at, created_at, updated_at
+			   status, last_message, last_message_at, waiting_since, resolved_at, created_at, updated_at,
+			   coalesce(bot_handled,false), coalesce(unread_count,0)
 		from livechat_sessions
-		where company_id=$1 and status='waiting'
+		`+where+`
 		order by waiting_since asc
 		limit $2 offset $3`, companyID, limit, offset)
 	if err != nil {
@@ -61,9 +77,12 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	sessions := []map[string]interface{}{}
 	for rows.Next() {
 		var s Session
+		var botHandled bool
+		var unread int
 		rows.Scan(&s.ID, &s.CompanyID, &s.VisitorID, &s.VisitorName, &s.VisitorEmail,
 			&s.AssignedAgentID, &s.Status, &s.LastMessage, &s.LastMessageAt,
-			&s.WaitingSince, &s.ResolvedAt, &s.CreatedAt, &s.UpdatedAt)
+			&s.WaitingSince, &s.ResolvedAt, &s.CreatedAt, &s.UpdatedAt,
+			&botHandled, &unread)
 		sessions = append(sessions, map[string]interface{}{
 			"id": s.ID, "company_id": s.CompanyID, "visitor_id": s.VisitorID,
 			"visitor_name": s.VisitorName, "visitor_email": s.VisitorEmail,
@@ -71,6 +90,7 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 			"last_message": s.LastMessage, "last_message_at": s.LastMessageAt,
 			"waiting_since": s.WaitingSince, "resolved_at": s.ResolvedAt,
 			"created_at": s.CreatedAt, "updated_at": s.UpdatedAt,
+			"bot_handled": botHandled, "unread_count": unread,
 		})
 	}
 	middleware.WritePage(w, 200, sessions, middleware.PageMeta(limit, offset, total))
@@ -183,7 +203,7 @@ func SendMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Update session
 	_, _ = pool.Exec(r.Context(), `
-		update livechat_sessions set last_message=$1, last_message_at=now(), updated_at=now()
+		update livechat_sessions set last_message=$1, last_message_at=now(), updated_at=now(), unread_count=0
 		where id=$2`, in.Body, id)
 
 	// Send to visitor via WebSocket
@@ -234,6 +254,12 @@ func AssignHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if dist.Mode == "auto" && in.AgentID == nil {
+		// Hormati jam operasional & status aux: di luar jam / tidak ada agent
+		// online → 409 agar frontend mengarahkan ekspektasi visitor.
+		if !handlers.IsOpenNow(r.Context(), pool) {
+			middleware.WriteErr(w, 409, "OUTSIDE_OPERATIONAL_HOURS", "Di luar jam operasional")
+			return
+		}
 		// Auto-assign using round-robin with least active chats
 		agentID, agentName, err = autoAssignAgent(r.Context(), pool, companyID, dist.RoundRobinIndex)
 		if err != nil {
@@ -255,7 +281,7 @@ func AssignHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Update session
 	_, err = pool.Exec(r.Context(), `
-		update livechat_sessions set assigned_agent_id=$1, status='assigned', updated_at=now()
+		update livechat_sessions set assigned_agent_id=$1, status='assigned', updated_at=now(), unread_count=0, bot_handled=true
 		where id=$2`, agentID, id)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal assign sesi")
@@ -282,6 +308,8 @@ func AssignHandler(w http.ResponseWriter, r *http.Request) {
 func autoAssignAgent(ctx context.Context, pool *pgxpool.Pool, companyID string, startIndex int) (string, string, error) {
 	// Skema tenant: users.role_id langsung (tanpa user_roles, tanpa users.company_id —
 	// tenant DB sudah per-company). Sama seperti RBACGuard.
+	// Hanya role pelayan (perm livechat.serve, yaitu Agent) — admin/developer
+	// tidak ikut handle livechat. Hanya yang presence online (bukan aux/break/offline).
 	rows, err := pool.Query(ctx, `
 		select u.id, u.full_name,
 			   (select count(*) from livechat_sessions ls where ls.assigned_agent_id = u.id and ls.status = 'assigned') as active_chats
@@ -289,7 +317,9 @@ func autoAssignAgent(ctx context.Context, pool *pgxpool.Pool, companyID string, 
 		join roles r on r.id = u.role_id
 		join role_permissions rp on rp.role_id = r.id
 		join permissions p on p.id = rp.permission_id
-		where u.status = 'active' and p.key = 'livechat.reply'
+		left join agent_presence ap on ap.user_id = u.id
+		where u.status = 'active' and p.key = 'livechat.serve'
+		  and coalesce(ap.status, 'online') = 'online'
 		order by active_chats asc, u.id asc
 	`)
 	if err != nil {
@@ -372,6 +402,7 @@ func AgentsHandler(w http.ResponseWriter, r *http.Request) {
 	companyID := middleware.Claims(r).CompanyID
 
 	// Get agents from DB (skema tenant: users.role_id langsung, tanpa user_roles/company_id)
+	// Hanya pelayan (livechat.serve = Agent): admin/developer tidak tampil di daftar handle.
 	pool := middleware.Tenant(r)
 	rows, err := pool.Query(r.Context(), `
 		select distinct u.id, u.full_name, u.email
@@ -379,7 +410,7 @@ func AgentsHandler(w http.ResponseWriter, r *http.Request) {
 		join roles r on r.id = u.role_id
 		join role_permissions rp on rp.role_id = r.id
 		join permissions p on p.id = rp.permission_id
-		where u.status = 'active' and p.key = 'livechat.reply'
+		where u.status = 'active' and p.key = 'livechat.serve'
 	`)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal mengambil agents")
@@ -600,7 +631,7 @@ func TakeHandler(w http.ResponseWriter, r *http.Request) {
 
 	_, err := pool.Exec(r.Context(), `
 		update livechat_sessions
-		set assigned_agent_id=$1, status='assigned', updated_at=now()
+		set assigned_agent_id=$1, status='assigned', updated_at=now(), unread_count=0, bot_handled=true
 		where id=$2`, agentID, id)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal mengambil sesi")

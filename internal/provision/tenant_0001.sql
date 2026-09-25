@@ -35,6 +35,178 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   PRIMARY KEY (role_id, permission_id)
 );
 
+-- Menu yang di-approve admin/developer untuk tiap user (khusus role Agent;
+-- Developer & Admin selalu melihat semua menu). menu_key = href tanpa slash awal.
+CREATE TABLE IF NOT EXISTS menu_grants (
+  user_id uuid NOT NULL,
+  menu_key text NOT NULL,
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, menu_key)
+);
+
+-- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
+ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;
+
+-- Atasan langsung (SPV membawahi agent; admin/developer membawahi semua).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS supervisor_id uuid;
+
+-- Boilerplate versi skema DB company. Tiap company punya DB sendiri dengan
+-- frame default ini; developer bisa expand per company (custom field, dsb).
+CREATE TABLE IF NOT EXISTS tenant_migrations (
+  version text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Form tiket custom per company (diatur admin di Settings).
+CREATE TABLE IF NOT EXISTS ticket_field_defs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  field_key text NOT NULL UNIQUE,
+  label text NOT NULL,
+  field_type text NOT NULL DEFAULT 'text',
+  required boolean NOT NULL DEFAULT false,
+  options jsonb NOT NULL DEFAULT '[]',
+  position int NOT NULL DEFAULT 0,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Nilai field custom per tiket (mengikuti form company).
+CREATE TABLE IF NOT EXISTS ticket_field_values (
+  ticket_id uuid NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  field_key text NOT NULL,
+  value text NOT NULL DEFAULT '',
+  PRIMARY KEY (ticket_id, field_key)
+);
+
+-- Pengaturan umum per company (key-value, cth: widget_color).
+CREATE TABLE IF NOT EXISTS company_settings (
+  key text PRIMARY KEY,
+  value text NOT NULL DEFAULT '',
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Jam operasional per company (0=Minggu..6=Sabtu).
+CREATE TABLE IF NOT EXISTS operational_hours (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  day_of_week int NOT NULL,
+  open_time time,
+  close_time time,
+  is_closed boolean NOT NULL DEFAULT false,
+  UNIQUE(day_of_week)
+);
+
+-- Status aux/presence agent (online, aux, break, offline + label custom).
+CREATE TABLE IF NOT EXISTS agent_presence (
+  user_id uuid PRIMARY KEY,
+  status text NOT NULL DEFAULT 'offline',
+  aux_label text,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Jenis cuti/izin (label bisa di-custom admin).
+CREATE TABLE IF NOT EXISTS leave_types (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  active boolean NOT NULL DEFAULT true
+);
+
+-- Pengajuan cuti/izin agent.
+CREATE TABLE IF NOT EXISTS leave_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  leave_type_id uuid REFERENCES leave_types(id),
+  start_date date NOT NULL,
+  end_date date NOT NULL,
+  reason text,
+  status text NOT NULL DEFAULT 'pending',
+  approver_id uuid,
+  decided_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_leave_requests_user ON leave_requests(user_id, status);
+
+-- Absensi harian agent.
+CREATE TABLE IF NOT EXISTS attendance (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  check_in timestamptz,
+  check_out timestamptz,
+  status text NOT NULL DEFAULT 'present',
+  UNIQUE(user_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
+
+-- Log aktivitas semua user (developer..agent).
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid,
+  user_name text,
+  role_name text,
+  method text NOT NULL,
+  path text NOT NULL,
+  status_code int NOT NULL DEFAULT 0,
+  ip text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at DESC);
+
+-- Kanban ala Trello (dibuat sendiri).
+CREATE TABLE IF NOT EXISTS kanban_boards (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS kanban_columns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id uuid NOT NULL REFERENCES kanban_boards(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  position int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS kanban_cards (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  column_id uuid NOT NULL REFERENCES kanban_columns(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  description text,
+  assignee_id uuid,
+  position int NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+-- Log perpindahan task (tercatat siapa & kapan).
+CREATE TABLE IF NOT EXISTS kanban_card_moves (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id uuid NOT NULL REFERENCES kanban_cards(id) ON DELETE CASCADE,
+  from_column_id uuid,
+  to_column_id uuid,
+  moved_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_card_moves_card ON kanban_card_moves(card_id, created_at);
+
+-- Bot responder livechat: pertanyaan & jawaban custom.
+-- keywords: koma-dipisah, dicocokkan case-insensitive ke pesan customer.
+-- escalate=true: jawaban ini sekaligus meneruskan ke agent.
+CREATE TABLE IF NOT EXISTS bot_qa (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  keywords text NOT NULL DEFAULT '',
+  question text NOT NULL DEFAULT '',
+  answer text NOT NULL,
+  position int NOT NULL DEFAULT 0,
+  active boolean NOT NULL DEFAULT true,
+  escalate boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Flag sesi livechat untuk tab bot/unread/read/resolved.
+ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_handled boolean NOT NULL DEFAULT false;
+ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS unread_count int NOT NULL DEFAULT 0;
+ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS last_inbound_at timestamptz;
+
 CREATE TABLE IF NOT EXISTS refresh_tokens (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL,

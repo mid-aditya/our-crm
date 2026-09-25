@@ -16,7 +16,8 @@ func Users(w http.ResponseWriter, r *http.Request) {
 		limit, offset := middleware.Page(r)
 		var total int
 		_ = pool.QueryRow(r.Context(), `select count(*) from users`).Scan(&total)
-		rows, err := pool.Query(r.Context(), `select id, email, full_name, role_id, status from users order by created_at limit $1 offset $2`, limit, offset)
+		_, _ = pool.Exec(r.Context(), `alter table users add column if not exists supervisor_id uuid`)
+		rows, err := pool.Query(r.Context(), `select id, email, full_name, role_id, status, supervisor_id from users order by created_at limit $1 offset $2`, limit, offset)
 		if err != nil {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return
@@ -25,9 +26,9 @@ func Users(w http.ResponseWriter, r *http.Request) {
 		out := []map[string]any{}
 		for rows.Next() {
 			var id, email, name, status string
-			var role *string
-			_ = rows.Scan(&id, &email, &name, &role, &status)
-			out = append(out, map[string]any{"id": id, "email": email, "full_name": name, "role_id": role, "status": status})
+			var role, sup *string
+			_ = rows.Scan(&id, &email, &name, &role, &status, &sup)
+			out = append(out, map[string]any{"id": id, "email": email, "full_name": name, "role_id": role, "status": status, "supervisor_id": sup})
 		}
 		middleware.WritePage(w, 200, out, middleware.PageMeta(limit, offset, total))
 	case "POST": // invite
@@ -137,8 +138,8 @@ func Roles(w http.ResponseWriter, r *http.Request) {
 		middleware.WriteErr(w, 404, "NOT_FOUND", "Role tidak ada")
 		return
 	}
-	if sys && name == "Owner" {
-		middleware.WriteErr(w, 400, "PROTECTED_ROLE", "Role Owner tidak bisa diubah")
+	if sys && (name == "Owner" || name == "Developer") {
+		middleware.WriteErr(w, 400, "PROTECTED_ROLE", "Role Developer tidak bisa diubah")
 		return
 	}
 	_, _ = pool.Exec(r.Context(), `delete from role_permissions where role_id=$1`, id)

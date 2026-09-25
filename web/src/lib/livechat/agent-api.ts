@@ -11,7 +11,18 @@ export type LivechatSession = {
 	last_message: string | null;
 	last_message_at: string | null;
 	waiting_since: string;
+	bot_handled?: boolean;
+	unread_count?: number;
 };
+
+export type ChatTab = 'bot' | 'unread' | 'read' | 'resolved';
+
+export function tabOf(s: LivechatSession): ChatTab {
+	if (s.status === 'resolved') return 'resolved';
+	if (!s.bot_handled && !s.assigned_agent_id) return 'bot';
+	if ((s.unread_count ?? 0) > 0 || s.status === 'waiting') return 'unread';
+	return 'read';
+}
 
 export type LivechatMessage = {
 	id: string;
@@ -31,8 +42,8 @@ export type Agent = {
 
 const BASE = '/livechat';
 
-export async function getQueue(companyId: string): Promise<LivechatSession[]> {
-	return api<LivechatSession[]>(`${BASE}/queue?company_id=${companyId}`);
+export async function getQueue(companyId: string, status: 'active' | 'waiting' | 'assigned' | 'resolved' | 'all' = 'all'): Promise<LivechatSession[]> {
+	return api<LivechatSession[]>(`${BASE}/queue?company_id=${companyId}&status=${status}`);
 }
 
 export async function getSession(id: string): Promise<LivechatSession> {
