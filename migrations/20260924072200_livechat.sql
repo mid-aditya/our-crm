@@ -10,9 +10,14 @@ VALUES (
     'Demo Company',
     'demo',
     'active',
-    'localhost', 5432, 'crm_demo', 'postgres', ''
+    'localhost', 5432, 'crm_master', 'postgres', ''
 )
-ON CONFLICT (slug) DO UPDATE SET status = 'active', name = EXCLUDED.name;
+ON CONFLICT (slug) DO UPDATE SET
+    status = EXCLUDED.status,
+    name = EXCLUDED.name,
+    db_name = EXCLUDED.db_name,
+    db_user = EXCLUDED.db_user,
+    db_pass_encrypted = EXCLUDED.db_pass_encrypted;
 
 CREATE TABLE IF NOT EXISTS livechat_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

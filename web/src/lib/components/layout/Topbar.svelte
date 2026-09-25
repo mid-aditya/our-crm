@@ -16,7 +16,7 @@
 	} from '@lucide/svelte';
 	import { navItems } from '$lib/navigation';
 	import { currentUser } from '$lib/mock';
-	import { setToken } from '$lib/api';
+	import { setToken, setCompanyId } from '$lib/api';
 	import { setLocale, locales, localeNames, type AppLocale } from '$lib/i18n';
 	import { setTheme, theme, resolveTheme, type Theme } from '$lib/theme.svelte';
 	import { cn, initials } from '$lib/utils';
@@ -45,6 +45,7 @@
 
 	function logout() {
 		setToken(null);
+		setCompanyId(null);
 		goto('/');
 	}
 </script>

@@ -2,6 +2,7 @@
 	import '../app.css';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { theme, resolveTheme } from '$lib/theme.svelte';
 	import { locale } from 'svelte-i18n';
 	import { getToken } from '$lib/api';
@@ -12,9 +13,9 @@
 
 	let sidebarOpen = $state(false);
 
-	// isPublic: landing page AND not logged in
-	// $derived tracks reactive dependencies — getToken() reads from tokenStore
-	const isPublic = $derived(page.url.pathname === '/' && !getToken());
+	// isPublic: no token → always show landing page (no sidebar)
+	// The (app) layout handles redirecting unauthenticated users away from protected routes.
+	const isPublic = $derived(!getToken());
 
 	// Apply theme
 	$effect(() => {
@@ -31,7 +32,7 @@
 			const dark = resolveTheme('system') === 'dark';
 			document.documentElement.classList.toggle('dark', dark);
 			document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
-		};
+	};
 		mq.addEventListener('change', onChange);
 		return () => mq.removeEventListener('change', onChange);
 	});
@@ -41,9 +42,13 @@
 	});
 
 	// Redirect authenticated users away from landing page to dashboard
+	// Guard: only redirect when pathname is / AND has token AND NOT on /login
 	$effect(() => {
 		if (!browser) return;
-		if (page.url.pathname === '/' && getToken()) {
+		const token = getToken();
+		const pathname = page.url.pathname;
+		// If at / with a token (and not already navigating), redirect to dashboard
+		if (token && pathname === '/') {
 			goto('/dashboard');
 		}
 	});

@@ -1,7 +1,7 @@
 <script lang="ts">
-	// Auth guard: redirect to login if not logged in
-	// This layout only wraps protected routes (dashboard/*) inside (app) group.
-	// Auth state is handled in root +layout.svelte via isPublic check.
+	// Auth guard: redirect to /login if no token AND on a protected route (dashboard/*).
+	// The root layout shows the landing page when isPublic=true (no token).
+	// This layout only wraps routes inside the (app) group — none are public.
 	import { goto } from '$app/navigation';
 	import { browser } from '$app/environment';
 	import { page } from '$app/state';
@@ -9,13 +9,16 @@
 
 	let { children } = $props();
 
-	// Protected routes must redirect to /login if no token.
-	// Only redirect on protected routes (not on /login itself to avoid loop).
+	// Only redirect to /login when on a protected route (starts with /dashboard)
+	// and NOT on /login to avoid redirect loop.
 	$effect(() => {
 		if (!browser) return;
 		const hasToken = !!getToken();
-		const isLoginPage = page.url.pathname === '/login';
-		if (!hasToken && !isLoginPage) {
+		const pathname = page.url.pathname;
+		const onProtectedRoute = pathname.startsWith('/dashboard');
+		const onLoginPage = pathname === '/login';
+		// Only redirect if on a protected route, not on login page, and no token.
+		if (!hasToken && onProtectedRoute && !onLoginPage) {
 			goto('/login');
 		}
 	});

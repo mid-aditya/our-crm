@@ -51,6 +51,15 @@ func (a *App) LookupCompany(ctx context.Context, companyID string) (CompanyConn,
 	if err != nil {
 		return c, err
 	}
+
+	// ponytail: graceful fallback for demo company — if db_name is crm_master
+	// (the shared master DB) and no encrypted password, use master DSN directly.
+	// This avoids DecryptSecret crash on empty encrypted password.
+	if dbName == "crm_master" && enc == "" {
+		c.DSN = a.Cfg.MasterDSN
+		return c, nil
+	}
+
 	pass, err := cryptoutil.DecryptSecret(a.Cfg.TenantCredKey, enc)
 	if err != nil {
 		return c, fmt.Errorf("decrypt: %w", err)
