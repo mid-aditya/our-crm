@@ -34,6 +34,7 @@
 		getTicketFields,
 		createTicketField,
 		deleteTicketField,
+		updateTicketField,
 		type HourRow,
 		type ActivityRow,
 		type BotQA,
@@ -186,10 +187,17 @@
 	// ---- Bot responder ----
 	let botQA = $state<BotQA[]>([]);
 	let botForm = $state({ keywords: '', question: '', answer: '', escalate: false });
+	let subFor = $state<string | null>(null);
+	let subForm = $state({ keywords: '', question: '', answer: '', escalate: false });
+
+	const topBotQA = $derived(botQA.filter((b) => !b.parent_id));
+	const botChildren = $derived((id: string) => botQA.filter((b) => b.parent_id === id));
 
 	// ---- Form tiket custom per company ----
 	let ticketFields = $state<TicketField[]>([]);
 	let fieldForm = $state({ label: '', field_type: 'text', required: false, options: '' });
+	let editingField = $state<string | null>(null);
+	let editFieldForm = $state({ label: '', options: '' });
 
 	// ---- Channel API per company ----
 	let channelTypes = $state<ChannelType[]>([]);
@@ -288,6 +296,42 @@
 		} catch { /* abaikan */ }
 	}
 
+	async function toggleFieldFlag(f: TicketField, key: 'required' | 'active') {
+		try {
+			await updateTicketField(f.id, { [key]: !f[key] });
+			ticketFields = await getTicketFields();
+		} catch { /* abaikan */ }
+	}
+
+	async function moveField(f: TicketField, dir: -1 | 1) {
+		const sorted = [...ticketFields].sort((a, b) => a.position - b.position);
+		const i = sorted.findIndex((x) => x.id === f.id);
+		const j = i + dir;
+		if (i < 0 || j < 0 || j >= sorted.length) return;
+		try {
+			await updateTicketField(sorted[i].id, { position: sorted[j].position });
+			await updateTicketField(sorted[j].id, { position: sorted[i].position });
+			ticketFields = await getTicketFields();
+		} catch { /* abaikan */ }
+	}
+
+	function startEditField(f: TicketField) {
+		editingField = f.id;
+		editFieldForm = { label: f.label, options: f.options.join(', ') };
+	}
+
+	async function saveFieldEdit(f: TicketField) {
+		if (!editFieldForm.label.trim()) return;
+		try {
+			await updateTicketField(f.id, {
+				label: editFieldForm.label.trim(),
+				options: editFieldForm.options.split(',').map((s) => s.trim()).filter(Boolean)
+			});
+			editingField = null;
+			ticketFields = await getTicketFields();
+		} catch { /* abaikan */ }
+	}
+
 	async function addBotQA() {
 		if (!botForm.answer.trim()) return;
 		try {
@@ -304,10 +348,20 @@
 		} catch { /* abaikan */ }
 	}
 
-	async function removeBotQA(id: string) {
-		if (!confirm($t('common.confirmDeleteBot'))) return;
+	async function removeBotQA(id: string, childCount = 0) {
+		if (!confirm(childCount > 0 ? $t('common.confirmDeleteBotCascade') : $t('common.confirmDeleteBot'))) return;
 		try {
 			await deleteBotQA(id);
+			botQA = await getBotQA();
+		} catch { /* abaikan */ }
+	}
+
+	async function addSubQA(parentId: string) {
+		if (!subForm.answer.trim()) return;
+		try {
+			await createBotQA({ ...subForm, parent_id: parentId });
+			subForm = { keywords: '', question: '', answer: '', escalate: false };
+			subFor = null;
 			botQA = await getBotQA();
 		} catch { /* abaikan */ }
 	}
@@ -463,15 +517,44 @@
 				<Button size="sm" onclick={addField} disabled={!fieldForm.label.trim()}>{$t('team.addField')}</Button>
 			</div>
 			<div class="mt-3 space-y-1.5">
-				{#each ticketFields as f (f.id)}
-					<div class="flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-xs">
-						<span class="font-medium">{f.label}</span>
-						<Badge variant="neutral">{f.field_type}{f.required ? ' • required' : ''}</Badge>
-						<span class="ml-auto"></span>
-						<button type="button" onclick={() => removeField(f.id)} class="text-[11px] text-danger hover:underline">
-							{$t('common.delete')}
-						</button>
-					</div>
+				{#each [...ticketFields].sort((a, b) => a.position - b.position) as f (f.id)}
+					{#if editingField === f.id}
+						<div class="space-y-2 rounded-lg border border-neon/40 p-2.5">
+							<Input bind:value={editFieldForm.label} placeholder={$t('team.fieldLabelPh')} />
+							{#if f.field_type === 'select'}
+								<Input bind:value={editFieldForm.options} placeholder={$t('team.fieldOptionsPh')} />
+							{/if}
+							<div class="flex gap-1.5">
+								<Button size="sm" onclick={() => saveFieldEdit(f)}>{$t('common.save')}</Button>
+								<Button size="sm" variant="ghost" onclick={() => (editingField = null)}>{$t('common.cancel')}</Button>
+							</div>
+						</div>
+					{:else}
+						<div class="flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs">
+							<span class="flex flex-col">
+								<button type="button" onclick={() => moveField(f, -1)} class="leading-none text-faint hover:text-ink" aria-label="↑">▲</button>
+								<button type="button" onclick={() => moveField(f, 1)} class="leading-none text-faint hover:text-ink" aria-label="↓">▼</button>
+							</span>
+							<span class="font-medium">{f.label}</span>
+							<Badge variant="neutral">{f.field_type}{f.required ? ' • required' : ''}</Badge>
+							{#if !f.active}
+								<Badge variant="warn">off</Badge>
+							{/if}
+							<span class="ml-auto"></span>
+							<button type="button" onclick={() => startEditField(f)} class="text-[11px] text-muted hover:text-ink hover:underline">
+								{$t('common.edit')}
+							</button>
+							<button type="button" onclick={() => toggleFieldFlag(f, 'required')} class="text-[11px] text-muted hover:text-ink hover:underline">
+								{f.required ? $t('team.optional') : $t('team.makeRequired')}
+							</button>
+							<button type="button" onclick={() => toggleFieldFlag(f, 'active')} class="text-[11px] text-muted hover:text-ink hover:underline">
+								{f.active ? $t('team.deactivate') : $t('team.activate')}
+							</button>
+							<button type="button" onclick={() => removeField(f.id)} class="text-[11px] text-danger hover:underline">
+								{$t('common.delete')}
+							</button>
+						</div>
+					{/if}
 				{:else}
 					<p class="py-2 text-center text-[11px] text-muted">{$t('team.noFields')}</p>
 				{/each}
@@ -564,38 +647,80 @@
 				<Button size="sm" onclick={addBotQA} disabled={!botForm.answer.trim()}>{$t('team.addQA')}</Button>
 			</div>
 			<div class="mt-3 space-y-1.5">
-				{#each botQA as b (b.id)}
-					<div class="rounded-lg border border-line p-2.5 text-xs">
-						<div class="flex items-start justify-between gap-2">
-							<div class="min-w-0">
-								<p class="font-medium">{b.question || $t('team.noLabel')}</p>
-								<p class="mt-0.5 text-[11px] text-muted">🔑 {b.keywords || '—'}{b.escalate ? ' • eskalasi ke agent' : ''}</p>
-								<p class="mt-1 rounded bg-raised p-1.5 text-[11px]">🤖 {b.answer}</p>
-							</div>
-							<div class="flex shrink-0 gap-1">
-								<button
-									type="button"
-									onclick={() => toggleBotActive(b)}
-									class="rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:text-ink"
-								>
-									{b.active ? $t('team.deactivate') : $t('team.activate')}
-								</button>
-								<button
-									type="button"
-									onclick={() => removeBotQA(b.id)}
-									class="rounded-md border border-line px-2 py-1 text-[11px] text-danger hover:bg-danger-soft"
-								>
-									{$t('common.delete')}
-								</button>
+				{#each topBotQA as b (b.id)}
+					{@render qaRow(b, false)}
+					{@const kids = botChildren(b.id)}
+					{#if kids.length > 0}
+						<div class="ml-4 space-y-1.5 border-l-2 border-neon/30 pl-2">
+							{#each kids as k (k.id)}
+								{@render qaRow(k, true)}
+							{/each}
+						</div>
+					{/if}
+					{#if subFor === b.id}
+						<div class="ml-4 space-y-2 rounded-lg border border-dashed border-line p-2.5">
+							<p class="text-[11px] font-semibold text-neon-text">{$t('team.subFor')} “{b.question || b.keywords}”</p>
+							<Input bind:value={subForm.keywords} placeholder={$t('team.keywordsPh')} />
+							<Input bind:value={subForm.question} placeholder={$t('team.questionPh')} />
+							<textarea
+								bind:value={subForm.answer}
+								placeholder={$t('team.answerPh')}
+								rows="2"
+								class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs placeholder:text-faint focus:border-neon focus:outline-none"
+							></textarea>
+							<label class="flex items-center gap-2 text-xs text-muted">
+								<input type="checkbox" bind:checked={subForm.escalate} class="size-4 accent-[var(--neon)]" />
+								{$t('team.escalate')}
+							</label>
+							<div class="flex gap-1.5">
+								<Button size="sm" onclick={() => addSubQA(b.id)} disabled={!subForm.answer.trim()}>{$t('team.addSub')}</Button>
+								<Button size="sm" variant="ghost" onclick={() => (subFor = null)}>{$t('common.cancel')}</Button>
 							</div>
 						</div>
-					</div>
+					{/if}
 				{:else}
 					<p class="py-2 text-center text-[11px] text-muted">{$t('team.noQA')}</p>
 				{/each}
 			</div>
 		</Card>
 	{/if}
+
+	{#snippet qaRow(b: BotQA, isChild: boolean)}
+		<div class="rounded-lg border border-line p-2.5 text-xs">
+			<div class="flex items-start justify-between gap-2">
+				<div class="min-w-0">
+					<p class="font-medium">{isChild ? '↳ ' : ''}{b.question || $t('team.noLabel')}</p>
+					<p class="mt-0.5 text-[11px] text-muted">🔑 {b.keywords || '—'}{b.escalate ? ' • eskalasi ke agent' : ''}{b.children > 0 ? ` • ${b.children} sub` : ''}</p>
+					<p class="mt-1 rounded bg-raised p-1.5 text-[11px]">🤖 {b.answer}</p>
+				</div>
+				<div class="flex shrink-0 flex-wrap justify-end gap-1">
+					{#if !isChild}
+						<button
+							type="button"
+							onclick={() => (subFor = subFor === b.id ? null : b.id)}
+							class="rounded-md border border-line px-2 py-1 text-[11px] text-neon-text hover:border-neon"
+						>
+							{$t('team.addSub')}
+						</button>
+					{/if}
+					<button
+						type="button"
+						onclick={() => toggleBotActive(b)}
+						class="rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:text-ink"
+					>
+						{b.active ? $t('team.deactivate') : $t('team.activate')}
+					</button>
+					<button
+						type="button"
+						onclick={() => removeBotQA(b.id, b.children)}
+						class="rounded-md border border-line px-2 py-1 text-[11px] text-danger hover:bg-danger-soft"
+					>
+						{$t('common.delete')}
+					</button>
+				</div>
+			</div>
+		</div>
+	{/snippet}
 
 	<Card title={$t('team.menuAccessTitle')} description={$t('team.menuAccessDesc')}>
 		<div class="space-y-3">

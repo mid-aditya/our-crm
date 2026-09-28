@@ -239,7 +239,8 @@
 		"empty": "No data yet.",
 		"confirmDeleteBoard": "Delete board and all its cards?",
 		"confirmDeleteCard": "Delete card?",
-		"confirmDeleteBot": "Delete bot Q&A?"
+		"confirmDeleteBot": "Delete bot Q&A?",
+		"confirmDeleteBotCascade": "Delete this question along with all its sub-questions?"
 	},
 	"landing": {
 		"features": "Features",
@@ -444,6 +445,8 @@
 		"escalate": "This answer also escalates to an agent",
 		"addQA": "Add Q&A",
 		"noQA": "No bot Q&A yet.",
+		"subFor": "Sub-question for",
+		"addSub": "+ Sub",
 		"noLabel": "(no label)",
 		"activate": "Activate",
 		"deactivate": "Deactivate",
@@ -463,6 +466,8 @@
 		"fieldRequired": "Required",
 		"fieldOptionsPh": "Comma-separated options (for Select)",
 		"addField": "Add field",
+		"optional": "Make optional",
+		"makeRequired": "Make required",
 		"noFields": "No custom fields yet — using the default form.",
 		"dbNote": "Each company has its own database (tenant_0001 boilerplate, expandable per company).",
 		"selectAgent": "Select agent…",

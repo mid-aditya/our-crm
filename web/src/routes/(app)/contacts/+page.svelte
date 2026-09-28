@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { t, locale as i18nLocale } from 'svelte-i18n';
-	import { Dialog, DropdownMenu } from 'bits-ui';
+	import { Dialog } from 'bits-ui';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import {
 		Eye,
 		MessageCircle,

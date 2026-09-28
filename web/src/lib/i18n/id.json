@@ -239,7 +239,8 @@
 		"empty": "Belum ada data.",
 		"confirmDeleteBoard": "Hapus board beserta semua kartu?",
 		"confirmDeleteCard": "Hapus kartu?",
-		"confirmDeleteBot": "Hapus Q&A bot?"
+		"confirmDeleteBot": "Hapus Q&A bot?",
+		"confirmDeleteBotCascade": "Hapus pertanyaan ini beserta semua sub-pertanyaannya?"
 	},
 	"landing": {
 		"features": "Fitur",
@@ -443,6 +444,8 @@
 		"escalate": "Jawaban ini sekaligus teruskan ke agent (eskalasi)",
 		"addQA": "Tambah Q&A",
 		"noQA": "Belum ada Q&A bot.",
+		"subFor": "Sub-pertanyaan untuk",
+		"addSub": "+ Sub",
 		"noLabel": "(tanpa label)",
 		"activate": "Aktifkan",
 		"deactivate": "Nonaktifkan",
@@ -462,6 +465,8 @@
 		"fieldRequired": "Wajib diisi",
 		"fieldOptionsPh": "Opsi koma-dipisah (untuk Select)",
 		"addField": "Tambah field",
+		"optional": "Opsionalkan",
+		"makeRequired": "Wajibkan",
 		"noFields": "Belum ada field custom — form memakai bawaan.",
 		"dbNote": "Tiap company punya database sendiri (boilerplate tenant_0001, bisa di-expand per company).",
 		"selectAgent": "Pilih agent…",

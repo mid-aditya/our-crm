@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { t, locale as currentLocale } from 'svelte-i18n';
-	import { DropdownMenu } from 'bits-ui';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import {
 		Check,
 		Languages,

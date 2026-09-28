@@ -192,6 +192,7 @@ CREATE INDEX IF NOT EXISTS idx_card_moves_card ON kanban_card_moves(card_id, cre
 -- escalate=true: jawaban ini sekaligus meneruskan ke agent.
 CREATE TABLE IF NOT EXISTS bot_qa (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_id uuid REFERENCES bot_qa(id) ON DELETE CASCADE,
   keywords text NOT NULL DEFAULT '',
   question text NOT NULL DEFAULT '',
   answer text NOT NULL,
@@ -201,9 +202,11 @@ CREATE TABLE IF NOT EXISTS bot_qa (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE bot_qa ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES bot_qa(id) ON DELETE CASCADE;
 
 -- Flag sesi livechat untuk tab bot/unread/read/resolved.
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_handled boolean NOT NULL DEFAULT false;
+ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_node_id uuid;
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS unread_count int NOT NULL DEFAULT 0;
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS last_inbound_at timestamptz;
 

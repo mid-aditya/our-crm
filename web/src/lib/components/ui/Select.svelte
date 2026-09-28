@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { Select as SelectPrimitive } from 'bits-ui';
 	import { t } from 'svelte-i18n';
-	import { ChevronDown } from '@lucide/svelte';
+	import { Check, ChevronDown } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 
 	type Option = { value: string; label: string };
@@ -29,41 +30,49 @@
 	}: Props = $props();
 
 	const label = $derived(placeholder || $t('common.select'));
+	const selectedLabel = $derived(options.find((o) => o.value === value)?.label ?? '');
 
-	function handleChange(e: Event) {
-		const val = (e.target as HTMLSelectElement).value;
-		onchange?.(val);
+	function handleChange(v: string) {
+		onchange?.(v);
 		if (resetAfterSelect) value = '';
 	}
 </script>
 
-<div class={cn('relative', klass)}>
-	<select
-		bind:value
-		{disabled}
+<SelectPrimitive.Root type="single" bind:value {disabled} onValueChange={handleChange}>
+	<SelectPrimitive.Trigger
 		aria-label={rest['aria-label'] ?? label}
-		onchange={handleChange}
 		class={cn(
-			'w-full appearance-none rounded-xl border border-line bg-surface px-3 py-2 pr-9 text-sm text-ink shadow-sm',
+			'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm',
 			'transition-all hover:border-line-strong hover:shadow focus:border-neon focus:outline-none focus:ring-2 focus:ring-neon/25 focus:shadow-[0_0_12px_var(--neon-glow)]',
 			'disabled:cursor-not-allowed disabled:opacity-50',
-			!value && 'text-faint'
+			!value && 'text-faint',
+			klass
 		)}
 	>
-		<option value="" disabled>{label}</option>
-		{#each options as opt (opt.value)}
-			<option value={opt.value}>{opt.label}</option>
-		{/each}
-	</select>
-	<span class="pointer-events-none absolute right-2 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md bg-raised text-muted">
-		<ChevronDown size={14} />
-	</span>
-</div>
-
-<style>
-	/* Dropdown popup mengikuti tema (popup native mengikuti color-scheme) */
-	select option {
-		background-color: var(--surface);
-		color: var(--ink);
-	}
-</style>
+		<span class="truncate">{selectedLabel || label}</span>
+		<span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-raised text-muted">
+			<ChevronDown size={14} />
+		</span>
+	</SelectPrimitive.Trigger>
+	<SelectPrimitive.Portal>
+		<SelectPrimitive.Content
+			sideOffset={6}
+			class="dropdown-in z-50 max-h-72 min-w-40 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 text-ink shadow-2xl"
+		>
+			{#each options as opt (opt.value)}
+				<SelectPrimitive.Item
+					value={opt.value}
+					label={opt.label}
+					class="relative flex w-full cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-2.5 pr-8 text-xs font-medium outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-neon-soft"
+				>
+					{#snippet children({ selected }: { selected: boolean })}
+						<span class="truncate">{opt.label}</span>
+						{#if selected}
+							<span class="absolute right-2 text-neon-text"><Check size={13} /></span>
+						{/if}
+					{/snippet}
+				</SelectPrimitive.Item>
+			{/each}
+		</SelectPrimitive.Content>
+	</SelectPrimitive.Portal>
+</SelectPrimitive.Root>

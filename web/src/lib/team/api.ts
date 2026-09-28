@@ -187,12 +187,14 @@ export async function getActivityLogs(): Promise<ActivityRow[]> {
 
 export type BotQA = {
 	id: string;
+	parent_id: string | null;
 	keywords: string;
 	question: string;
 	answer: string;
 	position: number;
 	active: boolean;
 	escalate: boolean;
+	children: number;
 };
 
 export async function getBotQA(): Promise<BotQA[]> {
@@ -205,6 +207,7 @@ export async function createBotQA(input: {
 	question: string;
 	answer: string;
 	escalate?: boolean;
+	parent_id?: string | null;
 }): Promise<void> {
 	await api('/bot-qa', { method: 'POST', body: JSON.stringify(input) });
 }
@@ -245,6 +248,13 @@ export async function createTicketField(input: {
 
 export async function deleteTicketField(id: string): Promise<void> {
 	await api(`/ticket-fields/${id}`, { method: 'DELETE' });
+}
+
+export async function updateTicketField(
+	id: string,
+	input: { label?: string; required?: boolean; active?: boolean; position?: number; options?: string[] }
+): Promise<void> {
+	await api(`/ticket-fields/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
 export async function getSchemaVersion(): Promise<{ version: string }[]> {
