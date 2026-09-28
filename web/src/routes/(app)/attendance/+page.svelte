@@ -128,6 +128,17 @@
 			await loadAllLeaves();
 		} catch { /* abaikan */ }
 	}
+	// Aksi cepat: ajukan Sakit/Izin untuk hari ini sekali klik.
+	async function quickLeave(kind: 'sakit' | 'izin') {
+		const found = leaveTypes.find((t) => t.name.toLowerCase().includes(kind));
+		if (!found) return;
+		if (!confirm($t('attendance.quickConfirm', { values: { kind: found.name } }))) return;
+		busy = true;
+		try {
+			await requestLeave({ leave_type_id: found.id, start_date: today, end_date: today, reason: '' });
+			await loadMyLeaves();
+		} finally { busy = false; }
+	}
 	async function addType() {
 		if (!newTypeName.trim()) return;
 		try {
@@ -169,9 +180,12 @@
 {#if tab === 'attendance'}
 	<div class="grid gap-3 lg:grid-cols-2">
 		<Card title={$t('attendance.today')}>
-			<div class="flex items-center gap-2">
+			<div class="flex flex-wrap items-center gap-2">
 				<Button size="sm" onclick={doCheckIn} disabled={busy || !!todayRow?.check_in}>{$t('attendance.checkIn')} {todayRow?.check_in ? fmtTime(todayRow.check_in) : ''}</Button>
 				<Button size="sm" variant="outline" onclick={doCheckOut} disabled={busy || !todayRow?.check_in || !!todayRow?.check_out}>{$t('attendance.checkOut')} {todayRow?.check_out ? fmtTime(todayRow.check_out) : ''}</Button>
+				<span class="mx-1 h-4 w-px bg-line"></span>
+				<Button size="sm" variant="outline" onclick={() => quickLeave('sakit')} disabled={busy}>{$t('attendance.sickToday')}</Button>
+				<Button size="sm" variant="outline" onclick={() => quickLeave('izin')} disabled={busy}>{$t('attendance.permitToday')}</Button>
 			</div>
 			<div class="mt-4 space-y-1">
 				{#each mine.slice(0, 10) as r (r.date)}
