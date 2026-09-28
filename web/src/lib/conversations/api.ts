@@ -41,6 +41,8 @@ export type Ticket = {
 	assignee_id: string | null;
 	priority: 'low' | 'medium' | 'urgent';
 	status: 'open' | 'pending' | 'resolved' | 'closed';
+	escalated: boolean;
+	replies_count?: number;
 	source: string;
 	resolved_at: string | null;
 	created_at: string;
@@ -103,6 +105,7 @@ export async function createTicket(input: {
 	contact_id?: string;
 	priority?: string;
 	assignee_id?: string;
+	escalated?: boolean;
 	custom_fields?: Record<string, string>;
 }): Promise<{ id: string; number: string }> {
 	return api<{ id: string; number: string }>('/tickets', {
@@ -136,7 +139,7 @@ export async function replyTicket(id: string, body: string): Promise<void> {
 
 export async function updateTicket(
 	id: string,
-	input: { status?: string; priority?: string; assignee_id?: string | null }
+	input: { status?: string; priority?: string; assignee_id?: string | null; escalated?: boolean }
 ): Promise<void> {
 	await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }

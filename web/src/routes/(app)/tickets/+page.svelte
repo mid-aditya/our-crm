@@ -23,8 +23,9 @@
 
 	let tickets = $state<Ticket[]>([]);
 	let assignees = $state<Assignee[]>([]);
-	let statusFilter = $state('');
+	let statusFilter = $state('open');
 	let priorityFilter = $state('');
+	let escFilter = $state(false);
 	let activeId = $state<string | null>(null);
 	let detail = $state<{ ticket: Ticket; replies: TicketReply[] } | null>(null);
 	let followupInput = $state('');
@@ -41,7 +42,8 @@
 		tickets.filter(
 			(t) =>
 				(!statusFilter || t.status === statusFilter) &&
-				(!priorityFilter || t.priority === priorityFilter)
+				(!priorityFilter || t.priority === priorityFilter) &&
+				(!escFilter || t.escalated)
 		)
 	);
 
@@ -68,7 +70,7 @@
 		if (activeId) await openTicket(activeId);
 	}
 
-	async function changeTicket(patch: { status?: string; priority?: string; assignee_id?: string | null }) {
+	async function changeTicket(patch: { status?: string; priority?: string; assignee_id?: string | null; escalated?: boolean }) {
 		if (!activeId) return;
 		try {
 			await updateTicket(activeId, patch);
@@ -100,6 +102,16 @@
 		<p class="mt-0.5 text-xs text-muted">{$t('ticketsPage.subtitle')}</p>
 	</div>
 	<div class="ml-auto flex items-center gap-1.5">
+		<button
+			type="button"
+			onclick={() => (escFilter = !escFilter)}
+			class={cn(
+				'rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+				escFilter ? 'border-danger bg-danger-soft text-danger' : 'border-line bg-surface text-muted hover:text-ink'
+			)}
+		>
+			SPV
+		</button>
 		<Select
 			value={statusFilter}
 			placeholder={$t('ticketsPage.allStatus')}
@@ -149,9 +161,15 @@
 						<span class="mt-0.5 block truncate text-[10px] text-muted">
 							{assigneeName(tk.assignee_id)} • {new Date(tk.created_at).toLocaleDateString()}
 						</span>
-						<span class="mt-1 flex gap-1">
+						<span class="mt-1 flex flex-wrap gap-1">
 							<Badge variant={statusVariant(tk.status)}>{tk.status}</Badge>
 							<Badge variant={priorityVariant(tk.priority)}>{tk.priority}</Badge>
+							{#if tk.escalated}
+								<Badge variant="danger">SPV</Badge>
+							{/if}
+							{#if tk.status === 'open' && (tk.replies_count ?? 0) === 0}
+								<Badge variant="warn">{$t('ticketsPage.needFollowup')}</Badge>
+							{/if}
 						</span>
 					</button>
 				{:else}
@@ -167,6 +185,12 @@
 					<div class="flex flex-wrap gap-1">
 						<Badge variant={statusVariant(detail.ticket.status)}>{detail.ticket.status}</Badge>
 						<Badge variant={priorityVariant(detail.ticket.priority)}>{detail.ticket.priority}</Badge>
+						{#if detail.ticket.escalated}
+							<Badge variant="danger">SPV</Badge>
+						{/if}
+						{#if detail.ticket.status === 'open' && detail.replies.length === 0}
+							<Badge variant="warn">{$t('ticketsPage.needFollowup')}</Badge>
+						{/if}
 					</div>
 					{#if detail.ticket.description}
 						<p class="rounded-md bg-raised p-2 text-xs text-muted">{detail.ticket.description}</p>
@@ -215,6 +239,15 @@
 							onchange={(v) => changeTicket({ assignee_id: v === '__none' ? null : v })}
 						/>
 					</div>
+					<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs transition-colors hover:border-line-strong">
+						<input
+							type="checkbox"
+							checked={detail.ticket.escalated}
+							onchange={(e) => changeTicket({ escalated: (e.target as HTMLInputElement).checked })}
+							class="size-4 accent-[var(--neon)]"
+						/>
+						<span class="font-medium">{$t('conversation.escalateTicket')}</span>
+					</label>
 					{/if}
 					<div class="space-y-1.5 border-t border-line pt-2">
 						<p class="text-[11px] font-medium">{$t('conversation.followup')}</p>

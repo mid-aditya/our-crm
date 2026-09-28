@@ -20,6 +20,7 @@
 	import { theme, setTheme, type Theme } from '$lib/theme.svelte';
 	import { setLocale, locales, localeNames, type AppLocale } from '$lib/i18n';
 	import { apiPage, getRoleMenus, setRoleMenus, getUser } from '$lib/api';
+	import { askConfirm } from '$lib/components/ui/confirm-dialog.svelte';
 	import { setSupervisor } from '$lib/team/api';
 	import { navItems } from '$lib/navigation';
 	import {
@@ -298,7 +299,8 @@
 	}
 
 	async function removeField(id: string) {
-		if (!confirm($t('common.confirmDelete'))) return;
+		const ok = await askConfirm({ title: $t('common.confirmDelete'), danger: true });
+		if (!ok) return;
 		try {
 			await deleteTicketField(id);
 			ticketFields = await getTicketFields();
@@ -358,7 +360,11 @@
 	}
 
 	async function removeBotQA(id: string, childCount = 0) {
-		if (!confirm(childCount > 0 ? $t('common.confirmDeleteBotCascade') : $t('common.confirmDeleteBot'))) return;
+		const ok = await askConfirm({
+			title: childCount > 0 ? $t('common.confirmDeleteBotCascade') : $t('common.confirmDeleteBot'),
+			danger: true
+		});
+		if (!ok) return;
 		try {
 			await deleteBotQA(id);
 			botQA = await getBotQA();

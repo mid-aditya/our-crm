@@ -24,6 +24,7 @@
 	import DatePicker from '$lib/components/ui/DatePicker.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import { askConfirm } from '$lib/components/ui/confirm-dialog.svelte';
 	import { cn } from '$lib/utils';
 
 	const role = $derived((getUser()?.role ?? '').toLowerCase());
@@ -132,7 +133,8 @@
 	async function quickLeave(kind: 'sakit' | 'izin') {
 		const found = leaveTypes.find((t) => t.name.toLowerCase().includes(kind));
 		if (!found) return;
-		if (!confirm($t('attendance.quickConfirm', { values: { kind: found.name } }))) return;
+		const ok = await askConfirm({ title: $t('attendance.quickConfirm', { values: { kind: found.name } }) });
+		if (!ok) return;
 		busy = true;
 		try {
 			await requestLeave({ leave_type_id: found.id, start_date: today, end_date: today, reason: '' });

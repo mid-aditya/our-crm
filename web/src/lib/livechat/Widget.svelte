@@ -3,6 +3,7 @@
 	import { t } from 'svelte-i18n';
 	import { Send, X, MessageSquare, Loader2 } from '@lucide/svelte';
 	import { livechatStore } from '$lib/livechat/store.svelte';
+	import { ChatMessage, ChatTyping } from '$lib/components/ui/chat';
 	import { getHours } from '$lib/team/api';
 
 	let inputEl = $state<HTMLTextAreaElement | null>(null);
@@ -218,31 +219,19 @@
 					{/if}
 
 					{#each livechatStore.messages as msg (msg.id)}
-						<div class="flex {msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}">
-							<div class="max-w-[75%]">
-								{#if msg.direction === 'inbound' && msg.sender_name && msg.sender_name !== 'Guest'}
-									<p class="mb-0.5 px-1 text-[10px] font-medium text-neon-text">{msg.sender_name}</p>
-								{/if}
-								<div
-									class="rounded-2xl px-3 py-2 text-sm whitespace-pre-line {msg.direction === 'outbound'
-										? 'rounded-br-sm'
-										: 'rounded-bl-sm bg-raised text-ink'}"
-									style={msg.direction === 'outbound' ? `background: var(--neon); color: var(--on-neon);` : ''}
-								>
-									{msg.body}
-								</div>
-							</div>
-						</div>
+						<ChatMessage
+							variant={msg.direction === 'outbound' ? 'outgoing' : 'incoming'}
+							name={msg.direction === 'inbound' && msg.sender_name && msg.sender_name !== 'Guest'
+								? msg.sender_name
+								: null}
+							time={formatTime(msg.created_at)}
+						>
+							{msg.body}
+						</ChatMessage>
 					{/each}
 
 					{#if livechatStore.agentTyping}
-						<div class="flex justify-start">
-							<div class="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-raised px-4 py-3">
-								<div class="size-1.5 animate-bounce rounded-full bg-muted [animation-delay:0ms]"></div>
-								<div class="size-1.5 animate-bounce rounded-full bg-muted [animation-delay:150ms]"></div>
-								<div class="size-1.5 animate-bounce rounded-full bg-muted [animation-delay:300ms]"></div>
-							</div>
-						</div>
+						<ChatTyping />
 					{/if}
 
 					{#if livechatStore.session?.assigned_agent_name && livechatStore.status === 'chatting'}

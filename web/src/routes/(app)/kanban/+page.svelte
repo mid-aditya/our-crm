@@ -24,6 +24,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import { askConfirm } from '$lib/components/ui/confirm-dialog.svelte';
 	import { cn } from '$lib/utils';
 
 	let boards = $state<BoardSummary[]>([]);
@@ -76,7 +77,8 @@
 	}
 
 	async function removeBoard(id: string) {
-		if (!confirm($t('common.confirmDeleteBoard'))) return;
+		const ok = await askConfirm({ title: $t('common.confirmDeleteBoard'), danger: true });
+		if (!ok) return;
 		try {
 			await deleteBoard(id);
 			if (activeBoard?.id === id) activeBoard = null;
@@ -126,7 +128,8 @@
 	}
 
 	async function removeCard(cardId: string) {
-		if (!confirm($t('common.confirmDeleteCard'))) return;
+		const ok = await askConfirm({ title: $t('common.confirmDeleteCard'), danger: true });
+		if (!ok) return;
 		try {
 			await deleteCard(cardId);
 			if (activeBoard) await openBoard(activeBoard.id);

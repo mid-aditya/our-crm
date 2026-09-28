@@ -418,11 +418,13 @@ CREATE TABLE IF NOT EXISTS tickets (
   priority text NOT NULL DEFAULT 'medium',
   status text NOT NULL DEFAULT 'open',
   source text NOT NULL DEFAULT 'agent',
+  escalated boolean NOT NULL DEFAULT false,
   resolved_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status, created_at DESC);
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS escalated boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS ticket_replies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

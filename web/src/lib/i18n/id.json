@@ -26,7 +26,8 @@
 		"allPriority": "Semua prioritas",
 		"noMatch": "Tidak ada tiket yang cocok filter.",
 		"detail": "Detail tiket",
-		"pick": "Pilih tiket untuk melihat detail."
+		"pick": "Pilih tiket untuk melihat detail.",
+		"needFollowup": "Perlu follow-up"
 	},
 	"topbar": {
 		"menu": "Buka menu navigasi",
@@ -233,6 +234,7 @@
 	},
 	"common": {
 		"cancel": "Batal",
+		"understand": "Mengerti",
 		"delete": "Hapus",
 		"close": "Tutup",
 		"clear": "Hapus tanggal",
@@ -396,6 +398,9 @@
 		"escalateConfirm": "Teruskan chat ini ke SPV?",
 		"assignee": "Penanggung jawab",
 		"unassigned": "Belum di-assign",
+		"escalateTicket": "Eskalasi ke SPV",
+		"needContactTitle": "Customer belum dikaitkan",
+		"needContactDesc": "Cek customer di panel Profil dulu (cari lalu kaitkan, atau tambah baru) sebelum membuat tiket.",
 		"historyTitle": "Riwayat customer",
 		"noHistory": "Belum ada riwayat tiket."
 	},

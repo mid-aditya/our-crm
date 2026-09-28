@@ -44,6 +44,8 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
 	import Select from '$lib/components/ui/Select.svelte';
+	import { ChatMessage } from '$lib/components/ui/chat';
+	import { askConfirm } from '$lib/components/ui/confirm-dialog.svelte';
 	import { cn, initials } from '$lib/utils';
 
 	const COMPANY_ID = getCompanyId() ?? '00000000-0000-0000-0000-000000000001';
@@ -102,7 +104,7 @@
 	let tickets = $state<Ticket[]>([]);
 	let ticketDetail = $state<{ ticket: Ticket; replies: { id: string; body: string; created_at: string; author_type: string }[] } | null>(null);
 	let activeTicketId = $state<string | null>(null);
-	let ticketForm = $state({ subject: '', description: '', priority: 'medium' });
+	let ticketForm = $state({ subject: '', description: '', priority: 'medium', escalated: false });
 	let customForm = $state<Record<string, string>>({});
 	let ticketFields = $state<TicketField[]>([]);
 	let assignees = $state<Assignee[]>([]);
@@ -407,15 +409,27 @@
 		for (const f of ticketFields) {
 			if (f.required && !(customForm[f.field_key] ?? '').trim()) return;
 		}
+		// Alur: tiket wajib terikat ke customer yang sudah dicek/dikaitkan.
+		const contactId = contact?.id || activeItem?.contactId || undefined;
+		if (!contactId) {
+			await askConfirm({
+				title: $t('conversation.needContactTitle'),
+				description: $t('conversation.needContactDesc'),
+				confirmLabel: $t('common.understand')
+			});
+			panelTab = 'profile';
+			return;
+		}
 		try {
 			const res = await createTicket({
 				subject: ticketForm.subject.trim(),
 				description: ticketForm.description.trim() || undefined,
-				contact_id: contact?.id || activeItem?.contactId || undefined,
+				contact_id: contactId,
 				priority: ticketForm.priority,
+				escalated: ticketForm.escalated,
 				custom_fields: customForm
 			});
-			ticketForm = { subject: '', description: '', priority: 'medium' };
+			ticketForm = { subject: '', description: '', priority: 'medium', escalated: false };
 			customForm = {};
 			await loadTicketsForContact(contact?.id ?? activeItem?.contactId ?? null);
 			await openTicket(res.id);
@@ -432,7 +446,7 @@
 		} catch { /* abaikan */ }
 	}
 
-	async function changeTicket(patch: { status?: string; priority?: string; assignee_id?: string | null }) {
+	async function changeTicket(patch: { status?: string; priority?: string; assignee_id?: string | null; escalated?: boolean }) {
 		if (!activeTicketId) return;
 		try {
 			await updateTicket(activeTicketId, patch);
@@ -449,7 +463,8 @@
 
 	async function escalateChat() {
 		if (!activeId || activeChannel !== 'livechat' || escalating) return;
-		if (!confirm($t('conversation.escalateConfirm'))) return;
+		const ok = await askConfirm({ title: $t('conversation.escalateConfirm') });
+		if (!ok) return;
 		escalating = true;
 		try {
 			const res = await escalateSession(activeId);
@@ -658,23 +673,9 @@
 						<p class="py-6 text-center text-xs text-muted">{$t('common.loading')}</p>
 					{:else}
 						{#each messages as m (m.id)}
-							<div class="flex {m.direction === 'outbound' ? 'justify-end' : 'justify-start'}">
-								<div class="max-w-[75%]">
-									{#if m.direction === 'inbound' && m.sender}
-										<p class="mb-0.5 px-1 text-[10px] font-medium text-neon-text">{m.sender}</p>
-									{/if}
-									<div
-										class={cn(
-											'rounded-2xl px-3 py-2 text-sm',
-											m.direction === 'outbound'
-												? 'rounded-br-sm bg-neon text-on-neon'
-												: 'rounded-bl-sm bg-raised text-ink'
-										)}
-									>
-										{m.body}
-									</div>
-								</div>
-							</div>
+							<ChatMessage variant={m.direction === 'outbound' ? 'outgoing' : 'incoming'} name={m.direction === 'inbound' ? (m.sender ?? null) : null}>
+								{m.body}
+							</ChatMessage>
 						{/each}
 					{/if}
 				</div>
@@ -818,6 +819,14 @@
 									{ value: 'urgent', label: 'Urgent' }
 								]}
 							/>
+							<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs transition-colors hover:border-line-strong">
+								<input
+									type="checkbox"
+									bind:checked={ticketForm.escalated}
+									class="size-4 accent-[var(--neon)]"
+								/>
+								<span class="font-medium">{$t('conversation.escalateTicket')}</span>
+							</label>
 							{#each ticketFields as f (f.field_key)}
 								{#if f.field_type === 'select'}
 									<Select
@@ -856,9 +865,15 @@
 											class="w-full rounded-lg border border-line p-2 text-left hover:border-neon/50"
 										>
 											<span class="block truncate text-xs font-medium">{tk.number} — {tk.subject}</span>
-											<span class="mt-1 flex gap-1">
+											<span class="mt-1 flex flex-wrap gap-1">
 												<Badge variant={statusVariant(tk.status)}>{tk.status}</Badge>
 												<Badge variant={priorityVariant(tk.priority)}>{tk.priority}</Badge>
+												{#if tk.escalated}
+													<Badge variant="danger">SPV</Badge>
+												{/if}
+												{#if tk.status === 'open' && (tk.replies_count ?? 0) === 0}
+													<Badge variant="warn">{$t('ticketsPage.needFollowup')}</Badge>
+												{/if}
 											</span>
 										</button>
 									{/each}
@@ -874,6 +889,12 @@
 							<div class="flex flex-wrap gap-1">
 								<Badge variant={statusVariant(ticketDetail.ticket.status)}>{ticketDetail.ticket.status}</Badge>
 								<Badge variant={priorityVariant(ticketDetail.ticket.priority)}>{ticketDetail.ticket.priority}</Badge>
+								{#if ticketDetail.ticket.escalated}
+									<Badge variant="danger">SPV</Badge>
+								{/if}
+								{#if ticketDetail.ticket.status === 'open' && ticketDetail.replies.length === 0}
+									<Badge variant="warn">{$t('ticketsPage.needFollowup')}</Badge>
+								{/if}
 							</div>
 							{#if ticketDetail.ticket.description}
 								<p class="rounded-md bg-raised p-2 text-[11px] text-muted">{ticketDetail.ticket.description}</p>
@@ -925,6 +946,15 @@
 									onchange={(v) => changeTicket({ assignee_id: v === '__none' ? null : v })}
 								/>
 							</div>
+							<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs transition-colors hover:border-line-strong">
+								<input
+									type="checkbox"
+									checked={ticketDetail.ticket.escalated}
+									onchange={(e) => changeTicket({ escalated: (e.target as HTMLInputElement).checked })}
+									class="size-4 accent-[var(--neon)]"
+								/>
+								<span class="font-medium">{$t('conversation.escalateTicket')}</span>
+							</label>
 						{/if}
 							<div class="space-y-1.5 border-t border-line pt-2">
 								<p class="text-[11px] font-medium">{$t('conversation.followup')}</p>

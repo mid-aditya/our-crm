@@ -27,7 +27,8 @@
 		"allPriority": "All priorities",
 		"noMatch": "No tickets match the filter.",
 		"detail": "Ticket detail",
-		"pick": "Pick a ticket to see details."
+		"pick": "Pick a ticket to see details.",
+		"needFollowup": "Needs follow-up"
 	},
 	"topbar": {
 		"menu": "Open navigation menu",
@@ -234,6 +235,7 @@
 	},
 	"common": {
 		"cancel": "Cancel",
+		"understand": "Got it",
 		"delete": "Delete",
 		"close": "Close",
 		"clear": "Clear date",
@@ -398,6 +400,9 @@
 		"escalateConfirm": "Hand this chat over to SPV?",
 		"assignee": "Assignee",
 		"unassigned": "Unassigned",
+		"escalateTicket": "Escalate to SPV",
+		"needContactTitle": "No customer linked",
+		"needContactDesc": "Check the customer in the Profile panel first (search then link, or add new) before creating a ticket.",
 		"historyTitle": "Customer history",
 		"noHistory": "No ticket history yet."
 	},

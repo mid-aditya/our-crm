@@ -9,6 +9,7 @@
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Topbar from '$lib/components/layout/Topbar.svelte';
 	import TaskDrawer from '$lib/components/layout/TaskDrawer.svelte';
+	import ConfirmDialog from '$lib/components/ui/ConfirmDialog.svelte';
 	import { cn } from '$lib/utils';
 
 	let { children } = $props();
@@ -52,5 +53,6 @@
 			{@render children()}
 		</main>
 		<TaskDrawer />
+		<ConfirmDialog />
 	</div>
 </div>
