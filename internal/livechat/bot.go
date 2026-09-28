@@ -3,6 +3,7 @@ package livechat
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -44,9 +45,9 @@ func runBotResponder(pool *pgxpool.Pool, sessionID, body string) {
 		return
 	}
 
-	// 3. Tidak cocok → teruskan ke agent.
+	// 3. Tidak cocok → sesi bot selesai: coba assign ke agent, fallback antrian.
 	_, _ = pool.Exec(ctx, `update livechat_sessions set bot_handled=true, unread_count=unread_count+1, last_inbound_at=now(), last_message=$1, last_message_at=now(), updated_at=now() where id=$2`, body, sessionID)
-	go broadcastQueueUpdate(ctx, pool, companyIDOf(ctx, pool, sessionID))
+	go escalateToAgent(ctx, pool, sessionID)
 }
 
 type botNode struct {
@@ -175,6 +176,8 @@ func answerBot(ctx context.Context, pool *pgxpool.Pool, sessionID string, n botN
 		}
 		if len(opts) > 0 {
 			text += "\n\nBalas dengan salah satu:\n" + strings.Join(opts, "\n")
+		} else {
+			text += "\n\nBalas \"agent\" kapan saja untuk bicara dengan agent kami."
 		}
 	}
 	var msgID string
@@ -183,10 +186,55 @@ func answerBot(ctx context.Context, pool *pgxpool.Pool, sessionID string, n botN
 	TheSSEHub.BroadcastNewMessage("", sessionID, Message{ID: msgID, SessionID: sessionID, Direction: "outbound", Body: text})
 	if n.Escalate {
 		_, _ = pool.Exec(ctx, `update livechat_sessions set bot_handled=true, bot_node_id=null, unread_count=unread_count+1, last_inbound_at=now(), last_message=$1, last_message_at=now(), updated_at=now() where id=$2`, text, sessionID)
-		go broadcastQueueUpdate(ctx, pool, companyIDOf(ctx, pool, sessionID))
+		go escalateToAgent(ctx, pool, sessionID)
 		return
 	}
 	_, _ = pool.Exec(ctx, `update livechat_sessions set bot_node_id=$1, last_message=$2, last_message_at=now(), updated_at=now() where id=$3`, nodeID, text, sessionID)
+}
+
+// escalateToAgent: sesi bot selesai → coba assign langsung ke agent online.
+// Berhasil: visitor diberi tahu & status assigned. Gagal (tutup/tidak ada
+// agent online): sesi tetap di antrian untuk diambil manual.
+func escalateToAgent(ctx context.Context, pool *pgxpool.Pool, sessionID string) {
+	if pool == nil || sessionID == "" {
+		return
+	}
+	var companyID string
+	_ = pool.QueryRow(ctx, `select company_id from livechat_sessions where id=$1`, sessionID).Scan(&companyID)
+	if companyID == "" || !openNow(ctx, pool) {
+		return
+	}
+	agentID, agentName, err := autoAssignAgent(ctx, pool, companyID, 0)
+	if err != nil || agentID == "" {
+		return
+	}
+	_, err = pool.Exec(ctx, `update livechat_sessions set assigned_agent_id=$1, status='assigned', bot_node_id=null, unread_count=0, updated_at=now() where id=$2`, agentID, sessionID)
+	if err != nil {
+		return
+	}
+	NotifySessionAssigned(sessionID, agentID, agentName)
+	TheSSEHub.BroadcastSessionAssigned(companyID, sessionID, agentID)
+	go broadcastQueueUpdate(ctx, pool, companyID)
+}
+
+// openNow true bila jam operasional sedang buka (Asia/Jakarta).
+// Tabel kosong/belum setup → anggap buka (fail-open).
+func openNow(ctx context.Context, pool *pgxpool.Pool) bool {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		loc = time.UTC
+	}
+	n := time.Now().In(loc)
+	var o, c *string
+	var closed bool
+	if err := pool.QueryRow(ctx, `select open_time::text, close_time::text, is_closed from operational_hours where day_of_week=$1`, int(n.Weekday())).Scan(&o, &c, &closed); err != nil {
+		return true
+	}
+	if closed || o == nil || c == nil {
+		return false
+	}
+	cur := n.Format("15:04")
+	return cur >= *o && cur <= *c
 }
 
 func firstKeyword(keywords string) string {

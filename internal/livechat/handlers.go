@@ -586,6 +586,7 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	var sessionID string
 	var isNew bool
+	var msgCount int
 	err = pool.QueryRow(r.Context(), `
 		insert into livechat_sessions (company_id, visitor_id, visitor_name, visitor_email, status, waiting_since)
 		values ($1, $2, $3, $4, 'waiting', now())
@@ -597,15 +598,16 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 			bot_node_id=case when livechat_sessions.status='resolved' then null else livechat_sessions.bot_node_id end,
 			waiting_since=case when livechat_sessions.status='resolved' then now() else livechat_sessions.waiting_since end,
 			updated_at=now()
-		returning id, (xmax = 0)
-	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail)).Scan(&sessionID, &isNew)
+		returning id, (xmax = 0), (select count(*) from livechat_messages m where m.session_id = livechat_sessions.id)
+	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail)).Scan(&sessionID, &isNew, &msgCount)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal membuat sesi")
 		return
 	}
 
-	// Sesi baru: langsung terhubung ke bot — kirim sapaan + opsi topik.
-	if isNew {
+	// Sesi baru (atau lama yang belum ada pesannya): langsung terhubung ke
+	// bot — kirim sapaan + opsi topik.
+	if isNew || msgCount == 0 {
 		go sendBotGreeting(pool, sessionID, in.VisitorName)
 	}
 
