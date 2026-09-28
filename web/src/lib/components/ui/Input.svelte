@@ -11,6 +11,7 @@
 </script>
 
 <input
+	bind:value
 	class={cn(
 		'h-9.5 w-full rounded-lg border bg-surface px-3 text-sm text-ink transition-colors',
 		'placeholder:text-faint hover:border-line-strong focus:border-neon focus:outline-none',

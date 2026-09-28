@@ -35,20 +35,20 @@
 }
 
 .dark {
-	--bg: #070d09;
-	--surface: #0d140f;
-	--raised: #131c15;
-	--line: #1d2b21;
-	--line-strong: #2a3d30;
-	--ink: #e4f1e6;
-	--muted: #9cb2a1;
-	--faint: #64796b;
+	--bg: #0a0c0b;
+	--surface: #111413;
+	--raised: #181d1b;
+	--line: #232a27;
+	--line-strong: #313b37;
+	--ink: #e8ece9;
+	--muted: #a3b0a7;
+	--faint: #6b7670;
 
 	--neon: #3ce97f;
 	--neon-strong: #5cf397;
 	--neon-text: #4dee8a;
-	--neon-soft: rgb(60 233 127 / 0.12);
-	--neon-glow: rgb(60 233 127 / 0.3);
+	--neon-soft: rgb(60 233 127 / 0.1);
+	--neon-glow: rgb(60 233 127 / 0.25);
 	--on-neon: #051209;
 
 	--danger: #ff6b74;
@@ -76,6 +76,11 @@
 	--color-warn: var(--warn);
 	--color-warn-soft: var(--warn-soft);
 
+	/* Alias primary → identitas hijau (dipakai login & komponen generik) */
+	--color-primary: var(--neon);
+	--color-primary-strong: var(--neon-strong);
+	--color-primary-fg: var(--on-neon);
+
 	--font-display: 'Sora Variable', 'Sora', ui-sans-serif, system-ui, sans-serif;
 	--font-sans: 'IBM Plex Sans Variable', 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
 	--font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
@@ -84,6 +89,7 @@
 @layer base {
 	html {
 		scrollbar-gutter: stable;
+		color-scheme: light;
 	}
 	html.dark {
 		color-scheme: dark;
@@ -115,11 +121,40 @@
 	::-webkit-scrollbar-track {
 		background: transparent;
 	}
+
+	/* Dropdown & kalender native mengikuti tema hijau */
+	select,
+	input[type='date'],
+	input[type='time'] {
+		color-scheme: light;
+	}
+	.dark select,
+	.dark input[type='date'],
+	.dark input[type='time'] {
+		color-scheme: dark;
+	}
+	select option {
+		background-color: var(--surface);
+		color: var(--ink);
+	}
+	input[type='date']::-webkit-calendar-picker-indicator,
+	input[type='time']::-webkit-calendar-picker-indicator {
+		cursor: pointer;
+		opacity: 0.55;
+	}
+	.dark input[type='date']::-webkit-calendar-picker-indicator,
+	.dark input[type='time']::-webkit-calendar-picker-indicator {
+		opacity: 0.8;
+		filter: invert(0.7) sepia(0.6) saturate(3) hue-rotate(70deg);
+	}
+	input[type='checkbox'],
+	input[type='radio'] {
+		accent-color: var(--neon);
+	}
 }
 
 /* Dot status "hidup" untuk indikator saluran */
-@keyframes dot-pulse {
-	0% {
+@keyframes dot-pulse {	0% {
 		box-shadow: 0 0 0 0 var(--neon-glow);
 	}
 	70% {
@@ -131,6 +166,22 @@
 }
 @utility dot-pulse {
 	animation: dot-pulse 2.2s ease-out infinite;
+}
+
+/* Animasi buka dropdown/popover: fade + scale dari trigger */
+@keyframes dropdown-in {
+	from {
+		opacity: 0;
+		transform: scale(0.96) translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+}
+@utility dropdown-in {
+	animation: dropdown-in 0.14s ease-out;
+	transform-origin: top right;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -4,7 +4,7 @@
 	import { cn } from '$lib/utils';
 
 	type Variant = 'solid' | 'outline' | 'ghost' | 'danger';
-	type Size = 'sm' | 'md' | 'icon';
+	type Size = 'sm' | 'md' | 'lg' | 'icon';
 
 	type Props = HTMLButtonAttributes & {
 		variant?: Variant;
@@ -31,6 +31,7 @@
 	const sizes: Record<Size, string> = {
 		sm: 'h-8 gap-1.5 rounded-md px-3 text-xs',
 		md: 'h-9.5 gap-2 rounded-lg px-4 text-sm',
+		lg: 'h-11 gap-2 rounded-xl px-6 text-sm',
 		icon: 'size-9 rounded-lg'
 	};
 </script>

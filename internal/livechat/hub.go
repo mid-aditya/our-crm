@@ -3,6 +3,8 @@ package livechat
 import (
 	"sync"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Client represents a WebSocket client connection
@@ -13,6 +15,7 @@ type Client struct {
 	CompanyID string
 	Role      string // visitor, agent
 	Send      chan []byte
+	Pool      *pgxpool.Pool // tenant pool (boleh nil bila resolve gagal)
 }
 
 // Hub manages WebSocket connections for livechat

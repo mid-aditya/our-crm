@@ -15,24 +15,36 @@ export async function createSession(
 	companyId: string,
 	visitorId: string,
 	visitorName?: string,
-	visitorEmail?: string
+	visitorEmail?: string,
+	visitorPhone?: string
 ): Promise<VisitorSession> {
 	const res = await fetch(
 		`${BASE}/api/v1/livechat/sessions?company_id=${encodeURIComponent(companyId)}`,
 		{
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ visitor_id: visitorId, visitor_name: visitorName, visitor_email: visitorEmail })
+			body: JSON.stringify({ visitor_id: visitorId, visitor_name: visitorName, visitor_email: visitorEmail, visitor_phone: visitorPhone })
 		}
 	);
-	if (!res.ok) throw new Error('Failed to create session');
-	return res.json();
+	if (!res.ok) {
+		const raw = await res.json().catch(() => null);
+		const e = (raw as any)?.error;
+		const msg = typeof e === 'string' ? e : e?.message || 'Failed to create session';
+		throw new Error(msg);
+	}
+	const raw = await res.json();
+	// Backend Go: envelope {"data": {...}}
+	return ((raw as any)?.data ?? raw) as VisitorSession;
 }
 
-export async function getSessionMessages(sessionId: string): Promise<any[]> {
-	const res = await fetch(`${BASE}/api/v1/livechat/sessions/${sessionId}/messages`);
+export async function getSessionMessages(sessionId: string, companyId?: string): Promise<any[]> {
+	const q = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
+	const res = await fetch(`${BASE}/api/v1/livechat/sessions/${sessionId}/messages${q}`);
 	if (!res.ok) return [];
-	return res.json();
+	const raw = await res.json().catch(() => null);
+	// WritePage → {"data": [...], "meta": {...}} ; fallback langsung array
+	const data = (raw as any)?.data ?? raw;
+	return Array.isArray(data) ? data : [];
 }
 
 export function wsUrl(sessionId: string, companyId: string): string {

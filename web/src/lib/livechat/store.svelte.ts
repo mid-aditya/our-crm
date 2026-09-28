@@ -13,6 +13,7 @@ class LivechatStore {
 	connected = $state(false);
 	agentTyping = $state(false);
 	status = $state<'idle' | 'connecting' | 'waiting' | 'chatting' | 'resolved'>('idle');
+	error = $state('');
 
 	private ws: WebSocket | null = null;
 	private visitorId = '';
@@ -28,17 +29,46 @@ class LivechatStore {
 		localStorage.setItem('lc_visitor_id', this.visitorId);
 	}
 
-	async openChat(name?: string) {
+	async openChat(name?: string, email?: string, phone?: string) {
 		this.open = true;
 		if (this.session) return; // already have a session
 
 		this.status = 'connecting';
+		this.error = '';
 		try {
-			this.session = await api.createSession(COMPANY_ID, this.visitorId, name);
+			this.session = await api.createSession(COMPANY_ID, this.visitorId, name, email, phone);
 			this.status = 'waiting';
 			this.connectWS();
-		} catch {
+			await this.loadHistory();
+		} catch (e) {
 			this.status = 'idle';
+			this.error = e instanceof Error ? e.message : 'Failed to create session';
+		}
+	}
+
+	// Muat history (termasuk sapaan bot) agar sapaan langsung terlihat.
+	async loadHistory() {
+		if (!this.session) return;
+		try {
+			const rows = await api.getSessionMessages(this.session.id, COMPANY_ID);
+			const mapped = rows.map((m: any) => ({
+				id: String(m.id ?? crypto.randomUUID()),
+				// DB: inbound = dari visitor, outbound = dari bot/agent.
+				// Widget: outbound = milik sendiri (kanan), inbound = lawan bicara (kiri).
+				direction: (m.direction === 'inbound' ? 'outbound' : 'inbound') as 'inbound' | 'outbound',
+				body: String(m.body ?? ''),
+				sender_name: m.sender_name ?? undefined,
+				created_at: String(m.created_at ?? new Date().toISOString())
+			}));
+			// Hindari duplikat dengan optimistic update yang sudah ada.
+			const known = new Set(this.messages.map((x) => x.direction + '|' + x.body));
+			const fresh = mapped.filter((m) => !known.has(m.direction + '|' + m.body));
+			if (fresh.length > 0) this.messages = [...this.messages, ...fresh];
+			if (this.messages.length > 0 && this.status === 'waiting') {
+				// Tetap waiting sampai ada balasan/agent — biarkan indikator.
+			}
+		} catch {
+			// abaikan — pesan baru tetap mengalir via WS
 		}
 	}
 
@@ -50,7 +80,8 @@ class LivechatStore {
 		if (this.open) {
 			this.closeChat();
 		} else {
-			this.openChat();
+			// Buka jendela pre-chat dulu (input nama); sesi dibuat saat Mulai Chat.
+			this.open = true;
 		}
 	}
 
@@ -69,6 +100,8 @@ class LivechatStore {
 			try {
 				const msg = JSON.parse(e.data);
 				if (msg.type === 'visitor_message') {
+					// Abaikan echo pesan sendiri (sudah optimistic update saat kirim).
+					if (msg.sender_id && msg.sender_id === this.visitorId) return;
 					this.messages = [...this.messages, {
 						id: msg.id ?? crypto.randomUUID(),
 						direction: 'inbound',
@@ -83,7 +116,7 @@ class LivechatStore {
 				} else if (msg.type === 'agent_message') {
 					this.messages = [...this.messages, {
 						id: msg.id ?? crypto.randomUUID(),
-						direction: 'outbound',
+						direction: 'inbound',
 						body: msg.body,
 						sender_name: msg.sender_name,
 						created_at: new Date().toISOString()
@@ -120,6 +153,7 @@ class LivechatStore {
 		const msg = {
 			type: 'visitor_message',
 			body: body.trim(),
+			sender_id: this.visitorId,
 			sender_name: 'Guest'
 		};
 

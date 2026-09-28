@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { t, locale as currentLocale } from 'svelte-i18n';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Widget from '$lib/livechat/Widget.svelte';
+	import idMsgs from '$lib/i18n/id.json';
+	import enMsgs from '$lib/i18n/en.json';
 	import {
 		Bot,
 		Hash,
@@ -28,19 +31,21 @@
 	];
 
 	const features = [
-		{ icon: MessageSquare, title: 'Multi-Channel Inbox', desc: 'Satu inbox untuk WhatsApp, Live Chat, Facebook, Instagram, LINE, dan Telegram.' },
-		{ icon: Zap, title: 'Blast Campaign', desc: 'Kirim pesan massal terjadwal ke ribuan kontak dalam hitungan menit.' },
-		{ icon: LayoutDashboard, title: 'CRM Terintegrasi', desc: 'Kelola kontak, pipeline, dan tiket dukungan dalam satu platform.' },
-		{ icon: LineChart, title: 'Laporan Real-time', desc: 'Lacak performa kampanye, reply rate, dan resolusi tiket secara live.' },
-		{ icon: Bot, title: 'Distribusi Otomatis', desc: 'Round-robin atau manual — distribute percakapan ke agen secara cerdas.' },
-		{ icon: Star, title: 'Modern & Ringan', desc: 'UI yang bersih dan responsif, cepat di semua perangkat.' }
+		{ icon: MessageSquare },
+		{ icon: Zap },
+		{ icon: LayoutDashboard },
+		{ icon: LineChart },
+		{ icon: Bot },
+		{ icon: Star }
 	];
 
-	const testimonials = [
-		{ name: 'Rina Wijaya', role: 'Head of CS, TokoSeru', quote: 'Semua chat pelanggan sekarang di satu tempat. Tim kami 2x lebih cepat respons.' },
-		{ name: 'Ahmad Pratama', role: 'Marketing Lead, GreenLife', quote: 'Blast campaign ke 5.000+ kontak dalam 10 menit. ROI naik 40% bulan pertama.' },
-		{ name: 'Sari Dewi', role: 'Founder, BeautyBox ID', quote: 'Live chat-nya seamless. Pelanggan suka karena dapat respons instan.' }
-	];
+	const testiIdx = [0, 1, 2];
+
+	// Teks list (fitur & testimoni) diambil langsung dari kamus sesuai locale —
+	// reaktif terhadap ganti bahasa, tanpa path dinamis.
+	const L = $derived(
+		($currentLocale ?? 'id').startsWith('en') ? enMsgs.landing : idMsgs.landing
+	);
 </script>
 
 <Widget />
@@ -55,12 +60,12 @@
 			<span class="font-display text-lg font-semibold">OurCRM</span>
 		</div>
 		<nav class="hidden items-center gap-6 md:flex">
-			<a href="#features" class="text-sm text-muted hover:text-ink transition-colors">Fitur</a>
-			<a href="#channels" class="text-sm text-muted hover:text-ink transition-colors">Channel</a>
+			<a href="#features" class="text-sm text-muted hover:text-ink transition-colors">{$t('landing.features')}</a>
+			<a href="#channels" class="text-sm text-muted hover:text-ink transition-colors">{$t('landing.channels')}</a>
 		</nav>
 		<div class="flex items-center gap-3">
-			<Button variant="ghost" onclick={() => goto('/login')}>Masuk</Button>
-			<Button onclick={() => goto('/signup')}>Daftar Gratis</Button>
+			<Button variant="ghost" onclick={() => goto('/login')}>{$t('landing.login')}</Button>
+			<Button onclick={() => goto('/login')}>{$t('landing.signup')}</Button>
 		</div>
 	</div>
 </header>
@@ -78,26 +83,26 @@
 			<div>
 				<div class="mb-6 inline-flex items-center gap-2 rounded-full border border-neon/30 bg-neon-soft px-4 py-1.5 text-sm font-medium text-neon-text">
 					<Zap size={14} />
-					All-in-One Customer Messaging
+					{$t('landing.heroBadge')}
 				</div>
 				<h1 class="font-display text-4xl font-bold leading-tight tracking-tight md:text-5xl lg:text-6xl">
-					Semua chat.<br />
-					<span class="text-neon">Satu platform.</span><br />
-					Nol ribet.
+					{$t('landing.heroA')}<br />
+					<span class="text-neon">{$t('landing.heroB')}</span><br />
+					{$t('landing.heroC')}
 				</h1>
 				<p class="mt-6 max-w-lg text-base text-muted md:text-lg">
-					Kelola WhatsApp, Live Chat, Facebook, Instagram, LINE, dan Telegram dari satu inbox. Kirim blast campaign, distribute ke agen, dan pantau laporan — semua real-time.
+					{$t('landing.heroDesc')}
 				</p>
 				<div class="mt-8 flex flex-wrap items-center gap-4">
-					<Button size="lg" onclick={() => goto('/signup')}>
-						Mulai Gratis
+					<Button size="lg" onclick={() => goto('/login')}>
+						{$t('landing.ctaStart')}
 						<MessageSquare size={18} />
 					</Button>
-					<Button size="lg" variant="outline" onclick={() => goto('/dashboard')}>
-						Lihat Demo
+					<Button size="lg" variant="outline" onclick={() => goto('/login')}>
+						{$t('landing.ctaDemo')}
 					</Button>
 				</div>
-				<p class="mt-4 text-xs text-faint">Tidak perlu kartu kredit. Gratis 14 hari.</p>
+				<p class="mt-4 text-xs text-faint">{$t('landing.noCard')}</p>
 			</div>
 
 			<!-- Chat preview -->
@@ -111,23 +116,23 @@
 					</div>
 					<div class="flex h-80 flex-col bg-surface">
 						<div class="border-b border-line bg-raised px-4 py-2.5">
-							<p class="text-xs font-semibold text-neon-text">💬 Live Chat</p>
+							<p class="text-xs font-semibold text-neon-text">{$t('landing.previewLive')}</p>
 						</div>
 						<div class="flex-1 space-y-3 overflow-hidden p-4">
 							<div class="flex justify-end">
 								<div class="max-w-[70%] rounded-2xl rounded-br-sm bg-neon px-3 py-2 text-sm text-on-neon">
-									Halo, saya mau tanya soal produk
+									{$t('landing.previewM1')}
 								</div>
 							</div>
 							<div class="flex gap-2">
 								<div class="flex size-7 shrink-0 items-center justify-center rounded-full bg-raised text-[10px] font-semibold text-muted">AG</div>
 								<div class="max-w-[70%] rounded-2xl rounded-bl-sm bg-raised px-3 py-2 text-sm text-ink">
-									Selamat siang! Silakan bertanya 😊
+									{$t('landing.previewR1')}
 								</div>
 							</div>
 							<div class="flex justify-end">
 								<div class="max-w-[70%] rounded-2xl rounded-br-sm bg-neon px-3 py-2 text-sm text-on-neon">
-									Produk ini ready stock ya?
+									{$t('landing.previewM2')}
 								</div>
 							</div>
 							<div class="flex gap-2">
@@ -141,7 +146,7 @@
 						</div>
 						<div class="border-t border-line p-3">
 							<div class="flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2">
-								<span class="text-xs text-faint">Ketik pesan…</span>
+								<span class="text-xs text-faint">{$t('landing.previewType')}</span>
 								<div class="ml-auto rounded-full bg-neon p-1.5">
 									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-on-neon"><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 19-7z"/></svg>
 								</div>
@@ -156,7 +161,7 @@
 							<Zap size={16} class="text-neon-text" />
 						</div>
 						<div>
-							<p class="text-xs text-muted">Respon rata-rata</p>
+							<p class="text-xs text-muted">{$t('landing.avgResponse')}</p>
 							<p class="font-mono text-lg font-semibold text-neon-text">&lt;30det</p>
 						</div>
 					</div>
@@ -177,7 +182,7 @@
 <!-- Social proof -->
 <section class="border-y border-line bg-raised py-6">
 	<div class="mx-auto flex max-w-6xl items-center justify-center gap-8 px-6 overflow-x-auto">
-		<p class="shrink-0 text-sm text-faint">Trusted oleh 500+ tim di Indonesia</p>
+		<p class="shrink-0 text-sm text-faint">{$t('landing.social')}</p>
 		{#each ['TokoSeru', 'GreenLife', 'BeautyBox', 'TechGear', 'FreshFood'] as brand}
 			<span class="shrink-0 font-display text-sm font-semibold text-muted">{brand}</span>
 		{/each}
@@ -188,18 +193,18 @@
 <section id="features" class="py-24">
 	<div class="mx-auto max-w-6xl px-6">
 		<div class="mb-16 text-center">
-			<p class="mb-3 text-sm font-medium text-neon-text">Fitur Unggulan</p>
-			<h2 class="font-display text-3xl font-bold md:text-4xl">Semua yang kamu butuhkan,<br />tanpa yang tidak</h2>
-			<p class="mt-4 max-w-xl mx-auto text-muted">Dibuat untuk tim yang peduli dengan pengalaman pelanggan, bukan sekadar mengirim pesan.</p>
+			<p class="mb-3 text-sm font-medium text-neon-text">{$t('landing.featKicker')}</p>
+			<h2 class="font-display text-3xl font-bold md:text-4xl">{$t('landing.featTitleA')}<br />{$t('landing.featTitleB')}</h2>
+			<p class="mt-4 max-w-xl mx-auto text-muted">{$t('landing.featDesc')}</p>
 		</div>
 		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-			{#each features as f}
+			{#each features as f, i (i)}
 				<div class="group rounded-2xl border border-line bg-surface p-6 transition-all hover:border-neon/30 hover:shadow-lg hover:shadow-neon/5">
 					<div class="mb-4 flex size-11 items-center justify-center rounded-xl bg-neon-soft text-neon-text">
 						<svelte:component this={f.icon} size={20} />
 					</div>
-					<h3 class="font-display text-base font-semibold">{f.title}</h3>
-					<p class="mt-2 text-sm text-muted leading-relaxed">{f.desc}</p>
+					<h3 class="font-display text-base font-semibold">{L.feat[i].title}</h3>
+					<p class="mt-2 text-sm text-muted leading-relaxed">{L.feat[i].desc}</p>
 				</div>
 			{/each}
 		</div>
@@ -210,9 +215,9 @@
 <section id="channels" class="py-24 bg-raised">
 	<div class="mx-auto max-w-6xl px-6">
 		<div class="mb-16 text-center">
-			<p class="mb-3 text-sm font-medium text-neon-text">8 Channel</p>
-			<h2 class="font-display text-3xl font-bold md:text-4xl">Connect semua channel<br />pelangganmu</h2>
-			<p class="mt-4 max-w-lg mx-auto text-muted">WhatsApp, Live Chat website, Facebook, Instagram, LINE, Shopee, dan Telegram — tinggal set API langsung jadi.</p>
+			<p class="mb-3 text-sm font-medium text-neon-text">{$t('landing.chKicker')}</p>
+			<h2 class="font-display text-3xl font-bold md:text-4xl">{$t('landing.chTitleA')}<br />{$t('landing.chTitleB')}</h2>
+			<p class="mt-4 max-w-lg mx-auto text-muted">{$t('landing.chDesc')}</p>
 		</div>
 		<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 			{#each channels as ch}
@@ -231,21 +236,21 @@
 <section class="py-24">
 	<div class="mx-auto max-w-6xl px-6">
 		<div class="mb-16 text-center">
-			<p class="mb-3 text-sm font-medium text-neon-text">Testimoni</p>
-			<h2 class="font-display text-3xl font-bold md:text-4xl">Dipakai tim nyata,<br />hasil nyata</h2>
+			<p class="mb-3 text-sm font-medium text-neon-text">{$t('landing.testiKicker')}</p>
+			<h2 class="font-display text-3xl font-bold md:text-4xl">{$t('landing.testiTitleA')}<br />{$t('landing.testiTitleB')}</h2>
 		</div>
 		<div class="grid gap-4 md:grid-cols-3">
-			{#each testimonials as t}
+			{#each testiIdx as i (i)}
 				<div class="rounded-2xl border border-line bg-surface p-6">
 					<div class="mb-4 flex gap-1">
 						{#each [1,2,3,4,5] as _}<Star size={14} class="fill-neon text-neon" />{/each}
 					</div>
-					<blockquote class="text-sm text-muted leading-relaxed">"{t.quote}"</blockquote>
+					<blockquote class="text-sm text-muted leading-relaxed">"{L.testi[i].quote}"</blockquote>
 					<div class="mt-4 flex items-center gap-3">
-						<div class="flex size-9 items-center justify-center rounded-full bg-neon-soft font-semibold text-neon-text">{t.name[0]}</div>
+						<div class="flex size-9 items-center justify-center rounded-full bg-neon-soft font-semibold text-neon-text">{L.testi[i].name[0]}</div>
 						<div>
-							<p class="text-sm font-medium">{t.name}</p>
-							<p class="text-xs text-faint">{t.role}</p>
+							<p class="text-sm font-medium">{L.testi[i].name}</p>
+							<p class="text-xs text-faint">{L.testi[i].role}</p>
 						</div>
 					</div>
 				</div>
@@ -258,11 +263,11 @@
 <section class="py-24">
 	<div class="mx-auto max-w-3xl px-6 text-center">
 		<div class="rounded-3xl border border-neon/20 bg-neon-soft p-12 md:p-16">
-			<h2 class="font-display text-3xl font-bold text-neon-text md:text-4xl">Siap tingkatkan<br />customer experience?</h2>
-			<p class="mt-4 text-muted">Mulai gratis sekarang. Tidak perlu kartu kredit. Setup dalam 5 menit.</p>
+			<h2 class="font-display text-3xl font-bold text-neon-text md:text-4xl">{$t('landing.ctaTitleA')}<br />{$t('landing.ctaTitleB')}</h2>
+			<p class="mt-4 text-muted">{$t('landing.ctaDesc')}</p>
 			<div class="mt-8 flex flex-wrap justify-center gap-4">
-				<Button size="lg" onclick={() => goto('/signup')}>Daftar Gratis Sekarang</Button>
-				<Button size="lg" variant="outline" onclick={() => goto('/dashboard')}>Masuk</Button>
+				<Button size="lg" onclick={() => goto('/login')}>{$t('landing.ctaSignup')}</Button>
+				<Button size="lg" variant="outline" onclick={() => goto('/login')}>{$t('landing.login')}</Button>
 			</div>
 		</div>
 	</div>
@@ -277,11 +282,11 @@
 			</div>
 			<span class="font-display text-sm font-semibold">OurCRM</span>
 		</div>
-		<p class="text-xs text-faint">© 2026 OurCRM. All rights reserved.</p>
+		<p class="text-xs text-faint">{$t('landing.rights')}</p>
 		<div class="flex gap-6 text-xs text-faint">
-			<span class="cursor-pointer hover:text-muted transition-colors">Privacy</span>
-			<span class="cursor-pointer hover:text-muted transition-colors">Terms</span>
-			<span class="cursor-pointer hover:text-muted transition-colors">Support</span>
+			<span class="cursor-pointer hover:text-muted transition-colors">{$t('landing.privacy')}</span>
+			<span class="cursor-pointer hover:text-muted transition-colors">{$t('landing.terms')}</span>
+			<span class="cursor-pointer hover:text-muted transition-colors">{$t('landing.support')}</span>
 		</div>
 	</div>
 </footer>

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { setToken, setCompanyId } from '$lib/api';
+	import { t } from 'svelte-i18n';
+	import { setToken, setCompanyId, setUser } from '$lib/api';
 
 	let loading = $state(false);
 	let error = $state('');
 
-	async function demoLogin(role: 'agent' | 'admin') {
+	async function demoLogin(role: 'agent' | 'spv' | 'admin') {
 		loading = true;
 		error = '';
 		try {
@@ -14,10 +15,19 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ role })
 			});
-			const data = await res.json();
-			if (!res.ok) throw new Error(data.error?.message || 'Login failed');
+			const raw = await res.json();
+			if (!res.ok) {
+				const e = (raw as any)?.error;
+				throw new Error(
+					typeof e === 'string' ? e : e?.message || 'Login failed'
+				);
+			}
+			// Backend Go: {"data": {access_token, company_id, ...}}
+			const data = (raw as any)?.data ?? raw;
+			if (!data?.access_token) throw new Error('Login failed: token kosong');
 			setToken(data.access_token);
 			setCompanyId(data.company_id);
+			if (data?.user) setUser(data.user);
 			goto('/dashboard');
 		} catch (e: any) {
 			error = e.message;
@@ -35,8 +45,8 @@
 				<path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
 			</svg>
 		</div>
-		<h1 class="font-display text-2xl font-bold text-foreground">OurCRM</h1>
-		<p class="mt-2 text-sm text-muted">Login to access your dashboard.</p>
+		<h1 class="font-display text-2xl font-bold text-foreground">{$t('login.title')}</h1>
+		<p class="mt-2 text-sm text-muted">{$t('login.subtitle')}</p>
 
 		{#if error}
 			<div class="mt-4 rounded-lg border border-warn/30 bg-warn/10 px-3 py-2 text-sm text-warn">
@@ -50,17 +60,24 @@
 				disabled={loading}
 				class="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-fg transition-opacity hover:opacity-90 disabled:opacity-50"
 			>
-				{loading ? 'Memuat...' : 'Masuk sebagai Agent'}
+				{loading ? $t('login.loading') : $t('login.asAgent')}
+			</button>
+			<button
+				onclick={() => demoLogin('spv')}
+				disabled={loading}
+				class="w-full rounded-xl border border-line bg-surface-secondary px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+			>
+				{loading ? $t('login.loading') : $t('login.asSpv')}
 			</button>
 			<button
 				onclick={() => demoLogin('admin')}
 				disabled={loading}
 				class="w-full rounded-xl border border-line bg-surface-secondary px-4 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
 			>
-				{loading ? 'Memuat...' : 'Masuk sebagai Admin'}
+				{loading ? $t('login.loading') : $t('login.asAdmin')}
 			</button>
 		</div>
 
-		<p class="mt-6 text-xs text-muted">(Demo mode — connects to Go backend)</p>
+		<p class="mt-6 text-xs text-muted">{$t('login.demoNote')}</p>
 	</div>
 </div>

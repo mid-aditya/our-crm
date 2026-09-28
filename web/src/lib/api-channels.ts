@@ -1,4 +1,4 @@
-import { api } from '$lib/api';
+import { api, apiPage } from '$lib/api';
 
 export type ChannelType = {
 	id: string;
@@ -97,6 +97,8 @@ export type AdminCompany = {
 	user_count: number;
 	created_at: string;
 	updated_at: string;
+	db?: { host: string; port: number; name: string; user: string };
+	schema_versions?: string[];
 };
 
 export async function getCompanies(params?: { status?: string; search?: string; page?: number }): Promise<{ data: AdminCompany[]; meta: { total: number; limit: number; offset: number } }> {
@@ -105,7 +107,8 @@ export async function getCompanies(params?: { status?: string; search?: string; 
 	if (params?.search) qs.set('search', params.search);
 	if (params?.page) qs.set('page', String(params.page));
 	const query = qs.toString() ? `?${qs.toString()}` : '';
-	return api(`/admin/companies${query}`);
+	// WritePage → {"data": [...], "meta": {...}}: pakai apiPage agar meta tidak hilang.
+	return apiPage<AdminCompany[]>(`/admin/companies${query}`);
 }
 
 export async function getCompany(id: string): Promise<AdminCompany> {

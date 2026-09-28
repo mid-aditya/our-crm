@@ -7,6 +7,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Input from '$lib/components/ui/Input.svelte';
+	import { askConfirm } from '$lib/components/ui/confirm-dialog.svelte';
 
 	let companies = $state<AdminCompany[]>([]);
 	let loading = $state(true);
@@ -54,7 +55,8 @@
 	}
 
 	async function handleDelete(id: string, name: string) {
-		if (!confirm(`Hapus company "${name}"?`)) return;
+		const ok = await askConfirm({ title: `Hapus company "${name}"?`, danger: true });
+		if (!ok) return;
 		try {
 			await deleteCompany(id);
 			load();

@@ -1,66 +1,78 @@
 <script lang="ts">
-	import { Select } from 'bits-ui';
+	import { Select as SelectPrimitive } from 'bits-ui';
+	import { t } from 'svelte-i18n';
 	import { Check, ChevronDown } from '@lucide/svelte';
 	import { cn } from '$lib/utils';
 
 	type Option = { value: string; label: string };
 
 	type Props = {
-		options: Option[];
 		value?: string;
+		options: Option[];
 		placeholder?: string;
-		ariaLabel?: string;
 		disabled?: boolean;
-		id?: string;
 		class?: string;
+		/** kembali ke placeholder setelah memilih (untuk menu aksi) */
+		resetAfterSelect?: boolean;
+		onchange?: (value: string) => void;
+		'aria-label'?: string;
 	};
 
 	let {
-		options,
 		value = $bindable(''),
+		options,
 		placeholder = '',
-		ariaLabel,
 		disabled = false,
-		id,
-		class: cls = ''
+		class: klass = '',
+		resetAfterSelect = false,
+		onchange,
+		...rest
 	}: Props = $props();
 
-	const selected = $derived(options.find((o) => o.value === value));
+	const label = $derived(placeholder || $t('common.select'));
+	const selectedLabel = $derived(options.find((o) => o.value === value)?.label ?? '');
+
+	function handleChange(v: string) {
+		onchange?.(v);
+		if (resetAfterSelect) value = '';
+	}
 </script>
 
-	<Select.Root type="single" value={value} onValueChange={(v) => (value = v ?? '')} {disabled}>
-	<Select.Trigger
-		{id}
-		aria-label={ariaLabel}
+<SelectPrimitive.Root type="single" bind:value {disabled} onValueChange={handleChange}>
+	<SelectPrimitive.Trigger
+		aria-label={rest['aria-label'] ?? label}
 		class={cn(
-			'flex h-9.5 w-full items-center justify-between gap-2 rounded-lg border bg-surface px-3 text-left text-sm transition-colors',
-			'hover:border-line-strong focus:border-neon focus:outline-none disabled:cursor-not-allowed disabled:opacity-60',
-			selected ? 'text-ink' : 'text-faint',
-			cls
+			'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm',
+			'transition-all hover:border-line-strong hover:shadow focus:border-neon focus:outline-none focus:ring-2 focus:ring-neon/25 focus:shadow-[0_0_12px_var(--neon-glow)]',
+			'disabled:cursor-not-allowed disabled:opacity-50',
+			!value && 'text-faint',
+			klass
 		)}
 	>
-		<span class="truncate">{selected?.label ?? placeholder}</span>
-		<ChevronDown size={16} class="shrink-0 text-faint" />
-	</Select.Trigger>
-	<Select.Portal>
-		<Select.Content
-			sideOffset={4}
-			class="z-50 max-h-72 w-[var(--bits-select-anchor-width)] min-w-[10rem] overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface p-1 shadow-lg shadow-black/10 outline-none dark:shadow-black/50"
+		<span class="truncate">{selectedLabel || label}</span>
+		<span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-raised text-muted">
+			<ChevronDown size={14} />
+		</span>
+	</SelectPrimitive.Trigger>
+	<SelectPrimitive.Portal>
+		<SelectPrimitive.Content
+			sideOffset={6}
+			class="dropdown-in z-50 max-h-72 w-[var(--bits-floating-anchor-width)] min-w-40 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 text-ink shadow-2xl"
 		>
-			<Select.Viewport>
-				{#each options as option (option.value)}
-					<Select.Item
-						value={option.value}
-						label={option.label}
-						class="flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-md px-2.5 py-2 text-sm text-muted outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink data-[selected]:text-neon-text data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-					>
-						{option.label}
-						{#if value === option.value}
-							<Check size={14} class="text-neon-text" />
+			{#each options as opt (opt.value)}
+				<SelectPrimitive.Item
+					value={opt.value}
+					label={opt.label}
+					class="relative flex w-full cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-2.5 pr-8 text-xs font-medium outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-neon-soft"
+				>
+					{#snippet children({ selected }: { selected: boolean })}
+						<span class="truncate">{opt.label}</span>
+						{#if selected}
+							<span class="absolute right-2 text-neon-text"><Check size={13} /></span>
 						{/if}
-					</Select.Item>
-				{/each}
-			</Select.Viewport>
-		</Select.Content>
-	</Select.Portal>
-</Select.Root>
+					{/snippet}
+				</SelectPrimitive.Item>
+			{/each}
+		</SelectPrimitive.Content>
+	</SelectPrimitive.Portal>
+</SelectPrimitive.Root>

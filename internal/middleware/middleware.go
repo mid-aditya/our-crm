@@ -60,11 +60,19 @@ func WritePage(w http.ResponseWriter, status int, v any, meta any) {
 }
 
 // Authenticate verifikasi JWT access token.
+// EventSource/WebSocket tidak bisa kirim header Authorization →
+// fallback ke query ?token= / ?access_token= (khusus kebutuhan SSE/WS agen).
 func Authenticate(secret string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := r.Header.Get("Authorization")
 		tok := strings.TrimPrefix(h, "Bearer ")
 		if h == "" || tok == h {
+			tok = r.URL.Query().Get("token")
+			if tok == "" {
+				tok = r.URL.Query().Get("access_token")
+			}
+		}
+		if tok == "" {
 			WriteErr(w, 401, "UNAUTHENTICATED", "Token tidak valid")
 			return
 		}

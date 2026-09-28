@@ -1,14 +1,38 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { t } from 'svelte-i18n';
-	import { Activity, X } from '@lucide/svelte';
+	import { Activity, PanelLeftClose, PanelLeftOpen, X } from '@lucide/svelte';
 	import { navItems } from '$lib/navigation';
 	import { mockChannels } from '$lib/mock';
+	import { myMenus } from '$lib/api';
+	import { layout, toggleSidebar } from '$lib/layout.svelte';
 	import { cn } from '$lib/utils';
 
 	type Props = { open?: boolean };
 
 	let { open = $bindable(false) }: Props = $props();
+
+	// Menu yang boleh dilihat user. null = belum dimuat (tampilkan semua dulu
+	// agar tidak kedip), [] = agent tanpa grant.
+	let allowedKeys = $state<string[] | null>(null);
+
+	onMount(async () => {
+		const res = await myMenus();
+		const role = (res.role ?? '').toLowerCase();
+		// Developer/admin/owner selalu full menu; agent & spv mengikuti grant per role.
+		if (role === '' || role === 'developer' || role === 'admin' || role === 'owner') {
+			allowedKeys = null;
+		} else {
+			allowedKeys = res.menus ?? [];
+		}
+	});
+
+	const visibleItems = $derived(
+		allowedKeys === null
+			? navItems
+			: navItems.filter((n) => (allowedKeys as string[]).includes(n.key))
+	);
 
 	const isActive = (href: string) =>
 		href === '/' ? page.url.pathname === '/' : page.url.pathname.startsWith(href);
@@ -24,8 +48,10 @@
 
 <aside
 	class={cn(
-		'fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col border-r border-line bg-surface transition-transform duration-200',
+		'fixed inset-y-0 left-0 z-50 flex shrink-0 flex-col border-r border-line bg-surface transition-all duration-200',
 		'md:sticky md:top-0 md:h-svh md:translate-x-0',
+		layout.collapsed ? 'md:w-16' : 'md:w-64',
+		'w-64',
 		open ? 'translate-x-0' : '-translate-x-full'
 	)}
 >
@@ -35,7 +61,17 @@
 		>
 			<Activity size={18} />
 		</div>
-		<span class="font-display text-[15px] font-semibold tracking-tight">our-crm</span>
+		{#if !layout.collapsed}
+			<span class="font-display text-[15px] font-semibold tracking-tight">our-crm</span>
+		{/if}
+		<button
+			class="ml-auto hidden size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-raised hover:text-ink md:flex"
+			aria-label="Toggle sidebar"
+			title="In/out sidebar"
+			onclick={toggleSidebar}
+		>
+			{#if layout.collapsed}<PanelLeftOpen size={18} />{:else}<PanelLeftClose size={18} />{/if}
+		</button>
 		<button
 			class="ml-auto flex size-8 items-center justify-center rounded-lg text-muted transition-colors hover:bg-raised hover:text-ink md:hidden"
 			aria-label={$t('common.close')}
@@ -46,15 +82,17 @@
 	</div>
 
 	<nav class="flex-1 space-y-0.5 overflow-y-auto px-2 py-3">
-		{#each navItems as item (item.href)}
+		{#each visibleItems as item (item.href)}
 			{@const Icon = item.icon}
 			{@const active = isActive(item.href)}
 			<a
 				href={item.href}
 				onclick={() => (open = false)}
+				title={$t(item.label)}
 				aria-current={active ? 'page' : undefined}
 				class={cn(
 					'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+					layout.collapsed && 'justify-center px-0',
 					active ? 'bg-neon-soft text-ink' : 'text-muted hover:bg-raised hover:text-ink'
 				)}
 			>
@@ -65,37 +103,41 @@
 					)}
 				></span>
 				<Icon size={18} class={active ? 'text-neon-text' : ''} />
-				{$t(item.key)}
+				{#if !layout.collapsed}
+					{$t(item.label)}
+				{/if}
 			</a>
 		{/each}
 	</nav>
 
-	<div class="shrink-0 border-t border-line px-4 py-3">
-		<p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
-			{$t('sidebar.channels')}
-		</p>
-		<ul class="mt-2 space-y-2">
-			{#each mockChannels as channel (channel.id)}
-				<li class="flex items-center gap-2.5">
-					<span
-						class={cn(
-							'size-2 shrink-0 rounded-full',
-							channel.status === 'connected' ? 'bg-neon dot-pulse' : 'bg-warn'
-						)}
-					></span>
-					<span class="min-w-0 flex-1 truncate text-xs text-muted">
-						{$t(`dashboard.channel.${channel.id}`)}
-					</span>
-					<span
-						class={cn(
-							'text-[11px] font-medium',
-							channel.status === 'connected' ? 'text-neon-text' : 'text-warn'
-						)}
-					>
-						{$t(`dashboard.status.${channel.status}`)}
-					</span>
-				</li>
-			{/each}
-		</ul>
-	</div>
+	{#if !layout.collapsed}
+		<div class="shrink-0 border-t border-line px-4 py-3">
+			<p class="text-[10px] font-semibold uppercase tracking-widest text-faint">
+				{$t('sidebar.channels')}
+			</p>
+			<ul class="mt-2 space-y-2">
+				{#each mockChannels as channel (channel.id)}
+					<li class="flex items-center gap-2.5">
+						<span
+							class={cn(
+								'size-2 shrink-0 rounded-full',
+								channel.status === 'connected' ? 'bg-neon dot-pulse' : 'bg-warn'
+							)}
+						></span>
+						<span class="min-w-0 flex-1 truncate text-xs text-muted">
+							{$t(`dashboard.channel.${channel.id}`)}
+						</span>
+						<span
+							class={cn(
+								'text-[11px] font-medium',
+								channel.status === 'connected' ? 'text-neon-text' : 'text-warn'
+							)}
+						>
+							{$t(`dashboard.status.${channel.status}`)}
+						</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 </aside>

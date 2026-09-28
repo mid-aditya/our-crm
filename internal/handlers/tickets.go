@@ -15,13 +15,32 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		status := r.URL.Query().Get("status")
+		assignee := r.URL.Query().Get("assignee")
+		escOnly := r.URL.Query().Get("escOnly")
+		if assignee == "me" {
+			c := middleware.Claims(r)
+			if c != nil {
+				assignee = c.UserID
+			} else {
+				assignee = ""
+			}
+		}
 		limit, offset := middleware.Page(r)
-		q := `select id, number, subject, description, contact_id, assignee_id, priority, status, source, resolved_at, created_at from tickets`
+		q := `select id, number, subject, description, contact_id, assignee_id, priority, status, source, resolved_at, created_at, escalated, (select count(*) from ticket_replies r where r.ticket_id=tickets.id) from tickets`
 		var rows []map[string]any
 		var total int
-		if status != "" {
+		if escOnly == "true" || escOnly == "1" {
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where escalated=true`).Scan(&total)
+			rows = listTickets(r, q+` where escalated=true order by created_at desc limit $1 offset $2`, limit, offset)
+		} else if status != "" && assignee != "" {
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where status=$1 and assignee_id=$2`, status, assignee).Scan(&total)
+			rows = listTickets(r, q+` where status=$1 and assignee_id=$2 order by created_at desc limit $3 offset $4`, status, assignee, limit, offset)
+		} else if status != "" {
 			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where status=$1`, status).Scan(&total)
 			rows = listTickets(r, q+` where status=$1 order by created_at desc limit $2 offset $3`, status, limit, offset)
+		} else if assignee != "" {
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where assignee_id=$1`, assignee).Scan(&total)
+			rows = listTickets(r, q+` where assignee_id=$1 order by created_at desc limit $2 offset $3`, assignee, limit, offset)
 		} else {
 			_ = pool.QueryRow(r.Context(), `select count(*) from tickets`).Scan(&total)
 			rows = listTickets(r, q+` order by created_at desc limit $1 offset $2`, limit, offset)
@@ -29,14 +48,21 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 		middleware.WritePage(w, 200, rows, middleware.PageMeta(limit, offset, total))
 	case "POST":
 		var in struct {
-			Subject     string `json:"subject"`
-			Description string `json:"description"`
-			ContactID   string `json:"contact_id"`
-			Priority    string `json:"priority"`
-			AssigneeID  string `json:"assignee_id"`
+			Subject      string            `json:"subject"`
+			Description  string            `json:"description"`
+			ContactID    string            `json:"contact_id"`
+			Priority     string            `json:"priority"`
+			AssigneeID   string            `json:"assignee_id"`
+			Escalated    bool              `json:"escalated"`
+			CustomFields map[string]string `json:"custom_fields"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.Subject == "" {
 			middleware.WriteErr(w, 400, "VALIDATION_ERROR", "subject wajib")
+			return
+		}
+		// Alur: tiket adalah hasil akhir — wajib terikat ke customer terdaftar.
+		if in.ContactID == "" {
+			middleware.WriteErr(w, 400, "VALIDATION_ERROR", "customer wajib dicek/dikaitkan dulu")
 			return
 		}
 		if in.Priority == "" {
@@ -48,18 +74,27 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 		}
 		number := fmt.Sprintf("T-%d-%d", time.Now().Year(), time.Now().Unix()%1000000)
 		var contactID, assigneeID *string
-		if in.ContactID != "" {
-			contactID = &in.ContactID
-		}
+		contactID = &in.ContactID
 		if in.AssigneeID != "" {
 			assigneeID = &in.AssigneeID
+		} else if in.Escalated {
+			// Eskalasi saat pembuatan: assign ke supervisor pembuat (bila ada).
+			c := middleware.Claims(r)
+			if c != nil {
+				var sup string
+				_ = pool.QueryRow(r.Context(), `select supervisor_id from users where id=$1`, c.UserID).Scan(&sup)
+				if sup != "" {
+					assigneeID = &sup
+				}
+			}
 		}
 		var id string
-		err := pool.QueryRow(r.Context(), `insert into tickets (number, subject, description, contact_id, assignee_id, priority, source) values ($1,$2,$3,$4,$5,$6,'agent') returning id`, number, in.Subject, nullStr(in.Description), contactID, assigneeID, in.Priority).Scan(&id)
+		err := pool.QueryRow(r.Context(), `insert into tickets (number, subject, description, contact_id, assignee_id, priority, source, escalated) values ($1,$2,$3,$4,$5,$6,'agent',$7) returning id`, number, in.Subject, nullStr(in.Description), contactID, assigneeID, in.Priority, in.Escalated).Scan(&id)
 		if err != nil {
 			middleware.WriteErr(w, 500, "INTERNAL_ERROR", "Terjadi kesalahan")
 			return
 		}
+		saveTicketCustomValues(r, id, in.CustomFields)
 		middleware.WriteJSON(w, 201, map[string]string{"id": id, "number": number})
 	default:
 		middleware.WriteErr(w, 405, "METHOD_NOT_ALLOWED", "Metode tidak didukung")
@@ -86,8 +121,10 @@ func listTickets(r *http.Request, q string, args ...any) []map[string]any {
 		var desc, contactID, assigneeID *string
 		var resolved *time.Time
 		var created time.Time
-		_ = rows.Scan(&id, &number, &subject, &desc, &contactID, &assigneeID, &priority, &status, &source, &resolved, &created)
-		out = append(out, map[string]any{"id": id, "number": number, "subject": subject, "description": desc, "contact_id": contactID, "assignee_id": assigneeID, "priority": priority, "status": status, "source": source, "resolved_at": resolved, "created_at": created})
+		var escalated bool
+		var repliesCount int
+		_ = rows.Scan(&id, &number, &subject, &desc, &contactID, &assigneeID, &priority, &status, &source, &resolved, &created, &escalated, &repliesCount)
+		out = append(out, map[string]any{"id": id, "number": number, "subject": subject, "description": desc, "contact_id": contactID, "assignee_id": assigneeID, "priority": priority, "status": status, "source": source, "resolved_at": resolved, "created_at": created, "escalated": escalated, "replies_count": repliesCount})
 	}
 	return out
 }
@@ -116,11 +153,12 @@ func TicketDetail(w http.ResponseWriter, r *http.Request) {
 		var t struct {
 			ID, Number, Subject, Priority, Status, Source string
 			Desc, ContactID, AssigneeID                  *string
+			Escalated                                    bool
 			Resolved                                     *time.Time
 			Created                                      time.Time
 		}
-		err := pool.QueryRow(r.Context(), `select id, number, subject, description, contact_id, assignee_id, priority, status, source, resolved_at, created_at from tickets where id=$1`, id).
-			Scan(&t.ID, &t.Number, &t.Subject, &t.Desc, &t.ContactID, &t.AssigneeID, &t.Priority, &t.Status, &t.Source, &t.Resolved, &t.Created)
+		err := pool.QueryRow(r.Context(), `select id, number, subject, description, contact_id, assignee_id, priority, status, source, escalated, resolved_at, created_at from tickets where id=$1`, id).
+			Scan(&t.ID, &t.Number, &t.Subject, &t.Desc, &t.ContactID, &t.AssigneeID, &t.Priority, &t.Status, &t.Source, &t.Escalated, &t.Resolved, &t.Created)
 		if err != nil {
 			middleware.WriteErr(w, 404, "NOT_FOUND", "Tiket tidak ada")
 			return
@@ -142,7 +180,8 @@ func TicketDetail(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{
 			"id": t.ID, "number": t.Number, "subject": t.Subject, "description": t.Desc, "contact_id": t.ContactID,
 			"assignee_id": t.AssigneeID, "priority": t.Priority, "status": t.Status, "source": t.Source,
-			"resolved_at": t.Resolved, "created_at": t.Created,
+			"escalated": t.Escalated, "resolved_at": t.Resolved, "created_at": t.Created,
+			"custom_values": ticketCustomValues(r, id),
 		}, "meta": map[string]any{"replies": replies}})
 		return
 	}
@@ -207,6 +246,11 @@ func TicketDetail(w http.ResponseWriter, r *http.Request) {
 			} else {
 				setClauses += "assignee_id=null,"
 			}
+		}
+		if v, ok := raw["escalated"].(bool); ok {
+			setClauses += fmt.Sprintf("escalated=$%d,", i)
+			args = append(args, v)
+			i++
 		}
 		if setClauses == "" {
 			middleware.WriteErr(w, 400, "VALIDATION_ERROR", "Payload tidak valid")

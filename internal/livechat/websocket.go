@@ -1,12 +1,16 @@
 package livechat
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
+	"crm-backend/internal/middleware"
+
 	"github.com/gorilla/websocket"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var upgrader = websocket.Upgrader{
@@ -49,6 +53,7 @@ func WebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		CompanyID: companyID,
 		Role:      role,
 		Send:      make(chan []byte, 256),
+		Pool:      tenantPoolFor(r.Context(), r, companyID),
 	}
 
 	TheHub.Register(client)
@@ -123,15 +128,46 @@ func (c *Client) writePump() {
 }
 
 func (c *Client) handleVisitorMessage(wsMsg WSMessage) {
-	// Save message to DB (handled by caller or DB layer)
-	// Broadcast to assigned agent via hub
+	// Simpan ke DB agar agent yang baru membuka sesi tetap melihat history,
+	// lalu broadcast ke agent perusahaan.
+	if c.Pool != nil && c.SessionID != "" {
+		name := wsMsg.SenderName
+		if name == "" {
+			name = "Guest"
+		}
+		if _, err := SaveVisitorMessage(context.Background(), c.Pool, c.SessionID, wsMsg.Body, name); err != nil {
+			log.Printf("livechat: gagal simpan pesan visitor: %v", err)
+		} else {
+			_, _ = c.Pool.Exec(context.Background(), `update livechat_sessions set status='waiting', waiting_since=now(), updated_at=now() where id=$1 and status='resolved'`, c.SessionID)
+		}
+		// Bot menghandle dulu sebelum didistribusi ke agent.
+		runBotResponder(c.Pool, c.SessionID, wsMsg.Body)
+	}
 	notifyMsg, _ := json.Marshal(WSMessage{
 		Type:       "visitor_message",
 		SessionID:  c.SessionID,
 		Body:       wsMsg.Body,
+		SenderID:   wsMsg.SenderID,
 		SenderName: wsMsg.SenderName,
 	})
 	TheHub.BroadcastToCompany(c.CompanyID, notifyMsg)
+}
+
+// tenantPoolFor resolve pool tenant dari company_id (untuk WS publik tanpa JWT).
+func tenantPoolFor(ctx context.Context, r *http.Request, companyID string) *pgxpool.Pool {
+	if companyID == "" {
+		return nil
+	}
+	app := middleware.AppFrom(r)
+	if app == nil {
+		return nil
+	}
+	pool, err := app.TenantPool(ctx, companyID)
+	if err != nil {
+		log.Printf("livechat: tenant pool gagal untuk %s: %v", companyID, err)
+		return nil
+	}
+	return pool
 }
 
 func (c *Client) handleTyping(wsMsg WSMessage) {
