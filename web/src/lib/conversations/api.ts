@@ -134,8 +134,18 @@ export async function replyTicket(id: string, body: string): Promise<void> {
 	await api(`/tickets/${id}/replies`, { method: 'POST', body: JSON.stringify({ body }) });
 }
 
-export async function updateTicket(id: string, input: { status?: string; priority?: string }): Promise<void> {
+export async function updateTicket(
+	id: string,
+	input: { status?: string; priority?: string; assignee_id?: string | null }
+): Promise<void> {
 	await api(`/tickets/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export type Assignee = { id: string; full_name: string; role: string };
+
+export async function getAssignees(): Promise<Assignee[]> {
+	const res = await api<Assignee[]>('/team/assignees');
+	return Array.isArray(res) ? res : [];
 }
 
 export function maskEmail(email: string | null): string {

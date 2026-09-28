@@ -46,12 +46,14 @@ export async function getQueue(companyId: string, status: 'active' | 'waiting' |
 	return api<LivechatSession[]>(`${BASE}/queue?company_id=${companyId}&status=${status}`);
 }
 
-export async function getSession(id: string): Promise<LivechatSession> {
-	return api<LivechatSession>(`${BASE}/sessions/${id}`);
+export async function getSession(id: string, companyId?: string): Promise<LivechatSession> {
+	const q = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
+	return api<LivechatSession>(`${BASE}/sessions/${id}${q}`);
 }
 
-export async function getMessages(sessionId: string): Promise<LivechatMessage[]> {
-	return api<LivechatMessage[]>(`${BASE}/sessions/${sessionId}/messages`);
+export async function getMessages(sessionId: string, companyId?: string): Promise<LivechatMessage[]> {
+	const q = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
+	return api<LivechatMessage[]>(`${BASE}/sessions/${sessionId}/messages${q}`);
 }
 
 export async function sendMessage(sessionId: string, body: string): Promise<LivechatMessage> {
@@ -74,6 +76,12 @@ export async function assignSession(sessionId: string, agentId: string): Promise
 
 export async function resolveSession(sessionId: string): Promise<LivechatSession> {
 	return api<LivechatSession>(`${BASE}/sessions/${sessionId}/resolve`, { method: 'POST' });
+}
+
+export async function escalateSession(sessionId: string): Promise<{ spv_id: string; spv_name: string }> {
+	return api<{ spv_id: string; spv_name: string }>(`${BASE}/sessions/${sessionId}/escalate`, {
+		method: 'POST'
+	});
 }
 
 export async function getDistribution(companyId: string): Promise<{ mode: 'manual' | 'auto' }> {

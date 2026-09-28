@@ -164,7 +164,7 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance", "reports"} {
+	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -337,6 +337,8 @@ func main() {
 	mux.Handle("POST /api/v1/livechat/sessions/{id}/assign", tenant("livechat.assign", livechat.AssignHandler))
 	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", tenant("livechat.reply", livechat.TakeHandler))
 	mux.Handle("POST /api/v1/livechat/sessions/{id}/resolve", tenant("livechat.assign", livechat.ResolveHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/escalate", tenant("livechat.reply", livechat.EscalateHandler))
+	mux.Handle("GET /api/v1/team/assignees", tenant("tickets.update", handlers.TeamAssignees))
 	mux.Handle("GET /api/v1/livechat/sse", tenant("livechat.read", livechat.SSEHandler))
 	mux.Handle("GET /api/v1/livechat/agents", tenant("livechat.read", livechat.AgentsHandler))
 	mux.Handle("GET /api/v1/livechat/distribution", tenant("livechat.read", livechat.GetDistributionHandler))

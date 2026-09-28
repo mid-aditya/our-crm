@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
-	import { Search, Send, Eye, EyeOff, Plus, UserPlus, Link2, Save } from '@lucide/svelte';
+	import { Search, Send, Eye, EyeOff, Plus, UserPlus, Link2, Save, ArrowUpRight } from '@lucide/svelte';
 	import { getCompanyId } from '$lib/api';
 	import { getCompanyChannels, type CompanyChannel } from '$lib/api-channels';
 	import {
@@ -11,6 +11,7 @@
 		getDistribution,
 		setDistribution,
 		takeSession,
+		escalateSession,
 		tabOf,
 		type LivechatSession,
 		type ChatTab
@@ -28,11 +29,13 @@
 		getTicketDetail,
 		replyTicket,
 		updateTicket,
+		getAssignees,
 		maskEmail,
 		maskPhone,
 		type Conversation,
 		type Contact,
-		type Ticket
+		type Ticket,
+		type Assignee
 	} from '$lib/conversations/api';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -90,6 +93,7 @@
 	let ticketForm = $state({ subject: '', description: '', priority: 'medium' });
 	let customForm = $state<Record<string, string>>({});
 	let ticketFields = $state<TicketField[]>([]);
+	let assignees = $state<Assignee[]>([]);
 	let followupInput = $state('');
 
 	const filtered = $derived(
@@ -126,6 +130,11 @@
 			ticketFields = await getTicketFields();
 		} catch {
 			ticketFields = [];
+		}
+		try {
+			assignees = await getAssignees();
+		} catch {
+			assignees = [];
 		}
 		try {
 			const d = await getDistribution(COMPANY_ID);
@@ -215,7 +224,7 @@
 		loadingMsgs = true;
 		try {
 			if (activeChannel === 'livechat') {
-				const ms = await getLivechatMessages(item.id);
+				const ms = await getLivechatMessages(item.id, COMPANY_ID);
 				messages = ms.map((m) => ({
 					id: m.id,
 					direction: m.direction,
@@ -371,7 +380,7 @@
 		} catch { /* abaikan */ }
 	}
 
-	async function changeTicket(patch: { status?: string; priority?: string }) {
+	async function changeTicket(patch: { status?: string; priority?: string; assignee_id?: string | null }) {
 		if (!activeTicketId) return;
 		try {
 			await updateTicket(activeTicketId, patch);
@@ -382,6 +391,26 @@
 
 	function statusVariant(s: string): 'neon' | 'warn' | 'success' | 'neutral' {
 		return s === 'open' || s === 'waiting' ? 'neon' : s === 'pending' ? 'warn' : s === 'resolved' ? 'success' : 'neutral';
+	}
+
+	let escalating = $state(false);
+
+	async function escalateChat() {
+		if (!activeId || activeChannel !== 'livechat' || escalating) return;
+		if (!confirm($t('conversation.escalateConfirm'))) return;
+		escalating = true;
+		try {
+			const res = await escalateSession(activeId);
+			if (activeItem) {
+				activeItem = { ...activeItem, status: 'assigned', subtitle: `Eskalasi ke ${res.spv_name}` };
+				items = items.map((i) => (i.id === activeId ? activeItem! : i));
+			}
+			await selectItem(activeItem!);
+		} catch {
+			// abaikan (mis. tidak ada SPV online)
+		} finally {
+			escalating = false;
+		}
 	}
 	function priorityVariant(p: string): 'warn' | 'success' | 'danger' {
 		return p === 'urgent' ? 'danger' : p === 'medium' ? 'warn' : 'success';
@@ -520,7 +549,14 @@
 						<p class="truncate text-sm font-semibold">{activeItem.title}</p>
 						<p class="text-[11px] text-muted">{activeChannel}</p>
 					</div>
-					<Badge variant={statusVariant(activeItem.status)}>{activeItem.status}</Badge>
+					<div class="flex shrink-0 items-center gap-1.5">
+						{#if activeChannel === 'livechat' && activeItem.status !== 'resolved'}
+							<Button size="sm" variant="outline" onclick={escalateChat} disabled={escalating}>
+								<ArrowUpRight size={13} /> {$t('conversation.escalateSpv')}
+							</Button>
+						{/if}
+						<Badge variant={statusVariant(activeItem.status)}>{activeItem.status}</Badge>
+					</div>
 				</header>
 				<div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
 					{#if loadingMsgs}
@@ -778,6 +814,19 @@
 										{ value: 'urgent', label: 'Urgent' }
 									]}
 									onchange={(v) => v && changeTicket({ priority: v })}
+								/>
+							</div>
+							<div>
+								<p class="mb-1 text-[11px] font-medium text-muted">{$t('conversation.assignee')}</p>
+								<Select
+									value={ticketDetail.ticket.assignee_id ?? ''}
+									placeholder={$t('conversation.unassigned')}
+									aria-label={$t('conversation.assignee')}
+									options={[
+										{ value: '__none', label: $t('conversation.unassigned') },
+										...assignees.map((a) => ({ value: a.id, label: `${a.full_name} (${a.role || '—'})` }))
+									]}
+									onchange={(v) => changeTicket({ assignee_id: v === '__none' ? null : v })}
 								/>
 							</div>
 							<div class="space-y-1.5 border-t border-line pt-2">

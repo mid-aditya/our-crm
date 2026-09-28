@@ -190,23 +190,6 @@
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Portal>
 				<DropdownMenu.Content class={contentCls} sideOffset={6} align="end">
-					{#if showPresence}
-						<p class={sectionLabel}>
-							{$t('team.presenceTitle')}
-						</p>
-						{#each ['online', 'aux', 'break', 'offline'] as st (st)}
-							<DropdownMenu.Item class={menuItem} onSelect={() => changePresence(st)}>
-								<span class={tile}>
-									<span class={cn('size-2 rounded-full', st === 'online' ? 'bg-neon dot-pulse' : st === 'offline' ? 'bg-faint' : 'bg-warn')}></span>
-								</span>
-								{$t(`team.presence.${st}`)}
-								{#if presence === st}
-									<Check size={14} class="ml-auto text-neon-text" />
-								{/if}
-							</DropdownMenu.Item>
-						{/each}
-						<DropdownMenu.Separator class={separatorCls} />
-					{/if}
 					<DropdownMenu.Item class={menuItem} onSelect={() => goto('/settings')}>
 						<span class={tile}><UserRound size={15} /></span>
 						{$t('topbar.profile')}

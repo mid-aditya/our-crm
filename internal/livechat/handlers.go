@@ -98,7 +98,11 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 
 // SessionHandler GET /api/livechat/sessions/{id}
 func SessionHandler(w http.ResponseWriter, r *http.Request) {
-	pool := middleware.Tenant(r)
+	pool := tenantPoolSmart(r)
+	if pool == nil {
+		middleware.WriteErr(w, 500, "DB_ERROR", "Tidak dapat terhubung ke database")
+		return
+	}
 	id := sessionIDFromPath(r)
 	if id == "" {
 		middleware.WriteErr(w, 400, "INVALID_ID", "ID sesi tidak valid")
@@ -129,15 +133,10 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 // MessagesHandler GET /api/livechat/sessions/{id}/messages
 func MessagesHandler(w http.ResponseWriter, r *http.Request) {
-	pool := middleware.Tenant(r)
+	pool := tenantPoolSmart(r)
 	if pool == nil {
-		// Publik (visitor tanpa JWT): resolve tenant via query company_id.
-		var err error
-		pool, err = getTenantPool(r, r.URL.Query().Get("company_id"))
-		if err != nil || pool == nil {
-			middleware.WriteErr(w, 500, "DB_ERROR", "Tidak dapat terhubung ke database")
-			return
-		}
+		middleware.WriteErr(w, 500, "DB_ERROR", "Tidak dapat terhubung ke database")
+		return
 	}
 	id := sessionIDFromPath(r)
 	if id == "" {
@@ -630,6 +629,19 @@ func nullString(s string) *string {
 	return &s
 }
 
+// tenantPoolSmart: pakai pool dari context bila ada (route ber-JWT),
+// bila tidak resolve via query company_id (route publik visitor/agent).
+func tenantPoolSmart(r *http.Request) *pgxpool.Pool {
+	if pool := middleware.Tenant(r); pool != nil {
+		return pool
+	}
+	pool, err := getTenantPool(r, r.URL.Query().Get("company_id"))
+	if err != nil {
+		return nil
+	}
+	return pool
+}
+
 // getTenantPool resolves a tenant pool from company_id
 // ponytail: this is a simplified version — in production, use proper tenant resolution
 func getTenantPool(r *http.Request, companyID string) (*pgxpool.Pool, error) {
@@ -673,6 +685,61 @@ func TakeHandler(w http.ResponseWriter, r *http.Request) {
 		"agent_name":        agentName,
 		"assigned_agent_id": agentID,
 		"status":            "assigned",
+	})
+}
+
+// EscalateHandler POST /api/v1/livechat/sessions/{id}/escalate
+// Agent/SPV meneruskan sesi ke SPV: ke supervisor langsung bila ada,
+// bila tidak ke SPV online mana pun. Visitor diberi tahu via WS.
+func EscalateHandler(w http.ResponseWriter, r *http.Request) {
+	pool := middleware.Tenant(r)
+	claims := middleware.Claims(r)
+	companyID := claims.CompanyID
+	me := claims.UserID
+	id := sessionIDFromPath(r)
+	if id == "" {
+		middleware.WriteErr(w, 400, "INVALID_ID", "ID sesi tidak valid")
+		return
+	}
+
+	// 1. Supervisor langsung (bila saya agent di bawah SPV).
+	var spvID, spvName string
+	_ = pool.QueryRow(r.Context(), `select u.id, u.full_name from users me join users u on u.id = me.supervisor_id where me.id=$1 and u.status='active'`, me).Scan(&spvID, &spvName)
+
+	// 2. Fallback: SPV online mana pun (role SPV, presence online).
+	if spvID == "" {
+		_ = pool.QueryRow(r.Context(), `
+			select u.id, u.full_name from users u
+			join roles r on r.id = u.role_id
+			left join agent_presence ap on ap.user_id = u.id
+			where u.status='active' and lower(r.name)='spv'
+			  and coalesce(ap.status,'online')='online'
+			order by (select count(*) from livechat_sessions ls where ls.assigned_agent_id=u.id and ls.status='assigned') asc, u.id asc
+			limit 1`, ).Scan(&spvID, &spvName)
+	}
+	if spvID == "" {
+		middleware.WriteErr(w, 409, "NO_SPV_AVAILABLE", "Tidak ada SPV yang tersedia")
+		return
+	}
+
+	_, err := pool.Exec(r.Context(), `
+		update livechat_sessions
+		set assigned_agent_id=$1, status='assigned', updated_at=now(), unread_count=0, bot_handled=true
+		where id=$2`, spvID, id)
+	if err != nil {
+		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal eskalasi sesi")
+		return
+	}
+	note := "Chat dieskalasi ke SPV " + spvName + "."
+	_, _ = pool.Exec(r.Context(), `insert into livechat_messages (session_id, direction, sender_name, body) values ($1,'outbound','Bot',$2)`, id, note)
+	SendAgentMessageToVisitor(id, note, "", "Bot")
+
+	NotifySessionAssigned(id, spvID, spvName)
+	TheSSEHub.BroadcastSessionAssigned(companyID, id, spvID)
+	go broadcastQueueUpdate(r.Context(), pool, companyID)
+
+	middleware.WriteJSON(w, 200, map[string]interface{}{
+		"id": id, "spv_id": spvID, "spv_name": spvName, "status": "assigned",
 	})
 }
 

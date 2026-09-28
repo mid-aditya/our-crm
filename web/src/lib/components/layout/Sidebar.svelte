@@ -20,8 +20,8 @@
 	onMount(async () => {
 		const res = await myMenus();
 		const role = (res.role ?? '').toLowerCase();
-		// Developer/admin/spv selalu full menu; agent/developer-label dari JWT demo juga full.
-		if (role === '' || role === 'developer' || role === 'admin' || role === 'owner' || role === 'spv') {
+		// Developer/admin/owner selalu full menu; agent & spv mengikuti grant per role.
+		if (role === '' || role === 'developer' || role === 'admin' || role === 'owner') {
 			allowedKeys = null;
 		} else {
 			allowedKeys = res.menus ?? [];

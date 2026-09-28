@@ -54,8 +54,26 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func UserRole(w http.ResponseWriter, r *http.Request) {
-	// PATCH /api/v1/users/{id}/role
+// GET /api/v1/team/assignees — daftar user aktif ringkas untuk assign
+// tiket/chat (guard ringan: butuh tickets.update, jadi agent/SPV bisa).
+func TeamAssignees(w http.ResponseWriter, r *http.Request) {
+	pool := middleware.Tenant(r)
+	rows, err := pool.Query(r.Context(), `select u.id, u.full_name, coalesce(r.name,'') from users u left join roles r on r.id=u.role_id where u.status='active' order by u.full_name`)
+	if err != nil {
+		middleware.WriteJSON(w, 200, []map[string]any{})
+		return
+	}
+	defer rows.Close()
+	out := []map[string]any{}
+	for rows.Next() {
+		var id, name, role string
+		_ = rows.Scan(&id, &name, &role)
+		out = append(out, map[string]any{"id": id, "full_name": name, "role": role})
+	}
+	middleware.WriteJSON(w, 200, out)
+}
+
+func UserRole(w http.ResponseWriter, r *http.Request) {	// PATCH /api/v1/users/{id}/role
 	pool := middleware.Tenant(r)
 	p := r.URL.Path
 	const marker = "/users/"

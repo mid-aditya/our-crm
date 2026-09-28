@@ -12,6 +12,14 @@
 		"reports": "Laporan",
 		"settings": "Pengaturan"
 	},
+	"ticketsPage": {
+		"subtitle": "Daftar tiket dukungan — assign ke SPV untuk eskalasi.",
+		"allStatus": "Semua status",
+		"allPriority": "Semua prioritas",
+		"noMatch": "Tidak ada tiket yang cocok filter.",
+		"detail": "Detail tiket",
+		"pick": "Pilih tiket untuk melihat detail."
+	},
 	"topbar": {
 		"menu": "Buka menu navigasi",
 		"profile": "Profil",
@@ -374,6 +382,10 @@
 		"followup": "Follow-up",
 		"noFollowup": "Belum ada follow-up.",
 		"followupPh": "Tulis follow-up…",
+		"escalateSpv": "Eskalasi ke SPV",
+		"escalateConfirm": "Teruskan chat ini ke SPV?",
+		"assignee": "Penanggung jawab",
+		"unassigned": "Belum di-assign",
 		"historyTitle": "Riwayat customer",
 		"noHistory": "Belum ada riwayat tiket."
 	},
