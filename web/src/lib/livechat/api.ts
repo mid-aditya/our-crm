@@ -35,8 +35,9 @@ export async function createSession(
 	return ((raw as any)?.data ?? raw) as VisitorSession;
 }
 
-export async function getSessionMessages(sessionId: string): Promise<any[]> {
-	const res = await fetch(`${BASE}/api/v1/livechat/sessions/${sessionId}/messages`);
+export async function getSessionMessages(sessionId: string, companyId?: string): Promise<any[]> {
+	const q = companyId ? `?company_id=${encodeURIComponent(companyId)}` : '';
+	const res = await fetch(`${BASE}/api/v1/livechat/sessions/${sessionId}/messages${q}`);
 	if (!res.ok) return [];
 	const raw = await res.json().catch(() => null);
 	// WritePage → {"data": [...], "meta": {...}} ; fallback langsung array

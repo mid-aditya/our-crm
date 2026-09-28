@@ -240,6 +240,7 @@
 		"confirmDeleteBoard": "Hapus board beserta semua kartu?",
 		"confirmDeleteCard": "Hapus kartu?",
 		"confirmDeleteBot": "Hapus Q&A bot?",
+		"saveAccessDone": "Tersimpan.",
 		"confirmDeleteBotCascade": "Hapus pertanyaan ini beserta semua sub-pertanyaannya?"
 	},
 	"landing": {
@@ -319,6 +320,7 @@
 		"helloName": "Hai {name}, kamu bisa mulai chat sekarang.",
 		"yourName": "Nama kamu",
 		"startChat": "Mulai Chat",
+		"connecting": "Menghubungkan…",
 		"waitingAgent": "Menunggu agen…",
 		"typeMessage": "Ketik pesan…",
 		"send": "Kirim",
@@ -449,8 +451,8 @@
 		"noLabel": "(tanpa label)",
 		"activate": "Aktifkan",
 		"deactivate": "Nonaktifkan",
-		"menuAccessTitle": "Akses Menu Agent",
-		"menuAccessDesc": "Admin/developer menentukan menu sidebar yang boleh dibuka tiap agent.",
+		"menuAccessTitle": "Akses Menu per Role",
+		"menuAccessDesc": "Admin/developer menentukan menu sidebar yang boleh dibuka tiap role.",
 		"supervisorLabel": "Atasan langsung (SPV)",
 		"noSupervisor": "Tanpa atasan…",
 		"connected": "Aktif",

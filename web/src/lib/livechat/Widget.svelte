@@ -62,7 +62,6 @@
 	function startChat() {
 		if (showName && nameInput.trim()) {
 			livechatStore.openChat(nameInput.trim());
-			showName = false;
 		} else if (!showName) {
 			showName = true;
 		}
@@ -150,13 +149,23 @@
 							class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm placeholder:text-faint focus:border-neon focus:outline-none"
 							onkeydown={(e) => { if (e.key === 'Enter') startChat(); }}
 						/>
+						{#if livechatStore.error}
+							<p class="w-full rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-left text-xs text-danger">
+								{livechatStore.error}
+							</p>
+						{/if}
 						<button
 							type="button"
-							class="w-full rounded-lg py-2 text-sm font-medium transition-colors"
+							class="w-full rounded-lg py-2 text-sm font-medium transition-colors disabled:opacity-50"
 							style="background: var(--neon); color: var(--on-neon);"
+							disabled={livechatStore.status === 'connecting'}
 							onclick={startChat}
 						>
-							{$t('widget.startChat')}
+							{#if livechatStore.status === 'connecting'}
+								<span class="inline-flex items-center gap-2"><Loader2 size={15} class="animate-spin" /> {$t('widget.connecting')}</span>
+							{:else}
+								{$t('widget.startChat')}
+							{/if}
 						</button>
 					{:else}
 						<button
@@ -172,7 +181,7 @@
 			{:else}
 				<!-- Messages area -->
 				<div bind:this={messageEl} class="flex-1 space-y-3 overflow-y-auto p-4">
-					{#if livechatStore.status === 'waiting'}
+					{#if livechatStore.status === 'waiting' && livechatStore.messages.length === 0}
 						<div class="flex flex-col items-center gap-2 py-4 text-center">
 							<div class="flex gap-1">
 								<div class="size-2 animate-bounce rounded-full bg-muted [animation-delay:0ms]"></div>
@@ -190,7 +199,7 @@
 									<p class="mb-0.5 px-1 text-[10px] font-medium text-neon-text">{msg.sender_name}</p>
 								{/if}
 								<div
-									class="rounded-2xl px-3 py-2 text-sm {msg.direction === 'outbound'
+									class="rounded-2xl px-3 py-2 text-sm whitespace-pre-line {msg.direction === 'outbound'
 										? 'rounded-br-sm'
 										: 'rounded-bl-sm bg-raised text-ink'}"
 									style={msg.direction === 'outbound' ? `background: var(--neon); color: var(--on-neon);` : ''}
@@ -237,7 +246,7 @@
 								type="button"
 								class="flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors disabled:opacity-40"
 								style="background: var(--neon); color: var(--on-neon);"
-								disabled={!msgInput.trim() || livechatStore.status === 'waiting'}
+								disabled={!msgInput.trim() || !livechatStore.connected}
 								onclick={send}
 								aria-label={$t('widget.send')}
 							>

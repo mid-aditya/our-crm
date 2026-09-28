@@ -44,6 +44,20 @@ CREATE TABLE IF NOT EXISTS menu_grants (
   PRIMARY KEY (user_id, menu_key)
 );
 
+-- Akses sidebar per role (agent/spv). Admin/developer selalu full.
+CREATE TABLE IF NOT EXISTS role_menu_grants (
+  role_key text NOT NULL,
+  menu_key text NOT NULL,
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (role_key, menu_key)
+);
+INSERT INTO role_menu_grants (role_key, menu_key)
+SELECT 'agent', m FROM (VALUES ('dashboard'),('conversations'),('kanban'),('contacts'),('attendance')) AS v(m)
+ON CONFLICT DO NOTHING;
+INSERT INTO role_menu_grants (role_key, menu_key)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('conversations'),('kanban'),('contacts'),('attendance'),('reports')) AS v(m)
+ON CONFLICT DO NOTHING;
+
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;
 

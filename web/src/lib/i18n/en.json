@@ -240,6 +240,7 @@
 		"confirmDeleteBoard": "Delete board and all its cards?",
 		"confirmDeleteCard": "Delete card?",
 		"confirmDeleteBot": "Delete bot Q&A?",
+		"saveAccessDone": "Saved.",
 		"confirmDeleteBotCascade": "Delete this question along with all its sub-questions?"
 	},
 	"landing": {
@@ -320,6 +321,7 @@
 		"helloName": "Hi {name}, you can start chatting now.",
 		"yourName": "Your name",
 		"startChat": "Start Chat",
+		"connecting": "Connecting…",
 		"waitingAgent": "Waiting for an agent…",
 		"typeMessage": "Type a message…",
 		"send": "Send",
@@ -450,8 +452,8 @@
 		"noLabel": "(no label)",
 		"activate": "Activate",
 		"deactivate": "Deactivate",
-		"menuAccessTitle": "Agent Menu Access",
-		"menuAccessDesc": "Admin/developer choose which sidebar menus each agent may open.",
+		"menuAccessTitle": "Menu Access per Role",
+		"menuAccessDesc": "Admin/developer choose which sidebar menus each role may open.",
 		"supervisorLabel": "Direct supervisor (SPV)",
 		"noSupervisor": "No supervisor…",
 		"connected": "Active",

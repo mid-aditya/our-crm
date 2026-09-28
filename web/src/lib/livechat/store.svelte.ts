@@ -13,6 +13,7 @@ class LivechatStore {
 	connected = $state(false);
 	agentTyping = $state(false);
 	status = $state<'idle' | 'connecting' | 'waiting' | 'chatting' | 'resolved'>('idle');
+	error = $state('');
 
 	private ws: WebSocket | null = null;
 	private visitorId = '';
@@ -33,12 +34,41 @@ class LivechatStore {
 		if (this.session) return; // already have a session
 
 		this.status = 'connecting';
+		this.error = '';
 		try {
 			this.session = await api.createSession(COMPANY_ID, this.visitorId, name);
 			this.status = 'waiting';
 			this.connectWS();
-		} catch {
+			await this.loadHistory();
+		} catch (e) {
 			this.status = 'idle';
+			this.error = e instanceof Error ? e.message : 'Failed to create session';
+		}
+	}
+
+	// Muat history (termasuk sapaan bot) agar sapaan langsung terlihat.
+	async loadHistory() {
+		if (!this.session) return;
+		try {
+			const rows = await api.getSessionMessages(this.session.id, COMPANY_ID);
+			const mapped = rows.map((m: any) => ({
+				id: String(m.id ?? crypto.randomUUID()),
+				// DB: inbound = dari visitor, outbound = dari bot/agent.
+				// Widget: outbound = milik sendiri (kanan), inbound = lawan bicara (kiri).
+				direction: (m.direction === 'inbound' ? 'outbound' : 'inbound') as 'inbound' | 'outbound',
+				body: String(m.body ?? ''),
+				sender_name: m.sender_name ?? undefined,
+				created_at: String(m.created_at ?? new Date().toISOString())
+			}));
+			// Hindari duplikat dengan optimistic update yang sudah ada.
+			const known = new Set(this.messages.map((x) => x.direction + '|' + x.body));
+			const fresh = mapped.filter((m) => !known.has(m.direction + '|' + m.body));
+			if (fresh.length > 0) this.messages = [...this.messages, ...fresh];
+			if (this.messages.length > 0 && this.status === 'waiting') {
+				// Tetap waiting sampai ada balasan/agent — biarkan indikator.
+			}
+		} catch {
+			// abaikan — pesan baru tetap mengalir via WS
 		}
 	}
 
@@ -50,7 +80,8 @@ class LivechatStore {
 		if (this.open) {
 			this.closeChat();
 		} else {
-			this.openChat();
+			// Buka jendela pre-chat dulu (input nama); sesi dibuat saat Mulai Chat.
+			this.open = true;
 		}
 	}
 

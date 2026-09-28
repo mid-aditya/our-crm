@@ -1,21 +1,31 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"crm-backend/internal/middleware"
 )
 
-// MenuKeys adalah daftar menu yang bisa di-grant ke agent (href tanpa slash awal).
+// MenuKeys adalah daftar menu yang bisa di-grant per role (href tanpa slash awal).
 var MenuKeys = []string{
 	"dashboard", "conversations", "companies", "campaigns",
 	"tickets", "contacts", "reports", "settings", "attendance", "kanban",
 }
 
-// GET /api/v1/menu-grants -> menu milik saya (untuk sidebar agent).
+// DefaultRoleMenus: agent operasional dasar, spv + laporan.
+var DefaultRoleMenus = map[string][]string{
+	"agent": {"dashboard", "conversations", "kanban", "contacts", "attendance"},
+	"spv":   {"dashboard", "conversations", "kanban", "contacts", "attendance", "reports"},
+}
+
+// GET /api/v1/menu-grants -> menu milik saya (untuk sidebar).
 // Respons: {"role": "agent"|"admin"|..., "menus": [...]}.
-// Developer & Admin selalu dapat semua menu; Agent hanya yang di-grant.
+// Developer & Admin selalu dapat semua menu; Agent/SPV mengikuti role_menu_grants.
 func MyMenus(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
 	claims := middleware.Claims(r)
@@ -35,29 +45,22 @@ func MyMenus(w http.ResponseWriter, r *http.Request) {
 	if lower == "" {
 		lower = roleLabel
 	}
+	lower = strings.ToLower(lower)
 	switch lower {
-	case "Agent", "agent":
-		// lanjut ke grants
-	case "SPV", "Spv", "spv":
-		// SPV setingkat di atas agent: full menu operasional kecuali settings sensitif.
-		menus := []string{}
-		for _, k := range MenuKeys {
-			if k != "settings" {
-				menus = append(menus, k)
-			}
-		}
-		middleware.WriteJSON(w, 200, map[string]any{"role": lower, "menus": menus})
+	case "agent", "spv":
+		middleware.WriteJSON(w, 200, map[string]any{"role": lower, "menus": queryRoleMenus(r.Context(), pool, lower)})
 		return
 	default:
 		middleware.WriteJSON(w, 200, map[string]any{"role": lower, "menus": MenuKeys})
 		return
 	}
+}
 
-	rows, err := pool.Query(r.Context(), `select menu_key from menu_grants where user_id=$1`, claims.UserID)
+// queryRoleMenus: baca grant per role; bila kosong (tenant lama) pakai default.
+func queryRoleMenus(ctx context.Context, pool *pgxpool.Pool, role string) []string {
+	rows, err := pool.Query(ctx, `select menu_key from role_menu_grants where role_key=$1`, role)
 	if err != nil {
-		// tabel belum ada di tenant lama → anggap kosong
-		middleware.WriteJSON(w, 200, map[string]any{"role": lower, "menus": []string{}})
-		return
+		return append([]string{}, DefaultRoleMenus[role]...)
 	}
 	defer rows.Close()
 	menus := []string{}
@@ -66,39 +69,24 @@ func MyMenus(w http.ResponseWriter, r *http.Request) {
 		_ = rows.Scan(&k)
 		menus = append(menus, k)
 	}
-	middleware.WriteJSON(w, 200, map[string]any{"role": lower, "menus": menus})
+	if len(menus) == 0 {
+		return append([]string{}, DefaultRoleMenus[role]...)
+	}
+	return menus
 }
 
-// GET /api/v1/users/{id}/menus, PUT /api/v1/users/{id}/menus {menus: []}
-// (admin/developer: approve menu untuk agent).
-func UserMenus(w http.ResponseWriter, r *http.Request) {
+// GET /api/v1/roles/{role}/menus, PUT /api/v1/roles/{role}/menus {menus: []}
+// (admin/developer: atur akses sidebar per role agent/spv).
+func RoleMenus(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
-	p := r.URL.Path
-	const marker = "/users/"
-	i := indexOf(p, marker)
-	rest := p[i+len(marker):]
-	id := rest
-	for j, ch := range rest {
-		if ch == '/' {
-			id = rest[:j]
-			break
-		}
+	role := roleFromPath(r.URL.Path)
+	if role != "agent" && role != "spv" {
+		middleware.WriteErr(w, 400, "VALIDATION_ERROR", "role harus agent/spv")
+		return
 	}
 
 	if r.Method == "GET" {
-		rows, err := pool.Query(r.Context(), `select menu_key from menu_grants where user_id=$1`, id)
-		if err != nil {
-			middleware.WriteJSON(w, 200, map[string]any{"menus": []string{}})
-			return
-		}
-		defer rows.Close()
-		menus := []string{}
-		for rows.Next() {
-			var k string
-			_ = rows.Scan(&k)
-			menus = append(menus, k)
-		}
-		middleware.WriteJSON(w, 200, map[string]any{"menus": menus})
+		middleware.WriteJSON(w, 200, map[string]any{"menus": queryRoleMenus(r.Context(), pool, role)})
 		return
 	}
 
@@ -114,14 +102,31 @@ func UserMenus(w http.ResponseWriter, r *http.Request) {
 	for _, k := range MenuKeys {
 		allowed[k] = true
 	}
-	_, _ = pool.Exec(r.Context(), `create table if not exists menu_grants (user_id uuid not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (user_id, menu_key))`)
-	_, _ = pool.Exec(r.Context(), `delete from menu_grants where user_id=$1`, id)
+	_, _ = pool.Exec(r.Context(), `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
+	_, _ = pool.Exec(r.Context(), `delete from role_menu_grants where role_key=$1`, role)
 	for _, k := range in.Menus {
 		if allowed[k] {
-			_, _ = pool.Exec(r.Context(), `insert into menu_grants (user_id, menu_key) values ($1,$2) on conflict do nothing`, id, k)
+			_, _ = pool.Exec(r.Context(), `insert into role_menu_grants (role_key, menu_key) values ($1,$2) on conflict do nothing`, role, k)
 		}
 	}
 	middleware.WriteJSON(w, 200, map[string]bool{"ok": true})
+}
+
+func roleFromPath(p string) string {
+	const marker = "/roles/"
+	i := indexOf(p, marker)
+	if i < 0 {
+		return ""
+	}
+	rest := p[i+len(marker):]
+	id := rest
+	for j, ch := range rest {
+		if ch == '/' {
+			id = rest[:j]
+			break
+		}
+	}
+	return strings.ToLower(id)
 }
 
 // claimsExtraRole membaca label role dari JWT bila ada (demo-login menyertakan "role").

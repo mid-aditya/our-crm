@@ -76,6 +76,13 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	// Seed Q&A bot default bila kosong.
 	_, _ = tpool.Exec(ctx, `insert into bot_qa (keywords, question, answer, position, escalate) select 'halo,hallo,hai,pagi,siang,sore,malam,hello,hi','Salam pembuka','Halo! Selamat datang di layanan kami. Ada yang bisa kami bantu? Ketik "agent" untuk bicara dengan agent.',0,false where not exists (select 1 from bot_qa)`)
 	_, _ = tpool.Exec(ctx, `insert into bot_qa (keywords, question, answer, position, escalate) select 'agent,admin,cs,customer service,orang','Minta agent','Baik, saya hubungkan ke agent kami. Mohon tunggu sebentar ya.',999,true where not exists (select 1 from bot_qa where escalate)`)
+	// Seed template sample: pertanyaan beranak (bisa diubah/hapus via Pengaturan → Bot Responder).
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (keywords, question, answer, position, escalate) select 'jam buka,jadwal,operasional,buka jam berapa','Jam operasional','Kami buka Senin–Jumat 09.00–17.00 dan Sabtu 09.00–12.00.',10,false where not exists (select 1 from bot_qa where question='Jam operasional')`)
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (parent_id, keywords, question, answer, position, escalate) select id,'sabtu,weekend','Hari Sabtu','Hari Sabtu kami buka 09.00–12.00. Di luar itu silakan tinggalkan pesan, akan kami balas jam kerja berikutnya.',0,false from bot_qa where question='Jam operasional' and parent_id is null and not exists (select 1 from bot_qa where question='Hari Sabtu') limit 1`)
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (parent_id, keywords, question, answer, position, escalate) select id,'libur,tanggal merah,holiday,cuti bersama','Hari libur','Hari libur nasional dan cuti bersama kami tutup. Operasional kembali hari kerja berikutnya.',1,false from bot_qa where question='Jam operasional' and parent_id is null and not exists (select 1 from bot_qa where question='Hari libur') limit 1`)
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (keywords, question, answer, position, escalate) select 'cara order,order,beli,pesan,gimana cara','Cara order','Order bisa lewat chat ini, marketplace, atau datang langsung ke toko kami.',20,false where not exists (select 1 from bot_qa where question='Cara order')`)
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (parent_id, keywords, question, answer, position, escalate) select id,'bayar,pembayaran,transfer,qris,cod','Pembayaran','Kami menerima transfer bank, QRIS, e-wallet, dan COD untuk area tertentu.',0,false from bot_qa where question='Cara order' and parent_id is null and not exists (select 1 from bot_qa where question='Pembayaran') limit 1`)
+	_, _ = tpool.Exec(ctx, `insert into bot_qa (parent_id, keywords, question, answer, position, escalate) select id,'kirim,ongkir,ekspedisi,delivery,pengiriman','Pengiriman','Pengiriman via ekspedisi reguler/ekonomi. Ongkir dihitung otomatis saat checkout, gratis ongkir untuk pembelian di atas Rp200.000.',1,false from bot_qa where question='Cara order' and parent_id is null and not exists (select 1 from bot_qa where question='Pengiriman') limit 1`)
 	// Level hierarki + permission supervisi untuk role yang sudah ada.
 	_, _ = tpool.Exec(ctx, `update roles set level=100 where name='Developer'`)
 	_, _ = tpool.Exec(ctx, `update roles set level=80 where name='Admin'`)
@@ -152,13 +159,15 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	} else {
 		_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'',$3,$4,'active')`, effectiveID, email, name, nullUUID(tenantRoleID))
 	}
-	_, _ = tpool.Exec(ctx, `create table if not exists menu_grants (user_id uuid not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (user_id, menu_key))`)
-	// Default menu agent demo: dashboard + operasional. Admin/developer
-	// bisa menambah via PUT /users/{id}/menus.
+	_, _ = tpool.Exec(ctx, `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
+	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
+	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance"} {
+		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
+	}
+	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance", "reports"} {
+		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
+	}
 	if role == "agent" {
-		for _, m := range []string{"dashboard", "conversations", "tickets", "contacts", "attendance", "kanban"} {
-			_, _ = tpool.Exec(ctx, `insert into menu_grants (user_id, menu_key) values ($1,$2) on conflict do nothing`, effectiveID, m)
-		}
 		// Demo Agent di bawah naungan Demo SPV (bila SPV sudah pernah login).
 		var spvID string
 		_ = tpool.QueryRow(ctx, `select id from users where email='spv@demo.com' limit 1`).Scan(&spvID)
@@ -244,8 +253,8 @@ func main() {
 	mux.Handle("GET /api/v1/users", tenant("settings.manage_roles", handlers.Users))
 	mux.Handle("POST /api/v1/users/invite", tenant("settings.manage_roles", handlers.Users))
 	mux.Handle("PATCH /api/v1/users/{id}/role", tenant("settings.manage_roles", handlers.UserRole))
-	mux.Handle("GET /api/v1/users/{id}/menus", tenant("settings.manage_roles", handlers.UserMenus))
-	mux.Handle("PUT /api/v1/users/{id}/menus", tenant("settings.manage_roles", handlers.UserMenus))
+	mux.Handle("GET /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
+	mux.Handle("PUT /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).

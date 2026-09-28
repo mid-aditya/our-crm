@@ -104,6 +104,60 @@ func activeBotChildren(ctx context.Context, pool *pgxpool.Pool, parentID string)
 	return out
 }
 
+// sendBotGreeting: sapaan pembuka bot untuk sesi baru — visitor langsung
+// terhubung ke bot (bukan menunggu agent). Opsi topik diambil dari Q&A
+// level atas yang aktif; balasan berikutnya masuk runBotResponder.
+func sendBotGreeting(pool *pgxpool.Pool, sessionID, visitorName string) {
+	if pool == nil || sessionID == "" {
+		return
+	}
+	ctx := context.Background()
+	name := strings.TrimSpace(visitorName)
+	hello := "Halo! Selamat datang di layanan kami. Saya Bot asisten virtual."
+	if name != "" {
+		hello = "Halo " + name + "! Selamat datang di layanan kami. Saya Bot asisten virtual."
+	}
+	text := hello + " Silakan langsung ketik pertanyaanmu di bawah ini."
+	topics := activeBotChildrenTop(ctx, pool)
+	if len(topics) > 0 {
+		var opts []string
+		for _, c := range topics {
+			label := strings.TrimSpace(c.Question)
+			if label == "" {
+				label = firstKeyword(c.Keywords)
+			}
+			if label != "" {
+				opts = append(opts, "- "+label)
+			}
+		}
+		if len(opts) > 0 {
+			text += "\n\nAtau pilih topik:\n" + strings.Join(opts, "\n")
+		}
+	}
+	var msgID string
+	_ = pool.QueryRow(ctx, `insert into livechat_messages (session_id, direction, sender_name, body) values ($1,'outbound','Bot',$2) returning id`, sessionID, text).Scan(&msgID)
+	_, _ = pool.Exec(ctx, `update livechat_sessions set last_message=$1, last_message_at=now(), updated_at=now() where id=$2`, text, sessionID)
+	botName := "Bot"
+	TheSSEHub.BroadcastNewMessage("", sessionID, Message{ID: msgID, SessionID: sessionID, Direction: "outbound", SenderName: &botName, Body: text})
+	go broadcastQueueUpdate(ctx, pool, companyIDOf(ctx, pool, sessionID))
+}
+
+// activeBotChildrenTop: Q&A level atas yang aktif (untuk opsi sapaan).
+func activeBotChildrenTop(ctx context.Context, pool *pgxpool.Pool) []botChild {
+	r, err := pool.Query(ctx, `select question, keywords from bot_qa where active=true and parent_id is null and coalesce(keywords,'') <> '' order by position, created_at limit 8`)
+	if err != nil {
+		return nil
+	}
+	defer r.Close()
+	var out []botChild
+	for r.Next() {
+		var c botChild
+		_ = r.Scan(&c.Question, &c.Keywords)
+		out = append(out, c)
+	}
+	return out
+}
+
 // answerBot: kirim jawaban; bila escalate → teruskan ke agent,
 // bila bukan → sesi tetap di bot dan node aktif dimajukan.
 func answerBot(ctx context.Context, pool *pgxpool.Pool, sessionID string, n botNode, nodeID string) {

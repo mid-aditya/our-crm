@@ -19,7 +19,7 @@
 	} from '$lib/api-channels';
 	import { theme, setTheme, type Theme } from '$lib/theme.svelte';
 	import { setLocale, locales, localeNames, type AppLocale } from '$lib/i18n';
-	import { apiPage, getUserMenus, setUserMenus, getUser } from '$lib/api';
+	import { apiPage, getRoleMenus, setRoleMenus, getUser } from '$lib/api';
 	import { setSupervisor } from '$lib/team/api';
 	import { navItems } from '$lib/navigation';
 	import {
@@ -79,11 +79,15 @@
 	type TeamUser = { id: string; email: string; full_name: string; role_id: string | null; status: string; supervisor_id?: string | null };
 	let teamUsers = $state<TeamUser[]>([]);
 	let selectedUserId = $state('');
-	let grantedMenus = $state<string[]>([]);
 	let menusLoading = $state(false);
-	let menusSaving = $state(false);
 	let supervisorId = $state('');
 	let supervisorSaving = $state(false);
+
+	// ---- Akses sidebar per role (agent/spv) ----
+	const menuRoles = ['agent', 'spv'] as const;
+	let menuRole = $state<'agent' | 'spv'>('agent');
+	let roleMenus = $state<Record<string, string[]>>({ agent: [], spv: [] });
+	let roleMenusSaving = $state(false);
 
 	onMount(async () => {
 		try {
@@ -98,39 +102,43 @@
 		selectedUserId = userId;
 		const sel = teamUsers.find((u) => u.id === userId);
 		supervisorId = sel?.supervisor_id ?? '';
-		if (!userId) {
-			grantedMenus = [];
-			return;
-		}
+		if (!userId) return;
 		menusLoading = true;
 		try {
-			grantedMenus = await getUserMenus(userId);
-		} catch {
-			grantedMenus = [];
+			await loadRoleMenus();
 		} finally {
 			menusLoading = false;
 		}
 	}
 
-	function toggleMenu(key: string) {
-		grantedMenus = grantedMenus.includes(key)
-			? grantedMenus.filter((k) => k !== key)
-			: [...grantedMenus, key];
+	async function loadRoleMenus() {
+		try {
+			const [agent, spv] = await Promise.all([getRoleMenus('agent'), getRoleMenus('spv')]);
+			roleMenus = { agent, spv };
+		} catch {
+			// abaikan, pakai state terakhir
+		}
 	}
 
-	async function saveGrants() {
-		if (!selectedUserId) return;
-		menusSaving = true;
+	function toggleRoleMenu(key: string) {
+		const cur = roleMenus[menuRole] ?? [];
+		roleMenus = {
+			...roleMenus,
+			[menuRole]: cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]
+		};
+	}
+
+	async function saveRoleMenus() {
+		roleMenusSaving = true;
 		try {
-			await setUserMenus(selectedUserId, grantedMenus);
-			await saveSupervisor();
+			await setRoleMenus(menuRole, roleMenus[menuRole] ?? []);
 			saved = true;
 			clearTimeout(savedTimeout);
 			savedTimeout = setTimeout(() => (saved = false), 2000);
 		} catch {
 			// abaikan
 		} finally {
-			menusSaving = false;
+			roleMenusSaving = false;
 		}
 	}
 
@@ -271,6 +279,7 @@
 			try {
 				ticketFields = await getTicketFields();
 			} catch { ticketFields = []; }
+			await loadRoleMenus();
 		}
 	});
 
@@ -724,18 +733,58 @@
 
 	<Card title={$t('team.menuAccessTitle')} description={$t('team.menuAccessDesc')}>
 		<div class="space-y-3">
-			<Select
-				value={selectedUserId}
-				placeholder={$t('team.selectAgent')}
-				aria-label={$t('team.selectAgent')}
-				options={teamUsers.map((u) => ({ value: u.id, label: `${u.full_name} (${u.email})` }))}
-				onchange={(v) => loadGrants(v)}
-			/>
+			<!-- Tab role -->
+			<div class="grid grid-cols-2 gap-0.5 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label={$t('team.menuAccessTitle')}>
+				{#each menuRoles as r (r)}
+					<button
+						type="button"
+						onclick={() => (menuRole = r)}
+						class={cn(
+							'rounded-md px-2.5 py-1.5 text-xs font-semibold capitalize',
+							menuRole === r ? 'bg-neon-soft text-neon-text' : 'text-muted hover:text-ink'
+						)}
+					>
+						{r === 'agent' ? 'Agent' : 'SPV'}
+						<span class="ml-1 font-normal text-faint">({(roleMenus[r] ?? []).length})</span>
+					</button>
+				{/each}
+			</div>
+			<div class="grid grid-cols-2 gap-2">
+				{#each navItems as item (item.key)}
+					<label class={cn('flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors hover:border-line-strong', (roleMenus[menuRole] ?? []).includes(item.key) ? 'border-neon/50 bg-neon-soft/40' : 'border-line')}>
+						<input
+							type="checkbox"
+							checked={(roleMenus[menuRole] ?? []).includes(item.key)}
+							onchange={() => toggleRoleMenu(item.key)}
+							class="size-4 accent-[var(--neon)]"
+						/>
+						<span class="font-medium">{$t(item.label)}</span>
+					</label>
+				{/each}
+			</div>
+			<div class="flex items-center justify-end gap-2">
+				{#if saved && !roleMenusSaving}
+					<span class="text-[11px] text-neon-text">{$t('common.saveAccessDone')}</span>
+				{/if}
+				<Button size="sm" onclick={saveRoleMenus} disabled={roleMenusSaving}>
+					{roleMenusSaving ? $t('common.saving') : $t('team.saveAccess')}
+				</Button>
+			</div>
+			<!-- Atasan langsung tetap per agent -->
+			<div>
+				<p class="mb-1.5 text-[11px] font-medium text-muted">{$t('team.supervisorLabel')}</p>
+				<Select
+					value={selectedUserId}
+					placeholder={$t('team.selectAgent')}
+					aria-label={$t('team.selectAgent')}
+					options={teamUsers.map((u) => ({ value: u.id, label: `${u.full_name} (${u.email})` }))}
+					onchange={(v) => loadGrants(v)}
+				/>
+			</div>
 			{#if menusLoading}
 				<p class="text-xs text-muted">{$t('common.loading')}</p>
 			{:else if selectedUserId}
 				<div>
-					<p class="mb-1.5 text-[11px] font-medium text-muted">{$t('team.supervisorLabel')}</p>
 					<Select
 						value={supervisorId}
 						placeholder={$t('team.noSupervisor')}
@@ -748,24 +797,11 @@
 						]}
 						onchange={(v) => (supervisorId = v === '__none' ? '' : v)}
 					/>
-				</div>
-				<div class="grid grid-cols-2 gap-2">
-					{#each navItems as item (item.key)}
-						<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-xs transition-colors hover:border-line-strong">
-							<input
-								type="checkbox"
-								checked={grantedMenus.includes(item.key)}
-								onchange={() => toggleMenu(item.key)}
-								class="size-4 accent-[var(--neon)]"
-							/>
-							<span class="font-medium">{$t(item.label)}</span>
-						</label>
-					{/each}
-				</div>
-				<div class="flex justify-end">
-					<Button size="sm" onclick={saveGrants} disabled={menusSaving}>
-						{menusSaving ? $t('common.saving') : $t('team.saveAccess')}
-					</Button>
+					<div class="mt-2 flex justify-end">
+						<Button size="sm" variant="outline" onclick={saveSupervisor} disabled={supervisorSaving}>
+							{supervisorSaving ? $t('common.saving') : $t('common.save')}
+						</Button>
+					</div>
 				</div>
 			{:else}
 				<p class="text-xs text-muted">{$t('team.selectUserHint')}</p>

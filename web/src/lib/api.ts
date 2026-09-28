@@ -68,13 +68,13 @@ export async function myMenus(): Promise<{ role: string; menus: string[] }> {
 	}
 }
 
-export async function getUserMenus(userId: string): Promise<string[]> {
-	const res = await api<{ menus: string[] }>(`/users/${userId}/menus`);
+export async function getRoleMenus(role: string): Promise<string[]> {
+	const res = await api<{ menus: string[] }>(`/roles/${role}/menus`);
 	return res.menus ?? [];
 }
 
-export async function setUserMenus(userId: string, menus: string[]): Promise<void> {
-	await api(`/users/${userId}/menus`, {
+export async function setRoleMenus(role: string, menus: string[]): Promise<void> {
+	await api(`/roles/${role}/menus`, {
 		method: 'PUT',
 		body: JSON.stringify({ menus })
 	});

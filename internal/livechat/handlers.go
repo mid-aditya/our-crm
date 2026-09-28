@@ -130,6 +130,15 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 // MessagesHandler GET /api/livechat/sessions/{id}/messages
 func MessagesHandler(w http.ResponseWriter, r *http.Request) {
 	pool := middleware.Tenant(r)
+	if pool == nil {
+		// Publik (visitor tanpa JWT): resolve tenant via query company_id.
+		var err error
+		pool, err = getTenantPool(r, r.URL.Query().Get("company_id"))
+		if err != nil || pool == nil {
+			middleware.WriteErr(w, 500, "DB_ERROR", "Tidak dapat terhubung ke database")
+			return
+		}
+	}
 	id := sessionIDFromPath(r)
 	if id == "" {
 		middleware.WriteErr(w, 400, "INVALID_ID", "ID sesi tidak valid")
@@ -576,14 +585,28 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var sessionID string
+	var isNew bool
 	err = pool.QueryRow(r.Context(), `
 		insert into livechat_sessions (company_id, visitor_id, visitor_name, visitor_email, status, waiting_since)
 		values ($1, $2, $3, $4, 'waiting', now())
-		returning id
-	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail)).Scan(&sessionID)
+		on conflict (company_id, visitor_id) do update set
+			visitor_name=coalesce(nullif(excluded.visitor_name,''), livechat_sessions.visitor_name),
+			visitor_email=coalesce(nullif(excluded.visitor_email,''), livechat_sessions.visitor_email),
+			status=case when livechat_sessions.status='resolved' then 'waiting' else livechat_sessions.status end,
+			bot_handled=case when livechat_sessions.status='resolved' then false else livechat_sessions.bot_handled end,
+			bot_node_id=case when livechat_sessions.status='resolved' then null else livechat_sessions.bot_node_id end,
+			waiting_since=case when livechat_sessions.status='resolved' then now() else livechat_sessions.waiting_since end,
+			updated_at=now()
+		returning id, (xmax = 0)
+	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail)).Scan(&sessionID, &isNew)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal membuat sesi")
 		return
+	}
+
+	// Sesi baru: langsung terhubung ke bot — kirim sapaan + opsi topik.
+	if isNew {
+		go sendBotGreeting(pool, sessionID, in.VisitorName)
 	}
 
 	// Broadcast queue update

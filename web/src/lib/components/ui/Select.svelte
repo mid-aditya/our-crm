@@ -57,7 +57,7 @@
 	<SelectPrimitive.Portal>
 		<SelectPrimitive.Content
 			sideOffset={6}
-			class="dropdown-in z-50 max-h-72 min-w-40 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 text-ink shadow-2xl"
+			class="dropdown-in z-50 max-h-72 w-[var(--bits-floating-anchor-width)] min-w-40 overflow-y-auto rounded-xl border border-line bg-surface p-1.5 text-ink shadow-2xl"
 		>
 			{#each options as opt (opt.value)}
 				<SelectPrimitive.Item
