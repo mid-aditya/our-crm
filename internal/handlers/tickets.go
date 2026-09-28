@@ -15,13 +15,28 @@ func Tickets(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		status := r.URL.Query().Get("status")
+		assignee := r.URL.Query().Get("assignee")
+		if assignee == "me" {
+			c := middleware.Claims(r)
+			if c != nil {
+				assignee = c.UserID
+			} else {
+				assignee = ""
+			}
+		}
 		limit, offset := middleware.Page(r)
 		q := `select id, number, subject, description, contact_id, assignee_id, priority, status, source, resolved_at, created_at from tickets`
 		var rows []map[string]any
 		var total int
-		if status != "" {
+		if status != "" && assignee != "" {
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where status=$1 and assignee_id=$2`, status, assignee).Scan(&total)
+			rows = listTickets(r, q+` where status=$1 and assignee_id=$2 order by created_at desc limit $3 offset $4`, status, assignee, limit, offset)
+		} else if status != "" {
 			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where status=$1`, status).Scan(&total)
 			rows = listTickets(r, q+` where status=$1 order by created_at desc limit $2 offset $3`, status, limit, offset)
+		} else if assignee != "" {
+			_ = pool.QueryRow(r.Context(), `select count(*) from tickets where assignee_id=$1`, assignee).Scan(&total)
+			rows = listTickets(r, q+` where assignee_id=$1 order by created_at desc limit $2 offset $3`, assignee, limit, offset)
 		} else {
 			_ = pool.QueryRow(r.Context(), `select count(*) from tickets`).Scan(&total)
 			rows = listTickets(r, q+` order by created_at desc limit $1 offset $2`, limit, offset)

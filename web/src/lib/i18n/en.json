@@ -294,6 +294,13 @@
 		"terms": "Terms",
 		"support": "Support"
 	},
+	"tasks": {
+		"title": "My Tasks",
+		"myTickets": "My tickets",
+		"myCards": "My kanban cards",
+		"noTickets": "No open tickets.",
+		"noCards": "No assigned cards."
+	},
 	"login": {
 		"title": "OurCRM",
 		"subtitle": "Login to access your dashboard.",
@@ -371,6 +378,12 @@
 	"kanban": {
 		"title": "Kanban",
 		"subtitle": "Drag cards across columns — every move is logged.",
+		"boardView": "Board",
+		"listView": "List",
+		"colTask": "Task",
+		"colStatus": "Status",
+		"colAssignee": "Assignee",
+		"take": "Take",
 		"boardNamePh": "Board name…",
 		"board": "Board",
 		"noBoards": "No boards yet — create one.",

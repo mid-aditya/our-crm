@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
-	import { Plus, Trash2, History, X, GripVertical } from '@lucide/svelte';
+	import { page } from '$app/state';
+	import { Plus, Trash2, History, X, GripVertical, LayoutGrid, List } from '@lucide/svelte';
 	import {
 		getBoards,
 		createBoard,
@@ -13,10 +14,12 @@
 		moveCard,
 		deleteCard,
 		getCardMoves,
+		patchCard,
 		type BoardSummary,
 		type BoardDetail,
 		type CardMove
 	} from '$lib/kanban/api';
+	import { getUser } from '$lib/api';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -25,6 +28,7 @@
 
 	let boards = $state<BoardSummary[]>([]);
 	let activeBoard = $state<BoardDetail | null>(null);
+	let view = $state<'board' | 'list'>('board');
 	let newBoardName = $state('');
 	let newColName = $state('');
 	let newCardTitle = $state('');
@@ -33,8 +37,19 @@
 	let historyCard = $state<string | null>(null);
 	let moves = $state<CardMove[]>([]);
 
+	const myId = $derived(getUser()?.id ?? '');
+
+	// Semua kartu lintas kolom (untuk tampilan list).
+	const allCards = $derived(
+		(activeBoard?.columns ?? []).flatMap((c) =>
+			c.cards.map((k) => ({ ...k, column_id: c.id, column_name: c.name }))
+		)
+	);
+
 	onMount(async () => {
 		await loadBoards();
+		const q = page.url.searchParams.get('board');
+		if (q) await openBoard(q);
 	});
 
 	async function loadBoards() {
@@ -117,6 +132,13 @@
 			if (activeBoard) await openBoard(activeBoard.id);
 		} catch { /* abaikan */ }
 	}
+
+	async function takeCard(cardId: string) {
+		try {
+			await patchCard(cardId, { assignee_id: myId || null });
+			if (activeBoard) await openBoard(activeBoard.id);
+		} catch { /* abaikan */ }
+	}
 </script>
 
 <div class="mb-4 flex flex-wrap items-center gap-2">
@@ -125,6 +147,22 @@
 		<p class="mt-0.5 text-xs text-muted">{$t('kanban.subtitle')}</p>
 	</div>
 	<div class="ml-auto flex items-center gap-1.5">
+		<div class="grid grid-cols-2 gap-0.5 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="View">
+			<button
+				type="button"
+				onclick={() => (view = 'board')}
+				class={cn('flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium', view === 'board' ? 'bg-neon-soft text-neon-text' : 'text-muted')}
+			>
+				<LayoutGrid size={13} /> {$t('kanban.boardView')}
+			</button>
+			<button
+				type="button"
+				onclick={() => (view = 'list')}
+				class={cn('flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium', view === 'list' ? 'bg-neon-soft text-neon-text' : 'text-muted')}
+			>
+				<List size={13} /> {$t('kanban.listView')}
+			</button>
+		</div>
 		<Input bind:value={newBoardName} placeholder={$t('kanban.boardNamePh')} class="w-44" />
 		<Button size="sm" onclick={addBoard}><Plus size={13} /> {$t('kanban.board')}</Button>
 	</div>
@@ -154,6 +192,52 @@
 </div>
 
 {#if activeBoard}
+	{#if view === 'list'}
+		<!-- Tampilan list semua task -->
+		<div class="overflow-hidden rounded-xl border border-line bg-surface">
+			<table class="w-full text-sm">
+				<thead>
+					<tr class="border-b border-line text-left text-[11px] font-medium text-muted">
+						<th class="px-4 py-2.5 font-medium">{$t('kanban.colTask')}</th>
+						<th class="px-4 py-2.5 font-medium">{$t('kanban.colStatus')}</th>
+						<th class="px-4 py-2.5 font-medium">{$t('kanban.colAssignee')}</th>
+						<th class="px-4 py-2.5 text-right font-medium"></th>
+					</tr>
+				</thead>
+				<tbody class="divide-y divide-line">
+					{#each allCards as card (card.id)}
+						<tr class="hover:bg-raised/50">
+							<td class="px-4 py-2.5">
+								<p class="text-xs font-medium">{card.title}</p>
+								{#if card.description}
+									<p class="mt-0.5 line-clamp-1 text-[11px] text-muted">{card.description}</p>
+								{/if}
+							</td>
+							<td class="px-4 py-2.5"><Badge variant="neutral">{card.column_name}</Badge></td>
+							<td class="px-4 py-2.5 text-xs text-muted">{card.assignee_name ?? '—'}</td>
+							<td class="px-4 py-2.5 text-right">
+								<div class="flex items-center justify-end gap-1">
+									{#if !card.assignee_id}
+										<Button size="sm" variant="outline" onclick={() => takeCard(card.id)}>
+											{$t('kanban.take')}
+										</Button>
+									{/if}
+									<button type="button" onclick={() => openHistory(card.id)} class="rounded p-1.5 text-faint hover:text-ink" aria-label={$t('kanban.history')}>
+										<History size={14} />
+									</button>
+									<button type="button" onclick={() => removeCard(card.id)} class="rounded p-1.5 text-faint hover:text-danger" aria-label={$t('kanban.deleteCard')}>
+										<Trash2 size={14} />
+									</button>
+								</div>
+							</td>
+						</tr>
+					{:else}
+						<tr><td colspan="4" class="px-4 py-8 text-center text-xs text-muted">{$t('common.empty')}</td></tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{:else}
 	<div class="mb-3 flex items-center gap-1.5">
 		<Input bind:value={newColName} placeholder={$t('kanban.newColPh')} class="w-44" />
 		<Button size="sm" variant="outline" onclick={addColumn}>{$t('kanban.addColumn')}</Button>
@@ -223,6 +307,7 @@
 			</div>
 		{/each}
 	</div>
+	{/if}
 {/if}
 
 {#if historyCard}

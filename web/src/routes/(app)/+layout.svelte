@@ -8,6 +8,7 @@
 	import { getToken, clearSession, ensureUserFromToken } from '$lib/api';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
 	import Topbar from '$lib/components/layout/Topbar.svelte';
+	import TaskDrawer from '$lib/components/layout/TaskDrawer.svelte';
 	import { cn } from '$lib/utils';
 
 	let { children } = $props();
@@ -48,5 +49,6 @@
 		<main class={cn('mx-auto w-full flex-1 px-4 py-6 md:px-8', wide ? 'max-w-none' : 'max-w-6xl')}>
 			{@render children()}
 		</main>
+		<TaskDrawer />
 	</div>
 </div>

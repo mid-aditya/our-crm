@@ -294,6 +294,13 @@
 		"terms": "Terms",
 		"support": "Support"
 	},
+		"tasks": {
+		"title": "Task Saya",
+		"myTickets": "Tiket saya",
+		"myCards": "Kartu kanban saya",
+		"noTickets": "Tidak ada tiket open.",
+		"noCards": "Tidak ada kartu assigned."
+	},
 	"login": {		"title": "OurCRM",
 		"subtitle": "Login untuk mengakses dashboard.",
 		"asAgent": "Masuk sebagai Agent",
@@ -370,6 +377,12 @@
 	"kanban": {
 		"title": "Kanban",
 		"subtitle": "Seret kartu antar kolom — setiap perpindahan tercatat di log.",
+		"boardView": "Board",
+		"listView": "List",
+		"colTask": "Task",
+		"colStatus": "Status",
+		"colAssignee": "Assignee",
+		"take": "Ambil",
 		"boardNamePh": "Nama board…",
 		"board": "Board",
 		"noBoards": "Belum ada board — buat dulu.",

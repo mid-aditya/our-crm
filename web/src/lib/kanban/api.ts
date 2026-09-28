@@ -1,4 +1,4 @@
-import { api } from '$lib/api';
+import { api, apiPage } from '$lib/api';
 
 export type BoardSummary = {
 	id: string;
@@ -80,4 +80,38 @@ export async function deleteCard(id: string): Promise<void> {
 export async function getCardMoves(id: string): Promise<CardMove[]> {
 	const res = await api<CardMove[]>(`/kanban/cards/${id}/moves`);
 	return Array.isArray(res) ? res : [];
+}
+
+export type MyCard = {
+	id: string;
+	title: string;
+	description: string | null;
+	board_id: string;
+	board_name: string;
+	column_id: string;
+	column_name: string;
+	updated_at: string;
+};
+
+export async function getMyCards(): Promise<MyCard[]> {
+	const res = await api<MyCard[]>('/kanban/my-cards');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function patchCard(id: string, input: { title?: string; description?: string; assignee_id?: string | null }): Promise<void> {
+	await api(`/kanban/cards/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export type MyTicket = {
+	id: string;
+	number: string;
+	subject: string;
+	priority: string;
+	status: string;
+	created_at: string;
+};
+
+export async function getMyTickets(): Promise<MyTicket[]> {
+	const res = await apiPage<MyTicket[]>('/tickets?assignee=me');
+	return res.data ?? [];
 }

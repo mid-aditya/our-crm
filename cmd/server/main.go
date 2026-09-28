@@ -302,6 +302,7 @@ func main() {
 	mux.Handle("DELETE /api/v1/kanban/cards/{id}", tenant("kanban.manage", handlers.KanbanCards))
 	mux.Handle("POST /api/v1/kanban/cards/{id}/move", tenant("kanban.manage", handlers.KanbanMove))
 	mux.Handle("GET /api/v1/kanban/cards/{id}/moves", tenant("kanban.read", handlers.KanbanMoves))
+	mux.Handle("GET /api/v1/kanban/my-cards", middleware.Chain(http.HandlerFunc(handlers.KanbanMyCards), auth, middleware.TenantResolver))
 
 	// Bot responder (kelola: admin/developer; baca: semua login).
 	mux.Handle("GET /api/v1/bot-qa", middleware.Chain(http.HandlerFunc(handlers.BotQAList), auth, middleware.TenantResolver))

@@ -255,6 +255,31 @@ func KanbanMoves(w http.ResponseWriter, r *http.Request) {
 	middleware.WriteJSON(w, 200, out)
 }
 
+// GET /api/v1/kanban/my-cards — kartu yang di-assign ke saya lintas board.
+func KanbanMyCards(w http.ResponseWriter, r *http.Request) {
+	pool := middleware.Tenant(r)
+	c := middleware.Claims(r)
+	uid := ""
+	if c != nil {
+		uid = c.UserID
+	}
+	rows, err := pool.Query(r.Context(), `select k.id, k.title, k.description, b.id, b.name, c.id, c.name, k.updated_at from kanban_cards k join kanban_columns c on c.id=k.column_id join kanban_boards b on b.id=c.board_id where k.assignee_id=$1 order by k.updated_at desc limit 50`, uid)
+	if err != nil {
+		middleware.WriteJSON(w, 200, []map[string]any{})
+		return
+	}
+	defer rows.Close()
+	out := []map[string]any{}
+	for rows.Next() {
+		var id, title, bid, bname, cid, cname string
+		var desc *string
+		var updated time.Time
+		_ = rows.Scan(&id, &title, &desc, &bid, &bname, &cid, &cname, &updated)
+		out = append(out, map[string]any{"id": id, "title": title, "description": desc, "board_id": bid, "board_name": bname, "column_id": cid, "column_name": cname, "updated_at": updated})
+	}
+	middleware.WriteJSON(w, 200, out)
+}
+
 func kanbanID(r *http.Request, marker string) string {
 	p := r.URL.Path
 	i := indexOf(p, marker)
