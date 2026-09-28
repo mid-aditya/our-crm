@@ -12,6 +12,15 @@
 		"reports": "Reports",
 		"settings": "Settings"
 	},
+	"distribution": {
+		"title": "Chat Distribution",
+		"mode": "Mode",
+		"queue": "Bot queue — pick an agent to assign",
+		"assignTo": "Assign to agent…",
+		"empty": "No chats waiting on bot.",
+		"onlineAgents": "Online agents",
+		"noAgents": "No agents online."
+	},
 	"ticketsPage": {
 		"subtitle": "Support ticket list — assign to SPV to escalate.",
 		"allStatus": "All statuses",
@@ -329,6 +338,8 @@
 		"helloName": "Hi {name}, you can start chatting now.",
 		"yourName": "Your name",
 		"startChat": "Start Chat",
+		"yourContact": "Email / Phone no.",
+		"invalidContact": "Enter a valid email or phone number (9–16 digits).",
 		"connecting": "Connecting…",
 		"waitingAgent": "Waiting for an agent…",
 		"typeMessage": "Type a message…",

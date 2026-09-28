@@ -14,9 +14,11 @@
 	let { children } = $props();
 	let sidebarOpen = $state(false);
 
-	// Halaman kerja lebar (percakapan, kanban) mengisi ruang kosong.
+	// Halaman kerja lebar (percakapan, livechat, kanban) mengisi ruang kosong.
 	const wide = $derived(
-		page.url.pathname.startsWith('/conversations') || page.url.pathname.startsWith('/kanban')
+		page.url.pathname.startsWith('/conversations') ||
+			page.url.pathname.startsWith('/livechat') ||
+			page.url.pathname.startsWith('/kanban')
 	);
 
 	// Auth guard: semua route di grup (app) adalah protected.

@@ -12,8 +12,16 @@
 		"reports": "Laporan",
 		"settings": "Pengaturan"
 	},
-	"ticketsPage": {
-		"subtitle": "Daftar tiket dukungan — assign ke SPV untuk eskalasi.",
+	"distribution": {
+		"title": "Distribusi Chat",
+		"mode": "Mode",
+		"queue": "Antrian bot — klik agent untuk assign",
+		"assignTo": "Assign ke agent…",
+		"empty": "Tidak ada chat menunggu di bot.",
+		"onlineAgents": "Agent online",
+		"noAgents": "Tidak ada agent online."
+	},
+	"ticketsPage": {		"subtitle": "Daftar tiket dukungan — assign ke SPV untuk eskalasi.",
 		"allStatus": "Semua status",
 		"allPriority": "Semua prioritas",
 		"noMatch": "Tidak ada tiket yang cocok filter.",
@@ -328,6 +336,8 @@
 		"helloName": "Hai {name}, kamu bisa mulai chat sekarang.",
 		"yourName": "Nama kamu",
 		"startChat": "Mulai Chat",
+		"yourContact": "Email / No. HP",
+		"invalidContact": "Isi email valid atau no. HP (9–16 digit).",
 		"connecting": "Menghubungkan…",
 		"waitingAgent": "Menunggu agen…",
 		"typeMessage": "Ketik pesan…",

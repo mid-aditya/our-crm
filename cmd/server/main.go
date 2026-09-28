@@ -30,7 +30,7 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS roles (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, is_system_role BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS permissions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), "key" VARCHAR(128) NOT NULL UNIQUE, description TEXT, module TEXT)`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS role_permissions (role_id UUID NOT NULL, permission_id UUID NOT NULL, PRIMARY KEY (role_id, permission_id))`)
-	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_sessions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID, visitor_id VARCHAR(64) NOT NULL, visitor_name VARCHAR(255), visitor_email VARCHAR(255), assigned_agent_id UUID, status VARCHAR(32) NOT NULL DEFAULT 'waiting', last_message TEXT, last_message_at TIMESTAMPTZ, waiting_since TIMESTAMPTZ NOT NULL DEFAULT now(), resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(company_id, visitor_id))`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_sessions (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID, visitor_id VARCHAR(64) NOT NULL, visitor_name VARCHAR(255), visitor_email VARCHAR(255), visitor_phone VARCHAR(32), assigned_agent_id UUID, status VARCHAR(32) NOT NULL DEFAULT 'waiting', last_message TEXT, last_message_at TIMESTAMPTZ, waiting_since TIMESTAMPTZ NOT NULL DEFAULT now(), resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(company_id, visitor_id))`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_messages (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), session_id UUID NOT NULL REFERENCES livechat_sessions(id) ON DELETE CASCADE, direction VARCHAR(16) NOT NULL, sender_id UUID, sender_name VARCHAR(255), body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS livechat_distribution (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), company_id UUID UNIQUE, mode VARCHAR(16) NOT NULL DEFAULT 'manual', round_robin_index INT NOT NULL DEFAULT 0, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE roles ADD COLUMN IF NOT EXISTS level INT NOT NULL DEFAULT 0`)
@@ -62,6 +62,7 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	_, _ = tpool.Exec(ctx, `ALTER TABLE bot_qa ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES bot_qa(id) ON DELETE CASCADE`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_handled BOOLEAN NOT NULL DEFAULT false`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_node_id UUID`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS visitor_phone VARCHAR(32)`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS unread_count INT NOT NULL DEFAULT 0`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS last_inbound_at TIMESTAMPTZ`)
 	for _, kp := range []string{"kanban.read", "kanban.manage"} {		var pid string
@@ -161,10 +162,10 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	}
 	_, _ = tpool.Exec(ctx, `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
-	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -237,7 +238,7 @@ func main() {
 	mux.Handle("POST /api/v1/tickets", tenant("tickets.create", handlers.Tickets))
 	mux.Handle("GET /api/v1/tickets/{id}", tenant("tickets.read", handlers.TicketDetail))
 	mux.Handle("POST /api/v1/tickets/{id}/replies", tenant("tickets.update", handlers.TicketDetail))
-	mux.Handle("PATCH /api/v1/tickets/{id}", tenant("tickets.update", handlers.TicketDetail))
+	mux.Handle("PATCH /api/v1/tickets/{id}", tenant("tickets.manage", handlers.TicketDetail))
 
 	mux.Handle("GET /api/v1/reports/overview", tenant("reports.view", handlers.ReportOverview))
 	mux.Handle("GET /api/v1/reports/conversations", tenant("reports.view", handlers.ReportConversations))
@@ -335,9 +336,9 @@ func main() {
 	// Agent-only — JWT + tenant + RBAC livechat
 	mux.Handle("GET /api/v1/livechat/queue", tenant("livechat.read", livechat.QueueHandler))
 	mux.Handle("POST /api/v1/livechat/sessions/{id}/assign", tenant("livechat.assign", livechat.AssignHandler))
-	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", tenant("livechat.reply", livechat.TakeHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/take", tenant("livechat.assign", livechat.TakeHandler))
 	mux.Handle("POST /api/v1/livechat/sessions/{id}/resolve", tenant("livechat.assign", livechat.ResolveHandler))
-	mux.Handle("POST /api/v1/livechat/sessions/{id}/escalate", tenant("livechat.reply", livechat.EscalateHandler))
+	mux.Handle("POST /api/v1/livechat/sessions/{id}/escalate", tenant("livechat.assign", livechat.EscalateHandler))
 	mux.Handle("GET /api/v1/team/assignees", tenant("tickets.update", handlers.TeamAssignees))
 	mux.Handle("GET /api/v1/livechat/sse", tenant("livechat.read", livechat.SSEHandler))
 	mux.Handle("GET /api/v1/livechat/agents", tenant("livechat.read", livechat.AgentsHandler))

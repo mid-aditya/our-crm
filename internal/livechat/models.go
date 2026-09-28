@@ -9,6 +9,7 @@ type Session struct {
 	VisitorID       string     `json:"visitor_id"`
 	VisitorName     *string    `json:"visitor_name"`
 	VisitorEmail    *string    `json:"visitor_email"`
+	VisitorPhone    *string    `json:"visitor_phone"`
 	AssignedAgentID *string    `json:"assigned_agent_id"`
 	Status          string     `json:"status"` // waiting, assigned, resolved
 	LastMessage     *string    `json:"last_message"`

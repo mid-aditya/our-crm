@@ -9,6 +9,7 @@
 	let messageEl = $state<HTMLDivElement | null>(null);
 	let msgInput = $state('');
 	let nameInput = $state('');
+	let contactInput = $state('');
 	let showName = $state(false);
 	let isOpenHours = $state<boolean | null>(null);
 
@@ -59,13 +60,27 @@
 		livechatStore.sendMessage(body);
 	}
 
+	function validContact(v: string): { email?: string; phone?: string } | null {
+		const s = v.trim();
+		if (!s) return null;
+		if (s.includes('@') && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s)) return { email: s };
+		const digits = s.replace(/\D/g, '');
+		if (digits.length >= 9 && digits.length <= 16) return { phone: s };
+		return null;
+	}
+
 	function startChat() {
-		if (showName && nameInput.trim()) {
-			livechatStore.openChat(nameInput.trim());
-		} else if (!showName) {
+		if (showName) {
+			const parsed = validContact(contactInput);
+			if (nameInput.trim() && parsed) {
+				livechatStore.openChat(nameInput.trim(), parsed.email, parsed.phone);
+			}
+		} else {
 			showName = true;
 		}
 	}
+
+	const canStart = $derived(!!nameInput.trim() && !!validContact(contactInput));
 
 	function formatTime(iso: string): string {
 		const d = new Date(iso);
@@ -149,6 +164,16 @@
 							class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm placeholder:text-faint focus:border-neon focus:outline-none"
 							onkeydown={(e) => { if (e.key === 'Enter') startChat(); }}
 						/>
+						<input
+							type="text"
+							bind:value={contactInput}
+							placeholder={$t('widget.yourContact')}
+							class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm placeholder:text-faint focus:border-neon focus:outline-none"
+							onkeydown={(e) => { if (e.key === 'Enter') startChat(); }}
+						/>
+						{#if contactInput.trim() && !validContact(contactInput)}
+							<p class="w-full text-left text-[11px] text-danger">{$t('widget.invalidContact')}</p>
+						{/if}
 						{#if livechatStore.error}
 							<p class="w-full rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-left text-xs text-danger">
 								{livechatStore.error}
@@ -158,7 +183,7 @@
 							type="button"
 							class="w-full rounded-lg py-2 text-sm font-medium transition-colors disabled:opacity-50"
 							style="background: var(--neon); color: var(--on-neon);"
-							disabled={livechatStore.status === 'connecting'}
+							disabled={livechatStore.status === 'connecting' || !canStart}
 							onclick={startChat}
 						>
 							{#if livechatStore.status === 'connecting'}

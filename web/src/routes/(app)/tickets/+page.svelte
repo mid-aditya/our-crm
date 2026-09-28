@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { t } from 'svelte-i18n';
 	import { Send } from '@lucide/svelte';
+	import { getUser } from '$lib/api';
 	import {
 		getTickets,
 		getTicketDetail,
@@ -27,6 +28,9 @@
 	let activeId = $state<string | null>(null);
 	let detail = $state<{ ticket: Ticket; replies: TicketReply[] } | null>(null);
 	let followupInput = $state('');
+
+	// Agent: hanya membuat tiket + followup (tanpa ubah status/prioritas/assignee).
+	const isAgent = $derived((getUser()?.role ?? '').toLowerCase() === 'agent');
 
 	const assigneeName = $derived((id: string | null) => {
 		if (!id) return $t('conversation.unassigned');
@@ -177,6 +181,7 @@
 							{/each}
 						</dl>
 					{/if}
+					{#if !isAgent}
 					<div class="grid grid-cols-3 gap-1.5">
 						<Select
 							value={detail.ticket.status}
@@ -210,6 +215,7 @@
 							onchange={(v) => changeTicket({ assignee_id: v === '__none' ? null : v })}
 						/>
 					</div>
+					{/if}
 					<div class="space-y-1.5 border-t border-line pt-2">
 						<p class="text-[11px] font-medium">{$t('conversation.followup')}</p>
 						{#each detail.replies as r (r.id)}

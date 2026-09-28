@@ -29,14 +29,14 @@ class LivechatStore {
 		localStorage.setItem('lc_visitor_id', this.visitorId);
 	}
 
-	async openChat(name?: string) {
+	async openChat(name?: string, email?: string, phone?: string) {
 		this.open = true;
 		if (this.session) return; // already have a session
 
 		this.status = 'connecting';
 		this.error = '';
 		try {
-			this.session = await api.createSession(COMPANY_ID, this.visitorId, name);
+			this.session = await api.createSession(COMPANY_ID, this.visitorId, name, email, phone);
 			this.status = 'waiting';
 			this.connectWS();
 			await this.loadHistory();

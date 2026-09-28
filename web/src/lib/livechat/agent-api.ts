@@ -5,6 +5,7 @@ export type LivechatSession = {
 	visitor_id: string;
 	visitor_name: string | null;
 	visitor_email: string | null;
+	visitor_phone: string | null;
 	assigned_agent_id: string | null;
 	assigned_agent_name: string | null;
 	status: 'waiting' | 'assigned' | 'resolved';

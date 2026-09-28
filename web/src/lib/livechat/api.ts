@@ -15,20 +15,22 @@ export async function createSession(
 	companyId: string,
 	visitorId: string,
 	visitorName?: string,
-	visitorEmail?: string
+	visitorEmail?: string,
+	visitorPhone?: string
 ): Promise<VisitorSession> {
 	const res = await fetch(
 		`${BASE}/api/v1/livechat/sessions?company_id=${encodeURIComponent(companyId)}`,
 		{
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ visitor_id: visitorId, visitor_name: visitorName, visitor_email: visitorEmail })
+			body: JSON.stringify({ visitor_id: visitorId, visitor_name: visitorName, visitor_email: visitorEmail, visitor_phone: visitorPhone })
 		}
 	);
 	if (!res.ok) {
 		const raw = await res.json().catch(() => null);
 		const e = (raw as any)?.error;
-		throw new Error(typeof e === 'string' ? e : e?.message || 'Failed to create session');
+		const msg = typeof e === 'string' ? e : e?.message || 'Failed to create session';
+		throw new Error(msg);
 	}
 	const raw = await res.json();
 	// Backend Go: envelope {"data": {...}}

@@ -28,7 +28,7 @@ var defaultPerms = [][3]string{
 	{"campaigns.create", "Buat campaign blasting", "campaigns"}, {"campaigns.read", "Lihat campaign", "campaigns"},
 	{"campaigns.launch", "Luncurkan blasting", "campaigns"}, {"campaigns.delete", "Hapus campaign", "campaigns"},
 	{"tickets.create", "Buat tiket", "tickets"}, {"tickets.read", "Lihat tiket", "tickets"},
-	{"tickets.update", "Ubah & balas tiket", "tickets"}, {"tickets.delete", "Hapus tiket", "tickets"},
+	{"tickets.update", "Ubah & balas tiket", "tickets"}, {"tickets.manage", "Kelola tiket (status/prioritas/assignee)", "tickets"}, {"tickets.delete", "Hapus tiket", "tickets"},
 	{"channels.read", "Lihat channel", "channels"}, {"channels.manage", "Kelola channel", "channels"},
 	{"livechat.read", "Lihat livechat", "livechat"}, {"livechat.reply", "Balas livechat", "livechat"},
 	{"livechat.assign", "Assign livechat", "livechat"}, {"livechat.manage", "Kelola livechat", "livechat"},

@@ -5,6 +5,7 @@ import {
 	CalendarCheck,
 	SquareKanban,
 	LayoutDashboard,
+	Headphones,
 	Megaphone,
 	MessagesSquare,
 	Settings,
@@ -23,6 +24,7 @@ export type NavItem = {
 export const navItems: NavItem[] = [
 	{ href: '/dashboard', key: 'dashboard', label: 'nav.dashboard', icon: LayoutDashboard },
 	{ href: '/companies', key: 'companies', label: 'nav.companies', icon: Building2 },
+	{ href: '/livechat', key: 'livechat', label: 'nav.livechat', icon: Headphones },
 	{ href: '/conversations', key: 'conversations', label: 'nav.conversations', icon: MessagesSquare },
 	{ href: '/kanban', key: 'kanban', label: 'nav.kanban', icon: SquareKanban },
 	{ href: '/campaigns', key: 'campaigns', label: 'nav.campaigns', icon: Megaphone },

@@ -61,12 +61,12 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 	_ = pool.QueryRow(r.Context(), `select count(*) from livechat_sessions `+countWhere, companyID).Scan(&total)
 
 	rows, err := pool.Query(r.Context(), `
-		select id, company_id, visitor_id, visitor_name, visitor_email, assigned_agent_id,
+		select id, company_id, visitor_id, visitor_name, visitor_email, visitor_phone, assigned_agent_id,
 			   status, last_message, last_message_at, waiting_since, resolved_at, created_at, updated_at,
 			   coalesce(bot_handled,false), coalesce(unread_count,0)
 		from livechat_sessions
 		`+where+`
-		order by waiting_since asc
+		order by coalesce(last_message_at, waiting_since) desc
 		limit $2 offset $3`, companyID, limit, offset)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal mengambil queue")
@@ -79,13 +79,13 @@ func QueueHandler(w http.ResponseWriter, r *http.Request) {
 		var s Session
 		var botHandled bool
 		var unread int
-		rows.Scan(&s.ID, &s.CompanyID, &s.VisitorID, &s.VisitorName, &s.VisitorEmail,
+		rows.Scan(&s.ID, &s.CompanyID, &s.VisitorID, &s.VisitorName, &s.VisitorEmail, &s.VisitorPhone,
 			&s.AssignedAgentID, &s.Status, &s.LastMessage, &s.LastMessageAt,
 			&s.WaitingSince, &s.ResolvedAt, &s.CreatedAt, &s.UpdatedAt,
 			&botHandled, &unread)
 		sessions = append(sessions, map[string]interface{}{
 			"id": s.ID, "company_id": s.CompanyID, "visitor_id": s.VisitorID,
-			"visitor_name": s.VisitorName, "visitor_email": s.VisitorEmail,
+			"visitor_name": s.VisitorName, "visitor_email": s.VisitorEmail, "visitor_phone": s.VisitorPhone,
 			"assigned_agent_id": s.AssignedAgentID, "status": s.Status,
 			"last_message": s.LastMessage, "last_message_at": s.LastMessageAt,
 			"waiting_since": s.WaitingSince, "resolved_at": s.ResolvedAt,
@@ -111,10 +111,10 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	var s Session
 	err := pool.QueryRow(r.Context(), `
-		select id, company_id, visitor_id, visitor_name, visitor_email, assigned_agent_id,
+		select id, company_id, visitor_id, visitor_name, visitor_email, visitor_phone, assigned_agent_id,
 			   status, last_message, last_message_at, waiting_since, resolved_at, created_at, updated_at
 		from livechat_sessions where id=$1`, id).Scan(
-		&s.ID, &s.CompanyID, &s.VisitorID, &s.VisitorName, &s.VisitorEmail,
+		&s.ID, &s.CompanyID, &s.VisitorID, &s.VisitorName, &s.VisitorEmail, &s.VisitorPhone,
 		&s.AssignedAgentID, &s.Status, &s.LastMessage, &s.LastMessageAt,
 		&s.WaitingSince, &s.ResolvedAt, &s.CreatedAt, &s.UpdatedAt)
 	if err != nil {
@@ -123,7 +123,7 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	middleware.WriteJSON(w, 200, map[string]interface{}{
 		"id": s.ID, "company_id": s.CompanyID, "visitor_id": s.VisitorID,
-		"visitor_name": s.VisitorName, "visitor_email": s.VisitorEmail,
+		"visitor_name": s.VisitorName, "visitor_email": s.VisitorEmail, "visitor_phone": s.VisitorPhone,
 		"assigned_agent_id": s.AssignedAgentID, "status": s.Status,
 		"last_message": s.LastMessage, "last_message_at": s.LastMessageAt,
 		"waiting_since": s.WaitingSince, "resolved_at": s.ResolvedAt,
@@ -573,6 +573,7 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 		VisitorID    string `json:"visitor_id"`
 		VisitorName  string `json:"visitor_name"`
 		VisitorEmail string `json:"visitor_email"`
+		VisitorPhone string `json:"visitor_phone"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		middleware.WriteErr(w, 400, "INVALID_BODY", "Body tidak valid")
@@ -587,18 +588,19 @@ func CreateSessionHandler(w http.ResponseWriter, r *http.Request) {
 	var isNew bool
 	var msgCount int
 	err = pool.QueryRow(r.Context(), `
-		insert into livechat_sessions (company_id, visitor_id, visitor_name, visitor_email, status, waiting_since)
-		values ($1, $2, $3, $4, 'waiting', now())
+		insert into livechat_sessions (company_id, visitor_id, visitor_name, visitor_email, visitor_phone, status, waiting_since)
+		values ($1, $2, $3, $4, $5, 'waiting', now())
 		on conflict (company_id, visitor_id) do update set
 			visitor_name=coalesce(nullif(excluded.visitor_name,''), livechat_sessions.visitor_name),
 			visitor_email=coalesce(nullif(excluded.visitor_email,''), livechat_sessions.visitor_email),
+			visitor_phone=coalesce(nullif(excluded.visitor_phone,''), livechat_sessions.visitor_phone),
 			status=case when livechat_sessions.status='resolved' then 'waiting' else livechat_sessions.status end,
 			bot_handled=case when livechat_sessions.status='resolved' then false else livechat_sessions.bot_handled end,
 			bot_node_id=case when livechat_sessions.status='resolved' then null else livechat_sessions.bot_node_id end,
 			waiting_since=case when livechat_sessions.status='resolved' then now() else livechat_sessions.waiting_since end,
 			updated_at=now()
 		returning id, (xmax = 0), (select count(*) from livechat_messages m where m.session_id = livechat_sessions.id)
-	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail)).Scan(&sessionID, &isNew, &msgCount)
+	`, companyID, in.VisitorID, nullString(in.VisitorName), nullString(in.VisitorEmail), nullString(in.VisitorPhone)).Scan(&sessionID, &isNew, &msgCount)
 	if err != nil {
 		middleware.WriteErr(w, 500, "DB_ERROR", "Gagal membuat sesi")
 		return

@@ -52,10 +52,10 @@ CREATE TABLE IF NOT EXISTS role_menu_grants (
   PRIMARY KEY (role_key, menu_key)
 );
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'agent', m FROM (VALUES ('dashboard'),('conversations'),('kanban'),('contacts'),('attendance')) AS v(m)
+SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('conversations'),('kanban'),('contacts'),('attendance'),('reports')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance'),('reports'),('tickets')) AS v(m)
 ON CONFLICT DO NOTHING;
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
@@ -221,7 +221,7 @@ ALTER TABLE bot_qa ADD COLUMN IF NOT EXISTS parent_id uuid REFERENCES bot_qa(id)
 -- Flag sesi livechat untuk tab bot/unread/read/resolved.
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_handled boolean NOT NULL DEFAULT false;
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS bot_node_id uuid;
-ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS unread_count int NOT NULL DEFAULT 0;
+ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS visitor_phone varchar(32);ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS unread_count int NOT NULL DEFAULT 0;
 ALTER TABLE livechat_sessions ADD COLUMN IF NOT EXISTS last_inbound_at timestamptz;
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
@@ -241,6 +241,7 @@ CREATE TABLE IF NOT EXISTS livechat_sessions (
   visitor_id varchar(64) NOT NULL,
   visitor_name varchar(255),
   visitor_email varchar(255),
+  visitor_phone varchar(32),
   assigned_agent_id uuid,
   status varchar(32) NOT NULL DEFAULT 'waiting',
   last_message text,
