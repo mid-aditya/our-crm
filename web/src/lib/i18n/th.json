@@ -56,13 +56,26 @@
 	},
 	"organization": {
 		"title": "องค์กร",
-		"subtitle": "โครงสร้างทีม + รายการแผนก",
-		"chart": "โครงสร้างทีม",
+		"subtitle": "ภูมิภาค → สาขา → คีออสก์ + สมาชิกแต่ละหน่วย",
+		"chart": "โครงสร้างหน่วย",
 		"departments": "แผนก",
 		"deptPh": "ชื่อแผนก…",
 		"head": "หัวหน้า",
 		"members": "คน",
-		"confirmDeleteDept": "ลบแผนกนี้?"
+		"confirmDeleteDept": "ลบแผนกนี้?",
+		"unitPh": "ชื่อหน่วย (เช่น สาขาบันดุง)…",
+		"unitType": "ประเภทหน่วย",
+		"parentPh": "หน่วยแม่ (ไม่บังคับ)…",
+		"unassigned": "ยังไม่มีหน่วย",
+		"allAssigned": "สมาชิกทุกคนมีหน่วยแล้ว",
+		"assignHint": "ตั้งหน่วยสมาชิกผ่าน Settings → Team",
+		"emptyHint": "สร้าง regional/branch/kiosk ด้านบนก่อน",
+		"confirmDeleteUnit": "ลบหน่วยนี้พร้อมหน่วยลูก?",
+		"type": {
+			"regional": "ภูมิภาค",
+			"branch": "สาขา",
+			"kiosk": "คีออสก์"
+		}
 	},
 	"productivity": {
 		"title": "ผลิตภาพ",
@@ -251,6 +264,13 @@
 	"settings": {
 		"title": "ตั้งค่า",
 		"subtitle": "ลักษณะแสดงผล ภาษา และเวิร์กสเปซ",
+		"tabGeneral": "ทั่วไป",
+		"tabChannel": "ช่องทาง",
+		"tabTicket": "ทิกเก็ต",
+		"tabTeam": "ทีม",
+		"tabOps": "ปฏิบัติการ",
+		"tabActivity": "กิจกรรม",
+		"tabBot": "บอท",
 		"appearance": "ลักษณะแสดงผล",
 		"theme": "ธีม",
 		"themeDesc": "สว่าง มืด หรือตามระบบ",
@@ -488,6 +508,7 @@
 		"subtitle": "เช็กอินรายวันและขอลา (ปรับ label ได้)",
 		"tabAttendance": "เข้างาน",
 		"tabLeave": "ลา",
+		"tabTimesheet": "ไทม์ชีต",
 		"today": "ลงเวลาวันนี้",
 		"checkIn": "เช็กอิน",
 		"checkOut": "เช็กเอาต์",
@@ -512,7 +533,20 @@
 		"reject": "ปฏิเสธ",
 		"customLabel": "label ประเภทลาแบบ custom",
 		"customLabelPh": "เช่น ลาอุมเราะห์",
-		"addType": "เพิ่ม"
+		"addType": "เพิ่ม",
+		"tsTitle": "ไทม์ชีตและโอที",
+		"tsSummary": "อนุมัติเดือนนี้: {hours} ชม. + โอที {ot} ชม.",
+		"tsDate": "วันที่",
+		"tsProject": "โปรเจกต์…",
+		"tsHours": "ชั่วโมงทำงาน",
+		"tsOvertime": "ชั่วโมงโอที",
+		"tsDescPh": "รายละเอียด…",
+		"tsSubmit": "ส่งไทม์ชีต",
+		"tsMine": "ไทม์ชีตของฉัน",
+		"tsMonth": "เดือน",
+		"tsEmpty": "ยังไม่มีไทม์ชีต",
+		"tsApproval": "อนุมัติไทม์ชีต",
+		"tsHoursShort": "ชม."
 	},
 	"team": {
 		"hoursTitle": "เวลาทำการ",
@@ -570,7 +604,13 @@
 		},
 		"distribution": "การกระจาย",
 		"manual": "แมนนวล",
-		"auto": "ออโต้"
+		"auto": "ออโต้",
+		"teamTitle": "สมาชิกทีม",
+		"teamDesc": "แชทพร้อมกันสูงสุด ช่องทางที่ดูแล และหน่วย",
+		"manageCapacity": "จัดการ",
+		"maxChats": "แชทพร้อมกันสูงสุด",
+		"handleChannels": "ช่องทางที่ดูแล",
+		"channelsHint": "ว่าง = ทุกช่องทาง"
 	},
 	"channels": {
 		"configure": "ตั้งค่า",

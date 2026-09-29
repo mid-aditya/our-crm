@@ -86,7 +86,8 @@ func ProductivityScoreboard(w http.ResponseWriter, r *http.Request) {
 			(select count(*) from tickets tk where tk.assignee_id=u.id and tk.status in ('resolved','closed') and to_char(coalesce(tk.resolved_at,tk.updated_at),'YYYY-MM')=$1),
 			(select count(*) from deals d join sales_stages s on s.id=d.stage_id where d.owner_id=u.id and s.is_won=true and to_char(d.updated_at,'YYYY-MM')=$1),
 			coalesce((select sum(d.value) from deals d join sales_stages s on s.id=d.stage_id where d.owner_id=u.id and s.is_won=true and to_char(d.updated_at,'YYYY-MM')=$1),0),
-			(select count(distinct a.date) from attendance a where a.user_id=u.id and to_char(a.date,'YYYY-MM')=$1 and a.check_in is not null)
+			(select count(distinct a.date) from attendance a where a.user_id=u.id and to_char(a.date,'YYYY-MM')=$1 and a.check_in is not null),
+			(select round(avg(extract(epoch from first_out.created_at) - extract(epoch from ls.waiting_since))) from livechat_sessions ls join lateral (select m.created_at from livechat_messages m where m.session_id=ls.id and m.direction='outbound' and coalesce(m.sender_name,'')<>'Bot' order by m.created_at limit 1) first_out on true where ls.assigned_agent_id=u.id and to_char(ls.created_at,'YYYY-MM')=$1)
 		from users u
 		left join roles r on r.id=u.role_id
 		left join productivity_targets t on t.user_id=u.id and t.period=$1
@@ -105,7 +106,8 @@ func ProductivityScoreboard(w http.ResponseWriter, r *http.Request) {
 		var chats, chatsDone, ticketsDone, dealsWon int
 		var dealsValue float64
 		var present int
-		if serr := rows.Scan(&id, &name, &role, &ct, &tt, &dt, &dvt, &chats, &chatsDone, &ticketsDone, &dealsWon, &dealsValue, &present); serr != nil {
+		var frt *float64
+		if serr := rows.Scan(&id, &name, &role, &ct, &tt, &dt, &dvt, &chats, &chatsDone, &ticketsDone, &dealsWon, &dealsValue, &present, &frt); serr != nil {
 			log.Printf("scoreboard scan err: %v", serr)
 			continue
 		}
@@ -114,6 +116,7 @@ func ProductivityScoreboard(w http.ResponseWriter, r *http.Request) {
 			"chats_target": ct, "tickets_target": tt, "deals_target": dt, "deals_value_target": dvt,
 			"chats": chats, "chats_done": chatsDone, "tickets_done": ticketsDone,
 			"deals_won": dealsWon, "deals_value": dealsValue, "present_days": present,
+			"avg_frt_seconds": frt,
 		})
 	}
 	middleware.WriteJSON(w, 200, out)

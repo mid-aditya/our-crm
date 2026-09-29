@@ -183,12 +183,21 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	for _, d := range []string{"Operasional", "Penjualan", "Keuangan", "SDM"} {
 		_, _ = tpool.Exec(ctx, `insert into departments (name) values ($1) on conflict (name) do nothing`, d)
 	}
+	// Kapasitas & channel agent.
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS max_chats INT NOT NULL DEFAULT 10`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS agent_channels (user_id UUID NOT NULL, channel_type_id TEXT NOT NULL, PRIMARY KEY (user_id, channel_type_id))`)
+	// Unit organisasi: regional → cabang → kios.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS org_units (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, unit_type TEXT NOT NULL DEFAULT 'branch', parent_id UUID REFERENCES org_units(id) ON DELETE CASCADE, head_id UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS org_unit_id UUID REFERENCES org_units(id) ON DELETE SET NULL`)
+	// Timesheet + lembur.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS timesheets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, date DATE NOT NULL, project TEXT NOT NULL DEFAULT '', hours NUMERIC NOT NULL DEFAULT 0, overtime_hours NUMERIC NOT NULL DEFAULT 0, description TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending', approver_id UUID, decided_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_timesheets_user ON timesheets(user_id, date)`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS productivity_targets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, period TEXT NOT NULL, chats_target INT NOT NULL DEFAULT 0, tickets_target INT NOT NULL DEFAULT 0, deals_target INT NOT NULL DEFAULT 0, deals_value_target NUMERIC NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(user_id, period))`)
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
 	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "employees", "organization", "productivity"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -298,6 +307,17 @@ func main() {
 	mux.Handle("GET /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
 	mux.Handle("PUT /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
 	mux.Handle("GET /api/v1/productivity/scoreboard", tenant("team.manage", handlers.ProductivityScoreboard))
+	mux.Handle("GET /api/v1/team/members", tenant("team.manage", handlers.TeamMembers))
+	mux.Handle("PUT /api/v1/team/members/{id}", tenant("team.manage", handlers.TeamMemberUpdate))
+	mux.Handle("GET /api/v1/org-units", tenant("team.manage", handlers.OrgUnits))
+	mux.Handle("POST /api/v1/org-units", tenant("team.manage", handlers.OrgUnits))
+	mux.Handle("PATCH /api/v1/org-units/{id}", tenant("team.manage", handlers.OrgUnitDetail))
+	mux.Handle("DELETE /api/v1/org-units/{id}", tenant("team.manage", handlers.OrgUnitDetail))
+	mux.Handle("GET /api/v1/timesheets", middleware.Chain(http.HandlerFunc(handlers.Timesheets), auth, middleware.TenantResolver))
+	mux.Handle("POST /api/v1/timesheets", middleware.Chain(http.HandlerFunc(handlers.Timesheets), auth, middleware.TenantResolver))
+	mux.Handle("GET /api/v1/timesheets/team", tenant("team.manage", handlers.TimesheetsTeam))
+	mux.Handle("POST /api/v1/timesheets/{id}/approve", tenant("team.manage", handlers.TimesheetDecide))
+	mux.Handle("POST /api/v1/timesheets/{id}/reject", tenant("team.manage", handlers.TimesheetDecide))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).

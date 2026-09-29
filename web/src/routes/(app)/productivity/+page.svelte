@@ -30,6 +30,14 @@
 		return p >= 100 ? 'success' : p >= 50 ? 'warn' : 'danger';
 	}
 
+	function fmtFrt(sec: number | null): string {
+		if (sec == null) return '—';
+		if (sec < 60) return `${sec}dtk`;
+		const m = Math.floor(sec / 60);
+		if (m < 60) return `${m}mnt`;
+		return `${Math.floor(m / 60)}j ${m % 60}mnt`;
+	}
+
 	onMount(async () => {
 		await reload();
 	});
@@ -82,6 +90,7 @@
 					<th class="px-3 py-2 text-right font-medium">{$t('productivity.colTickets')}</th>
 					<th class="px-3 py-2 text-right font-medium">{$t('productivity.colDeals')}</th>
 					<th class="px-3 py-2 text-right font-medium">{$t('productivity.colValue')}</th>
+					<th class="px-3 py-2 text-right font-medium">FRT</th>
 					<th class="px-3 py-2 text-right font-medium">{$t('productivity.colPresent')}</th>
 					<th class="px-3 py-2 text-right font-medium"></th>
 				</tr>
@@ -109,6 +118,7 @@
 							<span class="block font-mono text-xs">{formatIDR(r.deals_value)}</span>
 							<span class="text-[10px] text-faint">/ {formatIDR(r.deals_value_target)}</span>
 						</td>
+						<td class="px-3 py-2 text-right font-mono text-xs">{fmtFrt(r.avg_frt_seconds)}</td>
 						<td class="px-3 py-2 text-right font-mono text-xs">{r.present_days} {$t('productivity.days')}</td>
 						<td class="px-3 py-2 text-right">
 							<button type="button" onclick={() => startEdit(r)} class="rounded p-1.5 text-faint hover:text-ink" aria-label={$t('productivity.setTarget')}>
@@ -117,7 +127,7 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="7" class="px-3 py-8 text-center text-xs text-muted">{$t('common.empty')}</td></tr>
+					<tr><td colspan="8" class="px-3 py-8 text-center text-xs text-muted">{$t('common.empty')}</td></tr>
 				{/each}
 			</tbody>
 		</table>

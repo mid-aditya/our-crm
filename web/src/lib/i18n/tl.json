@@ -56,13 +56,26 @@
 	},
 	"organization": {
 		"title": "Organisasyon",
-		"subtitle": "Hierarchy ng team + listahan ng departamento.",
-		"chart": "Istruktura ng team",
+		"subtitle": "Regional → branch → kiosk + mga miyembro bawat unit.",
+		"chart": "Istruktura ng unit",
 		"departments": "Mga Departamento",
 		"deptPh": "Pangalan ng departamento…",
 		"head": "Pinuno",
 		"members": "miyembro",
-		"confirmDeleteDept": "Tanggalin ang departamentong ito?"
+		"confirmDeleteDept": "Tanggalin ang departamentong ito?",
+		"unitPh": "Pangalan ng unit (hal: Bandung Branch)…",
+		"unitType": "Uri ng unit",
+		"parentPh": "Magulang (opsyonal)…",
+		"unassigned": "Wala pang unit",
+		"allAssigned": "Lahat ng miyembro ay may unit na.",
+		"assignHint": "I-set ang unit ng miyembro via Settings → Team.",
+		"emptyHint": "Gumawa muna ng regional/branch/kiosk sa itaas.",
+		"confirmDeleteUnit": "Tanggalin ang unit na ito at mga anak nito?",
+		"type": {
+			"regional": "Regional",
+			"branch": "Branch",
+			"kiosk": "Kiosk"
+		}
 	},
 	"productivity": {
 		"title": "Productivity",
@@ -251,6 +264,13 @@
 	"settings": {
 		"title": "Mga Setting",
 		"subtitle": "Mga preference sa display, wika, at workspace.",
+		"tabGeneral": "Pangkalahatan",
+		"tabChannel": "Mga Channel",
+		"tabTicket": "Mga Ticket",
+		"tabTeam": "Team",
+		"tabOps": "Operasyon",
+		"tabActivity": "Aktibidad",
+		"tabBot": "Bot",
 		"appearance": "Display",
 		"theme": "Tema",
 		"themeDesc": "Maliwanag, madilim, o sumunod sa system.",
@@ -488,6 +508,7 @@
 		"subtitle": "Arawang check-in at leave request (nako-customize ang label).",
 		"tabAttendance": "Attendance",
 		"tabLeave": "Leave",
+		"tabTimesheet": "Timesheet",
 		"today": "Attendance ngayong araw",
 		"checkIn": "Check-in",
 		"checkOut": "Check-out",
@@ -512,7 +533,20 @@
 		"reject": "Tanggihan",
 		"customLabel": "Custom na label ng uri ng leave",
 		"customLabelPh": "Hal: Izin Umroh",
-		"addType": "Idagdag"
+		"addType": "Idagdag",
+		"tsTitle": "Timesheet at overtime",
+		"tsSummary": "Naaprubahan ngayong buwan: {hours} oras + {ot} oras overtime.",
+		"tsDate": "Petsa",
+		"tsProject": "Proyek…",
+		"tsHours": "Oras ng trabaho",
+		"tsOvertime": "Oras ng overtime",
+		"tsDescPh": "Paglalarawan…",
+		"tsSubmit": "Isumite ang timesheet",
+		"tsMine": "Aking mga timesheet",
+		"tsMonth": "Buwan",
+		"tsEmpty": "Wala pang timesheet.",
+		"tsApproval": "Approval ng timesheet",
+		"tsHoursShort": "Oras"
 	},
 	"team": {
 		"hoursTitle": "Mga Oras ng Operasyon",
@@ -570,7 +604,13 @@
 		},
 		"distribution": "Distribusyon",
 		"manual": "Manual",
-		"auto": "Auto"
+		"auto": "Auto",
+		"teamTitle": "Mga miyembro ng team",
+		"teamDesc": "Max na sabayang chat, mga hinahawakang channel, at unit.",
+		"manageCapacity": "Pamahalaan",
+		"maxChats": "Max na sabayang chat",
+		"handleChannels": "Mga hinahawakang channel",
+		"channelsHint": "Blangko = lahat ng channel."
 	},
 	"channels": {
 		"configure": "I-configure",

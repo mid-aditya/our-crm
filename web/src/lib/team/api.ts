@@ -306,6 +306,92 @@ export async function deleteDepartment(id: string): Promise<void> {
 	await api(`/departments/${id}`, { method: 'DELETE' });
 }
 
+export type RosterMember = {
+	id: string;
+	email: string;
+	full_name: string;
+	role: string;
+	status: string;
+	max_chats: number;
+	supervisor_id: string | null;
+	supervisor_name: string | null;
+	presence: string | null;
+	org_unit_id: string | null;
+	org_unit_name: string | null;
+	channels: string[];
+};
+
+export type OrgUnit = {
+	id: string;
+	name: string;
+	unit_type: 'regional' | 'branch' | 'kiosk';
+	parent_id: string | null;
+	parent_name: string | null;
+	head_id: string | null;
+	head_name: string | null;
+	members: number;
+};
+
+export async function getTeamMembers(): Promise<RosterMember[]> {
+	const res = await api<RosterMember[]>('/team/members');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function updateTeamMember(
+	id: string,
+	input: { max_chats?: number; channels?: string[]; org_unit_id?: string | null }
+): Promise<void> {
+	await api(`/team/members/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+}
+export async function getOrgUnits(): Promise<OrgUnit[]> {
+	const res = await api<OrgUnit[]>('/org-units');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createOrgUnit(input: { name: string; unit_type: string; parent_id?: string }): Promise<void> {
+	await api('/org-units', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function deleteOrgUnit(id: string): Promise<void> {
+	await api(`/org-units/${id}`, { method: 'DELETE' });
+}
+
+export type Timesheet = {
+	id: string;
+	date: string;
+	project: string;
+	hours: number;
+	overtime_hours: number;
+	description: string;
+	status: string;
+	user_name: string;
+	decided_at: string | null;
+};
+
+export async function getMyTimesheets(month: string): Promise<Timesheet[]> {
+	const res = await api<Timesheet[]>(`/timesheets?month=${month}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createTimesheet(input: {
+	date: string;
+	project: string;
+	hours: number;
+	overtime_hours?: number;
+	description?: string;
+}): Promise<void> {
+	await api('/timesheets', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function getTeamTimesheets(month: string): Promise<Timesheet[]> {
+	const res = await api<Timesheet[]>(`/timesheets/team?month=${month}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function decideTimesheet(id: string, approve: boolean): Promise<void> {
+	await api(`/timesheets/${id}/${approve ? 'approve' : 'reject'}`, { method: 'POST' });
+}
+
 export type ProductivityTarget = {
 	user_id: string;
 	full_name: string;
@@ -324,6 +410,7 @@ export type ScoreRow = ProductivityTarget & {
 	deals_won: number;
 	deals_value: number;
 	present_days: number;
+	avg_frt_seconds: number | null;
 };
 
 export async function getTargets(period: string): Promise<ProductivityTarget[]> {

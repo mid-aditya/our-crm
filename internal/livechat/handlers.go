@@ -313,11 +313,13 @@ func AssignHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // autoAssignAgent finds the agent with the fewest active chats (round-robin)
+// Skema tenant: users.role_id langsung (tanpa user_roles, tanpa users.company_id —
+// tenant DB sudah per-company). Sama seperti RBACGuard.
+// Hanya role pelayan (perm livechat.serve, yaitu Agent) — admin/developer
+// tidak ikut handle livechat. Hanya yang presence online (bukan aux/break/offline).
+// Hormati kapasitas max_chats lintas SEMUA channel (livechat assigned +
+// conversation open) dan channel yang boleh di-handle agent (kosong = semua).
 func autoAssignAgent(ctx context.Context, pool *pgxpool.Pool, companyID string, startIndex int) (string, string, error) {
-	// Skema tenant: users.role_id langsung (tanpa user_roles, tanpa users.company_id —
-	// tenant DB sudah per-company). Sama seperti RBACGuard.
-	// Hanya role pelayan (perm livechat.serve, yaitu Agent) — admin/developer
-	// tidak ikut handle livechat. Hanya yang presence online (bukan aux/break/offline).
 	rows, err := pool.Query(ctx, `
 		select u.id, u.full_name,
 			   (select count(*) from livechat_sessions ls where ls.assigned_agent_id = u.id and ls.status = 'assigned') as active_chats
@@ -328,6 +330,11 @@ func autoAssignAgent(ctx context.Context, pool *pgxpool.Pool, companyID string, 
 		left join agent_presence ap on ap.user_id = u.id
 		where u.status = 'active' and p.key = 'livechat.serve'
 		  and coalesce(ap.status, 'online') = 'online'
+		  and (select count(*) from livechat_sessions ls where ls.assigned_agent_id = u.id and ls.status = 'assigned')
+		    + (select count(*) from conversations c where c.assigned_agent_id = u.id and c.status = 'open')
+		    < coalesce(u.max_chats, 10)
+		  and (not exists (select 1 from agent_channels ac where ac.user_id = u.id)
+		    or exists (select 1 from agent_channels ac where ac.user_id = u.id and ac.channel_type_id = 'livechat'))
 		order by active_chats asc, u.id asc
 	`)
 	if err != nil {
@@ -708,7 +715,7 @@ func EscalateHandler(w http.ResponseWriter, r *http.Request) {
 	var spvID, spvName string
 	_ = pool.QueryRow(r.Context(), `select u.id, u.full_name from users me join users u on u.id = me.supervisor_id where me.id=$1 and u.status='active'`, me).Scan(&spvID, &spvName)
 
-	// 2. Fallback: SPV online mana pun (role SPV, presence online).
+	// 2. Fallback: SPV online mana pun (role SPV, presence online, masih ada kapasitas).
 	if spvID == "" {
 		_ = pool.QueryRow(r.Context(), `
 			select u.id, u.full_name from users u
@@ -716,6 +723,9 @@ func EscalateHandler(w http.ResponseWriter, r *http.Request) {
 			left join agent_presence ap on ap.user_id = u.id
 			where u.status='active' and lower(r.name)='spv'
 			  and coalesce(ap.status,'online')='online'
+			  and (select count(*) from livechat_sessions ls where ls.assigned_agent_id=u.id and ls.status='assigned')
+			    + (select count(*) from conversations c where c.assigned_agent_id=u.id and c.status='open')
+			    < coalesce(u.max_chats,10)
 			order by (select count(*) from livechat_sessions ls where ls.assigned_agent_id=u.id and ls.status='assigned') asc, u.id asc
 			limit 1`, ).Scan(&spvID, &spvName)
 	}

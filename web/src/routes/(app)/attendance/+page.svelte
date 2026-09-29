@@ -14,9 +14,14 @@
 		approveLeave,
 		checkIn,
 		checkOut,
+		getMyTimesheets,
+		createTimesheet,
+		getTeamTimesheets,
+		decideTimesheet,
 		type AttendanceRow,
 		type LeaveRequest,
-		type LeaveType
+		type LeaveType,
+		type Timesheet
 	} from '$lib/team/api';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -30,7 +35,7 @@
 	const role = $derived((getUser()?.role ?? '').toLowerCase());
 	const canSupervise = $derived(role === 'developer' || role === 'admin' || role === 'spv' || role === 'owner');
 
-	let tab = $state<'attendance' | 'leave'>('attendance');
+	let tab = $state<'attendance' | 'leave' | 'timesheet'>('attendance');
 	let mine = $state<AttendanceRow[]>([]);
 	let team = $state<AttendanceRow[]>([]);
 	let teamDate = $state(new Date().toISOString().slice(0, 10));
@@ -40,6 +45,50 @@
 	let leaveForm = $state({ leave_type_id: '', start_date: '', end_date: '', reason: '' });
 	let newTypeName = $state('');
 	let busy = $state(false);
+
+	// ---- Timesheet & lembur ----
+	const thisMonth = new Date().toISOString().slice(0, 7);
+	let tsMonth = $state(thisMonth);
+	let myTS = $state<Timesheet[]>([]);
+	let teamTS = $state<Timesheet[]>([]);
+	let tsForm = $state({ date: new Date().toISOString().slice(0, 10), project: '', hours: '', overtime: '', description: '' });
+
+	const myHours = $derived(myTS.filter((x) => x.status === 'approved').reduce((a, x) => a + (x.hours ?? 0), 0));
+	const myOvertime = $derived(myTS.filter((x) => x.status === 'approved').reduce((a, x) => a + (x.overtime_hours ?? 0), 0));
+
+	async function loadTS() {
+		try {
+			myTS = await getMyTimesheets(tsMonth);
+		} catch { myTS = []; }
+		if (canSupervise) {
+			try {
+				teamTS = await getTeamTimesheets(tsMonth);
+			} catch { teamTS = []; }
+		}
+	}
+
+	async function submitTS() {
+		if (!tsForm.date || !tsForm.project.trim()) return;
+		busy = true;
+		try {
+			await createTimesheet({
+				date: tsForm.date,
+				project: tsForm.project.trim(),
+				hours: Number(tsForm.hours) || 0,
+				overtime_hours: Number(tsForm.overtime) || 0,
+				description: tsForm.description.trim()
+			});
+			tsForm = { date: new Date().toISOString().slice(0, 10), project: '', hours: '', overtime: '', description: '' };
+			await loadTS();
+		} finally { busy = false; }
+	}
+
+	async function decideTS(id: string, approve: boolean) {
+		try {
+			await decideTimesheet(id, approve);
+			await loadTS();
+		} catch { /* abaikan */ }
+	}
 
 	// DatePicker (bits-ui, styled) <-> string ISO untuk API.
 	let startDV = $state<DateValue | undefined>(undefined);
@@ -68,7 +117,7 @@
 	const todayRow = $derived(mine.find((r) => r.date === today));
 
 	onMount(async () => {
-		await Promise.all([loadMine(), loadTypes(), loadMyLeaves()]);
+		await Promise.all([loadMine(), loadTypes(), loadMyLeaves(), loadTS()]);
 		if (canSupervise) await Promise.all([loadTeam(), loadAllLeaves()]);
 	});
 
@@ -161,7 +210,7 @@
 		<h1 class="font-display text-xl font-semibold">{$t('attendance.title')}</h1>
 		<p class="mt-0.5 text-xs text-muted">{$t('attendance.subtitle')}</p>
 	</div>
-	<div class="grid grid-cols-2 gap-1 rounded-lg border border-line bg-surface p-1">
+	<div class="grid grid-cols-3 gap-1 rounded-lg border border-line bg-surface p-1">
 		<button
 			type="button"
 			onclick={() => (tab = 'attendance')}
@@ -175,6 +224,13 @@
 			class={cn('rounded-md px-3 py-1.5 text-xs font-medium', tab === 'leave' ? 'bg-neon-soft text-neon-text' : 'text-muted')}
 		>
 			{$t('attendance.tabLeave')}
+		</button>
+		<button
+			type="button"
+			onclick={() => (tab = 'timesheet')}
+			class={cn('rounded-md px-3 py-1.5 text-xs font-medium', tab === 'timesheet' ? 'bg-neon-soft text-neon-text' : 'text-muted')}
+		>
+			{$t('attendance.tabTimesheet')}
 		</button>
 	</div>
 </div>
@@ -221,7 +277,7 @@
 			</Card>
 		{/if}
 	</div>
-{:else}
+{:else if tab === 'leave'}
 	<div class="grid gap-3 lg:grid-cols-2">
 		<Card title={$t('attendance.requestTitle')}>
 			<div class="space-y-2">
@@ -285,6 +341,67 @@
 						</div>
 					</div>
 				{/if}
+			</Card>
+		{/if}
+	</div>
+{:else}
+	<!-- Timesheet per project + lembur -->
+	<div class="grid gap-3 lg:grid-cols-2">
+		<Card title={$t('attendance.tsTitle')}>
+			<div class="space-y-2">
+				<div class="rounded-lg bg-raised px-3 py-2 text-xs text-muted">
+					{$t('attendance.tsSummary', { values: { hours: myHours, ot: myOvertime } })}
+				</div>
+				<div class="grid grid-cols-2 gap-2">
+					<Input bind:value={tsForm.date} type="date" aria-label={$t('attendance.tsDate')} />
+					<Input bind:value={tsForm.project} placeholder={$t('attendance.tsProject')} aria-label={$t('attendance.tsProject')} />
+				</div>
+				<div class="grid grid-cols-2 gap-2">
+					<Input bind:value={tsForm.hours} type="number" placeholder={$t('attendance.tsHours')} aria-label={$t('attendance.tsHours')} />
+					<Input bind:value={tsForm.overtime} type="number" placeholder={$t('attendance.tsOvertime')} aria-label={$t('attendance.tsOvertime')} />
+				</div>
+				<textarea
+					bind:value={tsForm.description}
+					placeholder={$t('attendance.tsDescPh')}
+					rows="2"
+					class="w-full rounded-lg border border-line bg-surface px-3 py-2 text-xs placeholder:text-faint focus:border-neon focus:outline-none"
+				></textarea>
+				<Button size="sm" onclick={submitTS} disabled={busy || !tsForm.date || !tsForm.project.trim()}>{$t('attendance.tsSubmit')}</Button>
+			</div>
+			<div class="mt-4 space-y-1">
+				<div class="flex items-center justify-between">
+					<p class="text-[11px] font-medium text-muted">{$t('attendance.tsMine')}</p>
+					<Input bind:value={tsMonth} type="month" aria-label={$t('attendance.tsMonth')} class="w-36" onchange={loadTS} />
+				</div>
+				{#each myTS as x (x.id)}
+					<div class="flex items-center justify-between gap-2 rounded-md bg-raised px-3 py-1.5 text-xs">
+						<span class="min-w-0">
+							<span class="block truncate font-medium">{x.date} • {x.project}</span>
+							<span class="block text-[10px] text-muted">{$t('attendance.tsHoursShort')}: {x.hours} • lembur: {x.overtime_hours}{x.description ? ` • ${x.description}` : ''}</span>
+						</span>
+						<Badge variant={x.status === 'approved' ? 'success' : x.status === 'rejected' ? 'danger' : 'warn'}>{x.status}</Badge>
+					</div>
+				{:else}
+					<p class="text-[11px] text-faint">{$t('attendance.tsEmpty')}</p>
+				{/each}
+			</div>
+		</Card>
+		{#if canSupervise}
+			<Card title={$t('attendance.tsApproval')}>
+				<div class="space-y-1">
+					{#each teamTS.filter((x) => x.status === 'pending') as x (x.id)}
+						<div class="rounded-md bg-raised px-3 py-2 text-xs">
+							<p class="font-medium">{x.user_name} — {x.date} • {x.project}</p>
+							<p class="text-muted">{$t('attendance.tsHoursShort')}: {x.hours} • lembur: {x.overtime_hours}{x.description ? ` • ${x.description}` : ''}</p>
+							<div class="mt-1.5 flex gap-1.5">
+								<Button size="sm" onclick={() => decideTS(x.id, true)}>{$t('attendance.approve')}</Button>
+								<Button size="sm" variant="outline" onclick={() => decideTS(x.id, false)}>{$t('attendance.reject')}</Button>
+							</div>
+						</div>
+					{:else}
+						<p class="py-4 text-center text-xs text-muted">{$t('attendance.noPending')}</p>
+					{/each}
+				</div>
 			</Card>
 		{/if}
 	</div>

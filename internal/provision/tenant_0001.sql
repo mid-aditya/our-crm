@@ -55,7 +55,7 @@ INSERT INTO role_menu_grants (role_key, menu_key)
 SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('employees'),('organization'),('productivity')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('organization'),('productivity')) AS v(m)
 ON CONFLICT DO NOTHING;
 
 -- Employee & organization: profil karyawan + departemen.
@@ -87,6 +87,37 @@ CREATE TABLE IF NOT EXISTS productivity_targets (
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE(user_id, period)
 );
+
+-- Kapasitas & channel agent; unit organisasi; timesheet + lembur.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS max_chats int NOT NULL DEFAULT 10;
+CREATE TABLE IF NOT EXISTS agent_channels (
+  user_id uuid NOT NULL,
+  channel_type_id text NOT NULL,
+  PRIMARY KEY (user_id, channel_type_id)
+);
+CREATE TABLE IF NOT EXISTS org_units (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  unit_type text NOT NULL DEFAULT 'branch',
+  parent_id uuid REFERENCES org_units(id) ON DELETE CASCADE,
+  head_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS org_unit_id uuid REFERENCES org_units(id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS timesheets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  project text NOT NULL DEFAULT '',
+  hours numeric NOT NULL DEFAULT 0,
+  overtime_hours numeric NOT NULL DEFAULT 0,
+  description text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'pending',
+  approver_id uuid,
+  decided_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_timesheets_user ON timesheets(user_id, date);
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;

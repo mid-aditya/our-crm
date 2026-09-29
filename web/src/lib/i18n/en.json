@@ -56,13 +56,26 @@
 	},
 	"organization": {
 		"title": "Organization",
-		"subtitle": "Team hierarchy + department list.",
-		"chart": "Team structure",
+		"subtitle": "Regional → branch → kiosk + members per unit.",
+		"chart": "Unit structure",
 		"departments": "Departments",
 		"deptPh": "Department name…",
 		"head": "Head",
 		"members": "members",
-		"confirmDeleteDept": "Delete this department?"
+		"confirmDeleteDept": "Delete this department?",
+		"unitPh": "Unit name (e.g.: Bandung Branch)…",
+		"unitType": "Unit type",
+		"parentPh": "Parent (optional)…",
+		"unassigned": "No unit yet",
+		"allAssigned": "All members have a unit.",
+		"assignHint": "Set member units via Settings → Team.",
+		"emptyHint": "Create a regional/branch/kiosk above first.",
+		"confirmDeleteUnit": "Delete this unit and its children?",
+		"type": {
+			"regional": "Regional",
+			"branch": "Branch",
+			"kiosk": "Kiosk"
+		}
 	},
 	"productivity": {
 		"title": "Productivity",
@@ -252,6 +265,13 @@
 	"settings": {
 		"title": "Settings",
 		"subtitle": "Appearance, language, and workspace preferences.",
+		"tabGeneral": "General",
+		"tabChannel": "Channels",
+		"tabTicket": "Tickets",
+		"tabTeam": "Team",
+		"tabOps": "Operations",
+		"tabActivity": "Activity",
+		"tabBot": "Bot",
 		"appearance": "Appearance",
 		"theme": "Theme",
 		"themeDesc": "Light, dark, or follow your system.",
@@ -490,6 +510,7 @@
 		"subtitle": "Daily check-in and leave requests (labels customizable).",
 		"tabAttendance": "Attendance",
 		"tabLeave": "Leave",
+		"tabTimesheet": "Timesheet",
 		"today": "Today's attendance",
 		"checkIn": "Check-in",
 		"checkOut": "Check-out",
@@ -514,7 +535,20 @@
 		"reject": "Reject",
 		"customLabel": "Custom leave type labels",
 		"customLabelPh": "E.g.: Umrah Leave",
-		"addType": "Add"
+		"addType": "Add",
+		"tsTitle": "Timesheet & overtime",
+		"tsSummary": "Approved this month: {hours}h + {ot}h overtime.",
+		"tsDate": "Date",
+		"tsProject": "Project…",
+		"tsHours": "Work hours",
+		"tsOvertime": "Overtime hours",
+		"tsDescPh": "Description…",
+		"tsSubmit": "Submit timesheet",
+		"tsMine": "My timesheets",
+		"tsMonth": "Month",
+		"tsEmpty": "No timesheets yet.",
+		"tsApproval": "Timesheet approval",
+		"tsHoursShort": "Hrs"
 	},
 	"team": {
 		"hoursTitle": "Operational Hours",
@@ -572,7 +606,13 @@
 		},
 		"distribution": "Distribution",
 		"manual": "Manual",
-		"auto": "Auto"
+		"auto": "Auto",
+		"teamTitle": "Team members",
+		"teamDesc": "Max concurrent chats, handled channels, and unit.",
+		"manageCapacity": "Manage",
+		"maxChats": "Max concurrent chats",
+		"handleChannels": "Handled channels",
+		"channelsHint": "Empty = all channels."
 	},
 	"channels": {
 		"configure": "Configure",
