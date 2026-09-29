@@ -7,6 +7,7 @@
 		"sales": "งานขาย",
 		"employees": "พนักงาน",
 		"organization": "องค์กร",
+		"productivity": "ผลิตภาพ",
 		"campaigns": "แคมเปญ",
 		"tickets": "ทิกเก็ต",
 		"contacts": "รายชื่อติดต่อ",
@@ -62,6 +63,18 @@
 		"head": "หัวหน้า",
 		"members": "คน",
 		"confirmDeleteDept": "ลบแผนกนี้?"
+	},
+	"productivity": {
+		"title": "ผลิตภาพ",
+		"subtitle": "เป้าหมายรายเดือนเทียบจริง — แชท ทิกเก็ต ดีล เข้างาน",
+		"period": "ช่วง",
+		"colChats": "แชทที่เสร็จ",
+		"colTickets": "ทิกเก็ตที่ปิด",
+		"colDeals": "ดีลที่ชนะ",
+		"colValue": "มูลค่าดีล",
+		"colPresent": "มาทำงาน",
+		"days": "วัน",
+		"setTarget": "ตั้งเป้าหมาย"
 	},
 	"ticketsPage": {		"subtitle": "รายการทิกเก็ตสนับสนุน — มอบหมายให้ SPV เพื่อยกระดับ",
 		"allStatus": "ทุกสถานะ",

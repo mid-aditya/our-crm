@@ -306,6 +306,47 @@ export async function deleteDepartment(id: string): Promise<void> {
 	await api(`/departments/${id}`, { method: 'DELETE' });
 }
 
+export type ProductivityTarget = {
+	user_id: string;
+	full_name: string;
+	role: string;
+	period: string;
+	chats_target: number;
+	tickets_target: number;
+	deals_target: number;
+	deals_value_target: number;
+};
+
+export type ScoreRow = ProductivityTarget & {
+	chats: number;
+	chats_done: number;
+	tickets_done: number;
+	deals_won: number;
+	deals_value: number;
+	present_days: number;
+};
+
+export async function getTargets(period: string): Promise<ProductivityTarget[]> {
+	const res = await api<ProductivityTarget[]>(`/productivity/targets?period=${period}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function setTarget(input: {
+	user_id: string;
+	period: string;
+	chats_target: number;
+	tickets_target: number;
+	deals_target: number;
+	deals_value_target: number;
+}): Promise<void> {
+	await api('/productivity/targets', { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export async function getScoreboard(period: string): Promise<ScoreRow[]> {
+	const res = await api<ScoreRow[]>(`/productivity/scoreboard?period=${period}`);
+	return Array.isArray(res) ? res : [];
+}
+
 export async function getSchemaVersion(): Promise<{ version: string }[]> {
 	const res = await api<{ version: string }[]>('/company/schema-version');
 	return Array.isArray(res) ? res : [];

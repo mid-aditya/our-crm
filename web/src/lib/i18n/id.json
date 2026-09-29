@@ -7,6 +7,7 @@
 		"sales": "Penjualan",
 		"employees": "Karyawan",
 		"organization": "Organisasi",
+		"productivity": "Produktivitas",
 		"campaigns": "Kampanye",
 		"tickets": "Tiket",
 		"contacts": "Kontak",
@@ -62,6 +63,18 @@
 		"head": "Kepala",
 		"members": "anggota",
 		"confirmDeleteDept": "Hapus departemen ini?"
+	},
+	"productivity": {
+		"title": "Produktivitas",
+		"subtitle": "Target bulanan vs realisasi — chat, tiket, deal, kehadiran.",
+		"period": "Periode",
+		"colChats": "Chat selesai",
+		"colTickets": "Tiket close",
+		"colDeals": "Deal menang",
+		"colValue": "Nilai deal",
+		"colPresent": "Hadir",
+		"days": "hari",
+		"setTarget": "Set target"
 	},
 	"ticketsPage": {		"subtitle": "Daftar tiket dukungan — assign ke SPV untuk eskalasi.",
 		"allStatus": "Semua status",

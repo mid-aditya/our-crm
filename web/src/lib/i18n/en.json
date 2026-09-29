@@ -7,6 +7,7 @@
 		"sales": "Sales",
 		"employees": "Employees",
 		"organization": "Organization",
+		"productivity": "Productivity",
 		"campaigns": "Campaigns",
 		"tickets": "Tickets",
 		"contacts": "Contacts",
@@ -62,6 +63,18 @@
 		"head": "Head",
 		"members": "members",
 		"confirmDeleteDept": "Delete this department?"
+	},
+	"productivity": {
+		"title": "Productivity",
+		"subtitle": "Monthly targets vs actual — chats, tickets, deals, attendance.",
+		"period": "Period",
+		"colChats": "Chats done",
+		"colTickets": "Tickets closed",
+		"colDeals": "Deals won",
+		"colValue": "Deal value",
+		"colPresent": "Present",
+		"days": "days",
+		"setTarget": "Set target"
 	},
 	"ticketsPage": {
 		"subtitle": "Support ticket list — assign to SPV to escalate.",

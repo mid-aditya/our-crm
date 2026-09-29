@@ -183,11 +183,12 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	for _, d := range []string{"Operasional", "Penjualan", "Keuangan", "SDM"} {
 		_, _ = tpool.Exec(ctx, `insert into departments (name) values ($1) on conflict (name) do nothing`, d)
 	}
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS productivity_targets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, period TEXT NOT NULL, chats_target INT NOT NULL DEFAULT 0, tickets_target INT NOT NULL DEFAULT 0, deals_target INT NOT NULL DEFAULT 0, deals_value_target NUMERIC NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(user_id, period))`)
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
 	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "employees", "organization"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "employees", "organization", "productivity"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -294,6 +295,9 @@ func main() {
 	mux.Handle("DELETE /api/v1/departments/{id}", tenant("team.manage", handlers.DepartmentDetail))
 	mux.Handle("GET /api/v1/employees", tenant("team.manage", handlers.Employees))
 	mux.Handle("PATCH /api/v1/employees/{id}", tenant("team.manage", handlers.EmployeeDetail))
+	mux.Handle("GET /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
+	mux.Handle("PUT /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
+	mux.Handle("GET /api/v1/productivity/scoreboard", tenant("team.manage", handlers.ProductivityScoreboard))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).

@@ -55,7 +55,7 @@ INSERT INTO role_menu_grants (role_key, menu_key)
 SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('employees'),('organization')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('employees'),('organization'),('productivity')) AS v(m)
 ON CONFLICT DO NOTHING;
 
 -- Employee & organization: profil karyawan + departemen.
@@ -73,6 +73,20 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
 ALTER TABLE users ADD COLUMN IF NOT EXISTS supervisor_id uuid;
 INSERT INTO departments (name) VALUES ('Operasional'), ('Penjualan'), ('Keuangan'), ('SDM')
 ON CONFLICT (name) DO NOTHING;
+
+-- Productivity: target bulanan per user + realisasi dihitung dari data.
+CREATE TABLE IF NOT EXISTS productivity_targets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  period text NOT NULL,
+  chats_target int NOT NULL DEFAULT 0,
+  tickets_target int NOT NULL DEFAULT 0,
+  deals_target int NOT NULL DEFAULT 0,
+  deals_value_target numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, period)
+);
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;

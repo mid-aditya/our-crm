@@ -7,6 +7,7 @@
 		"sales": "Sales",
 		"employees": "Mga Empleyado",
 		"organization": "Organisasyon",
+		"productivity": "Productivity",
 		"campaigns": "Mga Campaign",
 		"tickets": "Mga Ticket",
 		"contacts": "Mga Contact",
@@ -62,6 +63,18 @@
 		"head": "Pinuno",
 		"members": "miyembro",
 		"confirmDeleteDept": "Tanggalin ang departamentong ito?"
+	},
+	"productivity": {
+		"title": "Productivity",
+		"subtitle": "Buwanang target vs aktwal — chat, ticket, deal, attendance.",
+		"period": "Panahon",
+		"colChats": "Mga tapos na chat",
+		"colTickets": "Mga saradong ticket",
+		"colDeals": "Mga panalong deal",
+		"colValue": "Halaga ng deal",
+		"colPresent": "Pumasok",
+		"days": "araw",
+		"setTarget": "Mag-set ng target"
 	},
 	"ticketsPage": {		"subtitle": "Listahan ng support ticket — i-assign sa SPV para i-escalate.",
 		"allStatus": "Lahat ng status",
