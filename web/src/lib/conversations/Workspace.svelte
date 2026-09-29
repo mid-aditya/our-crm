@@ -141,8 +141,12 @@
 		} catch {
 			channels = [];
 		}
-		if (mode === 'channels' && !activeChannel && channels.length > 0) {
-			activeChannel = channels[0].channel_type_id;
+		if (mode === 'channels') {
+			// Livechat punya page khusus — sembunyikan dari submenu Percakapan.
+			channels = channels.filter((c) => c.channel_type_id !== 'livechat');
+			if (!activeChannel && channels.length > 0) {
+				activeChannel = channels[0].channel_type_id;
+			}
 		}
 		try {
 			ticketFields = await getTicketFields();
@@ -577,29 +581,27 @@
 		</div>
 	{/if}
 
-	<!-- Tab list chat: bot, unread, read, resolved -->
-	<div class="flex items-center gap-1.5 overflow-x-auto">
-		{#each [{ id: 'all', label: $t('conversation.tabs.all') }, { id: 'bot', label: $t('conversation.tabs.bot', { values: { count: tabCounts.bot } }) }, { id: 'unread', label: $t('conversation.tabs.unread', { values: { count: tabCounts.unread } }) }, { id: 'read', label: $t('conversation.tabs.read', { values: { count: tabCounts.read } }) }, { id: 'resolved', label: $t('conversation.tabs.resolved', { values: { count: tabCounts.resolved } }) }] as tb (tb.id)}
-			<button
-				type="button"
-				onclick={() => (chatTab = tb.id as typeof chatTab)}
-				class={cn(
-					'shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition-colors',
-					chatTab === tb.id ? 'border-neon bg-neon-soft text-neon-text' : 'border-line text-muted hover:text-ink'
-				)}
-			>
-				{tb.label}
-			</button>
-		{/each}
-	</div>
-
 	<div class="grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
-		<!-- Kolom 1: list chat -->
+		<!-- Kolom 1: list chat + filter tab -->
 		<div class="flex min-h-0 flex-col rounded-xl border border-line bg-surface">
-			<div class="border-b border-line p-3">
+			<div class="space-y-2 border-b border-line p-3">
 				<div class="relative">
 					<Search size={14} class="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
 					<Input bind:value={search} placeholder={$t('conversation.searchChat')} class="pl-8" />
+				</div>
+				<div class="flex items-center gap-1 overflow-x-auto">
+					{#each [{ id: 'all', label: $t('conversation.tabs.all') }, { id: 'bot', label: $t('conversation.tabs.bot', { values: { count: tabCounts.bot } }) }, { id: 'unread', label: $t('conversation.tabs.unread', { values: { count: tabCounts.unread } }) }, { id: 'read', label: $t('conversation.tabs.read', { values: { count: tabCounts.read } }) }, { id: 'resolved', label: $t('conversation.tabs.resolved', { values: { count: tabCounts.resolved } }) }] as tb (tb.id)}
+						<button
+							type="button"
+							onclick={() => (chatTab = tb.id as typeof chatTab)}
+							class={cn(
+								'shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors',
+								chatTab === tb.id ? 'border-neon bg-neon-soft text-neon-text' : 'border-line text-muted hover:text-ink'
+							)}
+						>
+							{tb.label}
+						</button>
+					{/each}
 				</div>
 			</div>
 			<div class="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
