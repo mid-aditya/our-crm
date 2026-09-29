@@ -5,6 +5,8 @@
 		"companies": "Companies",
 		"conversations": "Conversations",
 		"sales": "Sales",
+		"employees": "Employees",
+		"organization": "Organization",
 		"campaigns": "Campaigns",
 		"tickets": "Tickets",
 		"contacts": "Contacts",
@@ -38,6 +40,28 @@
 		"lostReason": "Lost reason",
 		"lostReasonPh": "Lost reason…",
 		"confirmDelete": "Delete this deal?"
+	},
+	"employees": {
+		"title": "Employees",
+		"subtitle": "Employee biodata — ID, position, department, supervisor.",
+		"colName": "Name",
+		"colPosition": "Position",
+		"colDept": "Department",
+		"colSupervisor": "Supervisor",
+		"colJoin": "Joined",
+		"positionPh": "Position (e.g.: CS Lead)",
+		"deptPh": "Department…",
+		"joinPh": "Join date"
+	},
+	"organization": {
+		"title": "Organization",
+		"subtitle": "Team hierarchy + department list.",
+		"chart": "Team structure",
+		"departments": "Departments",
+		"deptPh": "Department name…",
+		"head": "Head",
+		"members": "members",
+		"confirmDeleteDept": "Delete this department?"
 	},
 	"ticketsPage": {
 		"subtitle": "Support ticket list — assign to SPV to escalate.",

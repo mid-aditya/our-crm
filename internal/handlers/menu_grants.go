@@ -15,12 +15,13 @@ import (
 var MenuKeys = []string{
 	"dashboard", "livechat", "conversations", "sales", "companies", "campaigns",
 	"tickets", "contacts", "reports", "settings", "attendance", "kanban",
+	"employees", "organization",
 }
 
-// DefaultRoleMenus: agent operasional dasar, spv + laporan & tiket.
+// DefaultRoleMenus: agent operasional dasar, spv + laporan & tiket & org.
 var DefaultRoleMenus = map[string][]string{
 	"agent": {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"},
-	"spv":   {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets"},
+	"spv":   {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "employees", "organization"},
 }
 
 // GET /api/v1/menu-grants -> menu milik saya (untuk sidebar).

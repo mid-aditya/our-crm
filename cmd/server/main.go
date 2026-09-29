@@ -173,11 +173,21 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 		_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'',$3,$4,'active')`, effectiveID, email, name, nullUUID(tenantRoleID))
 	}
 	_, _ = tpool.Exec(ctx, `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
+	// Employee & organization.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS departments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL UNIQUE, head_id UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS nik TEXT NOT NULL DEFAULT ''`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS position TEXT NOT NULL DEFAULT ''`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id) ON DELETE SET NULL`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS join_date DATE`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`)
+	for _, d := range []string{"Operasional", "Penjualan", "Keuangan", "SDM"} {
+		_, _ = tpool.Exec(ctx, `insert into departments (name) values ($1) on conflict (name) do nothing`, d)
+	}
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
 	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "employees", "organization"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -278,6 +288,12 @@ func main() {
 	mux.Handle("PATCH /api/v1/deals/{id}", tenant("deals.update", handlers.DealDetail))
 	mux.Handle("DELETE /api/v1/deals/{id}", tenant("deals.delete", handlers.DealDetail))
 	mux.Handle("GET /api/v1/sales-summary", tenant("deals.read", handlers.SalesSummary))
+	mux.Handle("GET /api/v1/departments", tenant("team.manage", handlers.Departments))
+	mux.Handle("POST /api/v1/departments", tenant("team.manage", handlers.Departments))
+	mux.Handle("PATCH /api/v1/departments/{id}", tenant("team.manage", handlers.DepartmentDetail))
+	mux.Handle("DELETE /api/v1/departments/{id}", tenant("team.manage", handlers.DepartmentDetail))
+	mux.Handle("GET /api/v1/employees", tenant("team.manage", handlers.Employees))
+	mux.Handle("PATCH /api/v1/employees/{id}", tenant("team.manage", handlers.EmployeeDetail))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).

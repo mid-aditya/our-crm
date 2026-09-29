@@ -5,6 +5,8 @@
 		"companies": "บริษัท",
 		"conversations": "การสนทนา",
 		"sales": "งานขาย",
+		"employees": "พนักงาน",
+		"organization": "องค์กร",
 		"campaigns": "แคมเปญ",
 		"tickets": "ทิกเก็ต",
 		"contacts": "รายชื่อติดต่อ",
@@ -38,6 +40,28 @@
 		"lostReason": "เหตุผลที่แพ้",
 		"lostReasonPh": "เหตุผลที่แพ้…",
 		"confirmDelete": "ลบดีลนี้?"
+	},
+	"employees": {
+		"title": "พนักงาน",
+		"subtitle": "ประวัติพนักงาน — รหัส ตำแหน่ง แผนก หัวหน้า",
+		"colName": "ชื่อ",
+		"colPosition": "ตำแหน่ง",
+		"colDept": "แผนก",
+		"colSupervisor": "หัวหน้า",
+		"colJoin": "เริ่มงาน",
+		"positionPh": "ตำแหน่ง (เช่น CS Lead)",
+		"deptPh": "แผนก…",
+		"joinPh": "วันที่เริ่มงาน"
+	},
+	"organization": {
+		"title": "องค์กร",
+		"subtitle": "โครงสร้างทีม + รายการแผนก",
+		"chart": "โครงสร้างทีม",
+		"departments": "แผนก",
+		"deptPh": "ชื่อแผนก…",
+		"head": "หัวหน้า",
+		"members": "คน",
+		"confirmDeleteDept": "ลบแผนกนี้?"
 	},
 	"ticketsPage": {		"subtitle": "รายการทิกเก็ตสนับสนุน — มอบหมายให้ SPV เพื่อยกระดับ",
 		"allStatus": "ทุกสถานะ",

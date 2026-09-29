@@ -257,6 +257,55 @@ export async function updateTicketField(
 	await api(`/ticket-fields/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
+export type Employee = {
+	id: string;
+	email: string;
+	full_name: string;
+	role: string;
+	status: string;
+	supervisor_id: string | null;
+	supervisor_name: string | null;
+	nik: string | null;
+	position: string | null;
+	department_id: string | null;
+	department_name: string | null;
+	join_date: string | null;
+	phone: string | null;
+};
+
+export type Department = {
+	id: string;
+	name: string;
+	head_id: string | null;
+	head_name: string | null;
+	members: number;
+};
+
+export async function getEmployees(): Promise<Employee[]> {
+	const res = await api<Employee[]>('/employees');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function updateEmployee(
+	id: string,
+	input: Partial<{ nik: string; position: string; department_id: string | null; join_date: string | null; phone: string; supervisor_id: string | null }>
+): Promise<void> {
+	await api(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export async function getDepartments(): Promise<Department[]> {
+	const res = await api<Department[]>('/departments');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createDepartment(name: string): Promise<void> {
+	await api('/departments', { method: 'POST', body: JSON.stringify({ name }) });
+}
+
+export async function deleteDepartment(id: string): Promise<void> {
+	await api(`/departments/${id}`, { method: 'DELETE' });
+}
+
 export async function getSchemaVersion(): Promise<{ version: string }[]> {
 	const res = await api<{ version: string }[]>('/company/schema-version');
 	return Array.isArray(res) ? res : [];

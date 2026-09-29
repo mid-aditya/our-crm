@@ -5,6 +5,8 @@
 		"companies": "Companies",
 		"conversations": "Percakapan",
 		"sales": "Penjualan",
+		"employees": "Karyawan",
+		"organization": "Organisasi",
 		"campaigns": "Kampanye",
 		"tickets": "Tiket",
 		"contacts": "Kontak",
@@ -38,6 +40,28 @@
 		"lostReason": "Alasan kalah",
 		"lostReasonPh": "Alasan kalah…",
 		"confirmDelete": "Hapus deal ini?"
+	},
+	"employees": {
+		"title": "Karyawan",
+		"subtitle": "Biodata karyawan — NIK, jabatan, departemen, atasan.",
+		"colName": "Nama",
+		"colPosition": "Jabatan",
+		"colDept": "Departemen",
+		"colSupervisor": "Atasan",
+		"colJoin": "Bergabung",
+		"positionPh": "Jabatan (cth: CS Lead)",
+		"deptPh": "Departemen…",
+		"joinPh": "Tanggal bergabung"
+	},
+	"organization": {
+		"title": "Organisasi",
+		"subtitle": "Struktur hierarki tim + daftar departemen.",
+		"chart": "Struktur tim",
+		"departments": "Departemen",
+		"deptPh": "Nama departemen…",
+		"head": "Kepala",
+		"members": "anggota",
+		"confirmDeleteDept": "Hapus departemen ini?"
 	},
 	"ticketsPage": {		"subtitle": "Daftar tiket dukungan — assign ke SPV untuk eskalasi.",
 		"allStatus": "Semua status",

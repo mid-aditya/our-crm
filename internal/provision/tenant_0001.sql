@@ -55,8 +55,24 @@ INSERT INTO role_menu_grants (role_key, menu_key)
 SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('employees'),('organization')) AS v(m)
 ON CONFLICT DO NOTHING;
+
+-- Employee & organization: profil karyawan + departemen.
+CREATE TABLE IF NOT EXISTS departments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  head_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nik text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS position text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id uuid REFERENCES departments(id) ON DELETE SET NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS join_date date;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS supervisor_id uuid;
+INSERT INTO departments (name) VALUES ('Operasional'), ('Penjualan'), ('Keuangan'), ('SDM')
+ON CONFLICT (name) DO NOTHING;
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;

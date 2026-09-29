@@ -5,6 +5,8 @@
 		"companies": "Companies",
 		"conversations": "Mga Usapan",
 		"sales": "Sales",
+		"employees": "Mga Empleyado",
+		"organization": "Organisasyon",
 		"campaigns": "Mga Campaign",
 		"tickets": "Mga Ticket",
 		"contacts": "Mga Contact",
@@ -38,6 +40,28 @@
 		"lostReason": "Dahilan ng pagkatalo",
 		"lostReasonPh": "Dahilan ng pagkatalo…",
 		"confirmDelete": "Tanggalin ang deal na ito?"
+	},
+	"employees": {
+		"title": "Mga Empleyado",
+		"subtitle": "Biodata ng empleyado — ID, posisyon, departamento, superbisor.",
+		"colName": "Pangalan",
+		"colPosition": "Posisyon",
+		"colDept": "Departamento",
+		"colSupervisor": "Superbisor",
+		"colJoin": "Sumali",
+		"positionPh": "Posisyon (hal: CS Lead)",
+		"deptPh": "Departamento…",
+		"joinPh": "Petsa ng pagsali"
+	},
+	"organization": {
+		"title": "Organisasyon",
+		"subtitle": "Hierarchy ng team + listahan ng departamento.",
+		"chart": "Istruktura ng team",
+		"departments": "Mga Departamento",
+		"deptPh": "Pangalan ng departamento…",
+		"head": "Pinuno",
+		"members": "miyembro",
+		"confirmDeleteDept": "Tanggalin ang departamentong ito?"
 	},
 	"ticketsPage": {		"subtitle": "Listahan ng support ticket — i-assign sa SPV para i-escalate.",
 		"allStatus": "Lahat ng status",
