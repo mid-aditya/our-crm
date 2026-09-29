@@ -4,6 +4,7 @@
 		"livechat": "Live Chat",
 		"companies": "Companies",
 		"conversations": "Conversations",
+		"sales": "Sales",
 		"campaigns": "Campaigns",
 		"tickets": "Tickets",
 		"contacts": "Contacts",
@@ -20,6 +21,23 @@
 		"empty": "No chats waiting on bot.",
 		"onlineAgents": "Online agents",
 		"noAgents": "No agents online."
+	},
+	"sales": {
+		"title": "Sales",
+		"subtitle": "Deal pipeline — drag across stages, Won/Lost is logged.",
+		"openValue": "Open pipeline value",
+		"wonValue": "Won value",
+		"dealTitlePh": "Deal title…",
+		"valuePh": "Value (Rp)",
+		"closePh": "Expected close",
+		"stagePh": "Stage…",
+		"addDeal": "Add deal",
+		"owner": "Owner",
+		"notes": "Notes",
+		"history": "Stage history",
+		"lostReason": "Lost reason",
+		"lostReasonPh": "Lost reason…",
+		"confirmDelete": "Delete this deal?"
 	},
 	"ticketsPage": {
 		"subtitle": "Support ticket list — assign to SPV to escalate.",

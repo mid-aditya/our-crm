@@ -47,6 +47,17 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS campaigns (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, channel_id UUID NOT NULL, template TEXT NOT NULL, audience JSONB NOT NULL DEFAULT '{}', scheduled_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'draft', stats JSONB NOT NULL DEFAULT '{"sent": 0, "failed": 0, "total": 0}', created_by UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS tickets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), number TEXT NOT NULL UNIQUE, subject TEXT NOT NULL, description TEXT, contact_id UUID, assignee_id UUID, priority TEXT NOT NULL DEFAULT 'medium', status TEXT NOT NULL DEFAULT 'open', source TEXT NOT NULL DEFAULT 'agent', escalated BOOLEAN NOT NULL DEFAULT false, resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE tickets ADD COLUMN IF NOT EXISTS escalated BOOLEAN NOT NULL DEFAULT false`)
+	// Sales pipeline.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS sales_stages (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL UNIQUE, probability INT NOT NULL DEFAULT 0, position INT NOT NULL DEFAULT 0, is_won BOOLEAN NOT NULL DEFAULT false, is_lost BOOLEAN NOT NULL DEFAULT false, active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS deals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), number TEXT NOT NULL UNIQUE, title TEXT NOT NULL, contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL, value NUMERIC NOT NULL DEFAULT 0, stage_id UUID REFERENCES sales_stages(id) ON DELETE SET NULL, owner_id UUID REFERENCES users(id) ON DELETE SET NULL, expected_close DATE, source TEXT NOT NULL DEFAULT 'manual', notes TEXT NOT NULL DEFAULT '', lost_reason TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS deal_moves (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE, from_stage_id UUID, to_stage_id UUID, moved_by UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage_id)`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_deals_owner ON deals(owner_id)`)
+	for _, s := range [][2]any{{"Baru", 10}, {"Kualifikasi", 25}, {"Penawaran", 50}, {"Negosiasi", 75}} {
+		_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position) values ($1,$2,(select coalesce(max(position),-1)+1 from sales_stages)) on conflict (name) do nothing`, s[0], s[1])
+	}
+	_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position, is_won) values ('Menang',100,(select coalesce(max(position),-1)+1 from sales_stages),true) on conflict (name) do nothing`)
+	_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position, is_lost) values ('Kalah',0,(select coalesce(max(position),-1)+1 from sales_stages),true) on conflict (name) do nothing`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS ticket_replies (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, author_id UUID, author_type TEXT NOT NULL DEFAULT 'agent', body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS operational_hours (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), day_of_week INT NOT NULL, open_time TIME, close_time TIME, is_closed BOOLEAN NOT NULL DEFAULT false, UNIQUE(day_of_week))`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS agent_presence (user_id UUID PRIMARY KEY, status TEXT NOT NULL DEFAULT 'offline', aux_label TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
@@ -163,10 +174,10 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	}
 	_, _ = tpool.Exec(ctx, `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
-	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -257,6 +268,16 @@ func main() {
 	mux.Handle("PATCH /api/v1/users/{id}/role", tenant("settings.manage_roles", handlers.UserRole))
 	mux.Handle("GET /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
 	mux.Handle("PUT /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
+	mux.Handle("GET /api/v1/sales-stages", tenant("deals.read", handlers.SalesStages))
+	mux.Handle("POST /api/v1/sales-stages", tenant("team.manage", handlers.SalesStages))
+	mux.Handle("PATCH /api/v1/sales-stages/{id}", tenant("team.manage", handlers.SalesStageDetail))
+	mux.Handle("DELETE /api/v1/sales-stages/{id}", tenant("team.manage", handlers.SalesStageDetail))
+	mux.Handle("GET /api/v1/deals", tenant("deals.read", handlers.Deals))
+	mux.Handle("POST /api/v1/deals", tenant("deals.create", handlers.Deals))
+	mux.Handle("GET /api/v1/deals/{id}", tenant("deals.read", handlers.DealDetail))
+	mux.Handle("PATCH /api/v1/deals/{id}", tenant("deals.update", handlers.DealDetail))
+	mux.Handle("DELETE /api/v1/deals/{id}", tenant("deals.delete", handlers.DealDetail))
+	mux.Handle("GET /api/v1/sales-summary", tenant("deals.read", handlers.SalesSummary))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).

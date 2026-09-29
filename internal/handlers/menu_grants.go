@@ -13,14 +13,14 @@ import (
 
 // MenuKeys adalah daftar menu yang bisa di-grant per role (href tanpa slash awal).
 var MenuKeys = []string{
-	"dashboard", "livechat", "conversations", "companies", "campaigns",
+	"dashboard", "livechat", "conversations", "sales", "companies", "campaigns",
 	"tickets", "contacts", "reports", "settings", "attendance", "kanban",
 }
 
 // DefaultRoleMenus: agent operasional dasar, spv + laporan & tiket.
 var DefaultRoleMenus = map[string][]string{
-	"agent": {"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance"},
-	"spv":   {"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"},
+	"agent": {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"},
+	"spv":   {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets"},
 }
 
 // GET /api/v1/menu-grants -> menu milik saya (untuk sidebar).

@@ -52,10 +52,10 @@ CREATE TABLE IF NOT EXISTS role_menu_grants (
   PRIMARY KEY (role_key, menu_key)
 );
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance')) AS v(m)
+SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance'),('reports'),('tickets')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets')) AS v(m)
 ON CONFLICT DO NOTHING;
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
@@ -434,3 +434,50 @@ CREATE TABLE IF NOT EXISTS ticket_replies (
   body text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Sales pipeline (deals) — tahap + deal + riwayat pindah tahap.
+CREATE TABLE IF NOT EXISTS sales_stages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  probability int NOT NULL DEFAULT 0,
+  position int NOT NULL DEFAULT 0,
+  is_won boolean NOT NULL DEFAULT false,
+  is_lost boolean NOT NULL DEFAULT false,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS deals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  number text NOT NULL UNIQUE,
+  title text NOT NULL,
+  contact_id uuid REFERENCES contacts(id) ON DELETE SET NULL,
+  value numeric NOT NULL DEFAULT 0,
+  stage_id uuid REFERENCES sales_stages(id) ON DELETE SET NULL,
+  owner_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  expected_close date,
+  source text NOT NULL DEFAULT 'manual',
+  notes text NOT NULL DEFAULT '',
+  lost_reason text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS deal_moves (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+  from_stage_id uuid,
+  to_stage_id uuid,
+  moved_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage_id);
+CREATE INDEX IF NOT EXISTS idx_deals_owner ON deals(owner_id);
+INSERT INTO sales_stages (name, probability, position, is_won, is_lost)
+SELECT * FROM (VALUES
+  ('Baru', 10, 0, false, false),
+  ('Kualifikasi', 25, 1, false, false),
+  ('Penawaran', 50, 2, false, false),
+  ('Negosiasi', 75, 3, false, false),
+  ('Menang', 100, 4, true, false),
+  ('Kalah', 0, 5, false, true)
+) AS v(name, probability, position, is_won, is_lost)
+WHERE NOT EXISTS (SELECT 1 FROM sales_stages);
