@@ -15,6 +15,7 @@
 	import Button from '$lib/components/ui/Button.svelte';
 	import { getUser } from '$lib/api';
 	import { getDashboardSummary, type DashboardSummary } from '$lib/team/api';
+	import { getScoreboard, type ScoreRow } from '$lib/team/api';
 	import { bcp } from '$lib/i18n';
 	import { initials } from '$lib/utils';
 
@@ -40,8 +41,17 @@
 
 	let summary = $state<DashboardSummary | null>(null);
 	let loading = $state(true);
+	let score = $state<ScoreRow[]>([]);
 
 	const isManager = $derived((summary?.scope_level ?? 0) >= 50);
+
+	function fmtFrt(sec: number | null): string {
+		if (sec == null) return '—';
+		if (sec < 60) return `${sec}dtk`;
+		const m = Math.floor(sec / 60);
+		if (m < 60) return `${m}mnt`;
+		return `${Math.floor(m / 60)}j ${m % 60}mnt`;
+	}
 
 	onMount(async () => {
 		try {
@@ -50,6 +60,13 @@
 			summary = null;
 		} finally {
 			loading = false;
+		}
+		if ((summary?.scope_level ?? 0) >= 50) {
+			try {
+				score = await getScoreboard(new Date().toISOString().slice(0, 7));
+			} catch {
+				score = [];
+			}
 		}
 	});
 
@@ -156,8 +173,7 @@
 			<a href="/conversations" class="text-xs font-medium text-neon-text hover:underline">
 				{$t('dashboard.recent.viewAll')}
 			</a>
-		{/snippet}
-		{#if !summary || summary.recent.length === 0}
+		{/snippet}		{#if !summary || summary.recent.length === 0}
 			<div class="flex flex-col items-center gap-2 py-8 text-center">
 				<span class="flex size-10 items-center justify-center rounded-full bg-raised text-muted">
 					<UserRound size={18} />
@@ -167,21 +183,61 @@
 		{:else}
 			<ul class="space-y-1.5">
 				{#each summary.recent as a (a.created_at + a.path + a.method)}
-					<li class="flex items-center gap-2 rounded-lg bg-raised px-3 py-2 text-[11px]">
-						<Badge variant={a.status_code >= 400 ? 'danger' : 'neutral'}>
-							{a.method} {a.status_code}
-						</Badge>
-						<span class="min-w-0 flex-1 truncate">
-							<span class="font-medium">{a.user_name}</span>
-							<span class="text-faint"> • </span>
-							<span class="font-mono text-muted">{a.path}</span>
-						</span>
-						<span class="shrink-0 text-[10px] text-faint">
-							{new Date(a.created_at).toLocaleString()}
-						</span>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</Card>
-</div>
+						<li class="flex items-center gap-2 rounded-lg bg-raised px-3 py-2 text-[11px]">
+							<Badge variant={a.status_code >= 400 ? 'danger' : 'neutral'}>
+								{a.method} {a.status_code}
+							</Badge>
+							<span class="min-w-0 flex-1 truncate">
+								<span class="font-medium">{a.user_name}</span>
+								<span class="text-faint"> • </span>
+								<span class="font-mono text-muted">{a.path}</span>
+							</span>
+							<span class="shrink-0 text-[10px] text-faint">
+								{new Date(a.created_at).toLocaleString()}
+							</span>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</Card>
+	</div>
+
+{#if isManager && score.length > 0}
+	<!-- Ringkasan produktivitas (FRT, capaian) + link halaman penuh -->
+	<div class="mt-4">
+		<Card title={$t('productivity.title')}>
+			{#snippet actions()}
+				<a href="/productivity" class="text-xs font-medium text-neon-text hover:underline">
+					{$t('dashboard.recent.viewAll')}
+				</a>
+			{/snippet}
+			<div class="overflow-x-auto">
+				<table class="w-full text-sm">
+					<thead>
+						<tr class="border-b border-line text-left text-[11px] font-medium text-muted">
+							<th class="pb-2 pr-3 font-medium">{$t('dashboard.col.member')}</th>
+							<th class="pb-2 pr-3 text-right font-medium">{$t('productivity.colChats')}</th>
+							<th class="pb-2 pr-3 text-right font-medium">{$t('productivity.colTickets')}</th>
+							<th class="pb-2 pr-3 text-right font-medium">FRT</th>
+							<th class="pb-2 text-right font-medium">{$t('productivity.colPresent')}</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-line">
+						{#each score.slice(0, 5) as r (r.user_id)}
+							<tr>
+								<td class="py-2 pr-3">
+									<span class="block truncate text-xs font-medium">{r.full_name}</span>
+									<span class="block text-[10px] capitalize text-faint">{r.role}</span>
+								</td>
+								<td class="py-2 pr-3 text-right font-mono text-xs">{r.chats_done}/{r.chats_target}</td>
+								<td class="py-2 pr-3 text-right font-mono text-xs">{r.tickets_done}/{r.tickets_target}</td>
+								<td class="py-2 pr-3 text-right font-mono text-xs">{fmtFrt(r.avg_frt_seconds)}</td>
+								<td class="py-2 text-right font-mono text-xs">{r.present_days} {$t('productivity.days')}</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</Card>
+	</div>
+{/if}

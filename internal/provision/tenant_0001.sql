@@ -52,11 +52,72 @@ CREATE TABLE IF NOT EXISTS role_menu_grants (
   PRIMARY KEY (role_key, menu_key)
 );
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance')) AS v(m)
+SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('kanban'),('contacts'),('attendance'),('reports'),('tickets')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('organization'),('productivity')) AS v(m)
 ON CONFLICT DO NOTHING;
+
+-- Employee & organization: profil karyawan + departemen.
+CREATE TABLE IF NOT EXISTS departments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  head_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS nik text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS position text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id uuid REFERENCES departments(id) ON DELETE SET NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS join_date date;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS supervisor_id uuid;
+INSERT INTO departments (name) VALUES ('Operasional'), ('Penjualan'), ('Keuangan'), ('SDM')
+ON CONFLICT (name) DO NOTHING;
+
+-- Productivity: target bulanan per user + realisasi dihitung dari data.
+CREATE TABLE IF NOT EXISTS productivity_targets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  period text NOT NULL,
+  chats_target int NOT NULL DEFAULT 0,
+  tickets_target int NOT NULL DEFAULT 0,
+  deals_target int NOT NULL DEFAULT 0,
+  deals_value_target numeric NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, period)
+);
+
+-- Kapasitas & channel agent; unit organisasi; timesheet + lembur.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS max_chats int NOT NULL DEFAULT 10;
+CREATE TABLE IF NOT EXISTS agent_channels (
+  user_id uuid NOT NULL,
+  channel_type_id text NOT NULL,
+  PRIMARY KEY (user_id, channel_type_id)
+);
+CREATE TABLE IF NOT EXISTS org_units (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  unit_type text NOT NULL DEFAULT 'branch',
+  parent_id uuid REFERENCES org_units(id) ON DELETE CASCADE,
+  head_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS org_unit_id uuid REFERENCES org_units(id) ON DELETE SET NULL;
+CREATE TABLE IF NOT EXISTS timesheets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  project text NOT NULL DEFAULT '',
+  hours numeric NOT NULL DEFAULT 0,
+  overtime_hours numeric NOT NULL DEFAULT 0,
+  description text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'pending',
+  approver_id uuid,
+  decided_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_timesheets_user ON timesheets(user_id, date);
 
 -- Level hierarki role (Developer 100 > Admin 80 > SPV 50 > Agent 10).
 ALTER TABLE roles ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 0;
@@ -434,3 +495,72 @@ CREATE TABLE IF NOT EXISTS ticket_replies (
   body text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS emails (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  direction text NOT NULL DEFAULT 'outbound',
+  from_addr text NOT NULL DEFAULT '',
+  to_addr text NOT NULL DEFAULT '',
+  subject text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'draft',
+  contact_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_emails_status ON emails(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  subject text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Sales pipeline (deals) — tahap + deal + riwayat pindah tahap.
+CREATE TABLE IF NOT EXISTS sales_stages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  probability int NOT NULL DEFAULT 0,
+  position int NOT NULL DEFAULT 0,
+  is_won boolean NOT NULL DEFAULT false,
+  is_lost boolean NOT NULL DEFAULT false,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS deals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  number text NOT NULL UNIQUE,
+  title text NOT NULL,
+  contact_id uuid REFERENCES contacts(id) ON DELETE SET NULL,
+  value numeric NOT NULL DEFAULT 0,
+  stage_id uuid REFERENCES sales_stages(id) ON DELETE SET NULL,
+  owner_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  expected_close date,
+  source text NOT NULL DEFAULT 'manual',
+  notes text NOT NULL DEFAULT '',
+  lost_reason text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS deal_moves (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  deal_id uuid NOT NULL REFERENCES deals(id) ON DELETE CASCADE,
+  from_stage_id uuid,
+  to_stage_id uuid,
+  moved_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage_id);
+CREATE INDEX IF NOT EXISTS idx_deals_owner ON deals(owner_id);
+INSERT INTO sales_stages (name, probability, position, is_won, is_lost)
+SELECT * FROM (VALUES
+  ('Baru', 10, 0, false, false),
+  ('Kualifikasi', 25, 1, false, false),
+  ('Penawaran', 50, 2, false, false),
+  ('Negosiasi', 75, 3, false, false),
+  ('Menang', 100, 4, true, false),
+  ('Kalah', 0, 5, false, true)
+) AS v(name, probability, position, is_won, is_lost)
+WHERE NOT EXISTS (SELECT 1 FROM sales_stages);

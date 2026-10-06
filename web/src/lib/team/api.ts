@@ -257,6 +257,183 @@ export async function updateTicketField(
 	await api(`/ticket-fields/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
 }
 
+export type Employee = {
+	id: string;
+	email: string;
+	full_name: string;
+	role: string;
+	status: string;
+	supervisor_id: string | null;
+	supervisor_name: string | null;
+	nik: string | null;
+	position: string | null;
+	department_id: string | null;
+	department_name: string | null;
+	join_date: string | null;
+	phone: string | null;
+};
+
+export type Department = {
+	id: string;
+	name: string;
+	head_id: string | null;
+	head_name: string | null;
+	members: number;
+};
+
+export async function getEmployees(): Promise<Employee[]> {
+	const res = await api<Employee[]>('/employees');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function updateEmployee(
+	id: string,
+	input: Partial<{ nik: string; position: string; department_id: string | null; join_date: string | null; phone: string; supervisor_id: string | null }>
+): Promise<void> {
+	await api(`/employees/${id}`, { method: 'PATCH', body: JSON.stringify(input) });
+}
+
+export async function getDepartments(): Promise<Department[]> {
+	const res = await api<Department[]>('/departments');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createDepartment(name: string): Promise<void> {
+	await api('/departments', { method: 'POST', body: JSON.stringify({ name }) });
+}
+
+export async function deleteDepartment(id: string): Promise<void> {
+	await api(`/departments/${id}`, { method: 'DELETE' });
+}
+
+export type RosterMember = {
+	id: string;
+	email: string;
+	full_name: string;
+	role: string;
+	status: string;
+	max_chats: number;
+	supervisor_id: string | null;
+	supervisor_name: string | null;
+	presence: string | null;
+	org_unit_id: string | null;
+	org_unit_name: string | null;
+	channels: string[];
+};
+
+export type OrgUnit = {
+	id: string;
+	name: string;
+	unit_type: 'regional' | 'branch' | 'kiosk';
+	parent_id: string | null;
+	parent_name: string | null;
+	head_id: string | null;
+	head_name: string | null;
+	members: number;
+};
+
+export async function getTeamMembers(): Promise<RosterMember[]> {
+	const res = await api<RosterMember[]>('/team/members');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function updateTeamMember(
+	id: string,
+	input: { max_chats?: number; channels?: string[]; org_unit_id?: string | null }
+): Promise<void> {
+	await api(`/team/members/${id}`, { method: 'PUT', body: JSON.stringify(input) });
+}
+export async function getOrgUnits(): Promise<OrgUnit[]> {
+	const res = await api<OrgUnit[]>('/org-units');
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createOrgUnit(input: { name: string; unit_type: string; parent_id?: string }): Promise<void> {
+	await api('/org-units', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function deleteOrgUnit(id: string): Promise<void> {
+	await api(`/org-units/${id}`, { method: 'DELETE' });
+}
+
+export type Timesheet = {
+	id: string;
+	date: string;
+	project: string;
+	hours: number;
+	overtime_hours: number;
+	description: string;
+	status: string;
+	user_name: string;
+	decided_at: string | null;
+};
+
+export async function getMyTimesheets(month: string): Promise<Timesheet[]> {
+	const res = await api<Timesheet[]>(`/timesheets?month=${month}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function createTimesheet(input: {
+	date: string;
+	project: string;
+	hours: number;
+	overtime_hours?: number;
+	description?: string;
+}): Promise<void> {
+	await api('/timesheets', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function getTeamTimesheets(month: string): Promise<Timesheet[]> {
+	const res = await api<Timesheet[]>(`/timesheets/team?month=${month}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function decideTimesheet(id: string, approve: boolean): Promise<void> {
+	await api(`/timesheets/${id}/${approve ? 'approve' : 'reject'}`, { method: 'POST' });
+}
+
+export type ProductivityTarget = {
+	user_id: string;
+	full_name: string;
+	role: string;
+	period: string;
+	chats_target: number;
+	tickets_target: number;
+	deals_target: number;
+	deals_value_target: number;
+};
+
+export type ScoreRow = ProductivityTarget & {
+	chats: number;
+	chats_done: number;
+	tickets_done: number;
+	deals_won: number;
+	deals_value: number;
+	present_days: number;
+	avg_frt_seconds: number | null;
+};
+
+export async function getTargets(period: string): Promise<ProductivityTarget[]> {
+	const res = await api<ProductivityTarget[]>(`/productivity/targets?period=${period}`);
+	return Array.isArray(res) ? res : [];
+}
+
+export async function setTarget(input: {
+	user_id: string;
+	period: string;
+	chats_target: number;
+	tickets_target: number;
+	deals_target: number;
+	deals_value_target: number;
+}): Promise<void> {
+	await api('/productivity/targets', { method: 'PUT', body: JSON.stringify(input) });
+}
+
+export async function getScoreboard(period: string): Promise<ScoreRow[]> {
+	const res = await api<ScoreRow[]>(`/productivity/scoreboard?period=${period}`);
+	return Array.isArray(res) ? res : [];
+}
+
 export async function getSchemaVersion(): Promise<{ version: string }[]> {
 	const res = await api<{ version: string }[]>('/company/schema-version');
 	return Array.isArray(res) ? res : [];

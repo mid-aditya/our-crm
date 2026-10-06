@@ -38,6 +38,8 @@ var defaultPerms = [][3]string{
 	{"leave.manage", "Kelola jenis cuti & approval", "leave"},
 	{"attendance.read", "Lihat absensi tim", "attendance"},
 	{"kanban.read", "Lihat kanban", "kanban"}, {"kanban.manage", "Kelola kanban", "kanban"},
+	{"emails.read", "Lihat email", "emails"}, {"emails.create", "Tulis email", "emails"},
+	{"emails.send", "Kirim email", "emails"}, {"emails.manage_templates", "Kelola template email", "emails"},
 	{"reports.view", "Lihat laporan", "reports"}, {"reports.export", "Export laporan", "reports"},
 	{"settings.manage_roles", "Kelola role & permission", "settings"}, {"settings.manage_billing", "Kelola billing", "settings"},
 }
@@ -85,13 +87,12 @@ func AdminPermKeys() []string {
 	return out
 }
 var agentPerms = []string{
-	"contacts.create", "contacts.read", "contacts.update",
-	"deals.create", "deals.read", "deals.update",
+	"contacts.create", "contacts.read", "contacts.update",	"deals.create", "deals.read", "deals.update",
 	"activities.create", "activities.read", "activities.update",
 	"conversations.read", "conversations.reply", "campaigns.read",
 	"tickets.create", "tickets.read", "tickets.update", "reports.view",
 	"livechat.read", "livechat.reply", "livechat.serve", "channels.read",
-	"kanban.read", "kanban.manage",
+	"kanban.read", "kanban.manage", "emails.read", "emails.create", "emails.send",
 }
 
 var _ = embed.FS{}

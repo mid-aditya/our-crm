@@ -47,6 +47,17 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS campaigns (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, channel_id UUID NOT NULL, template TEXT NOT NULL, audience JSONB NOT NULL DEFAULT '{}', scheduled_at TIMESTAMPTZ, status TEXT NOT NULL DEFAULT 'draft', stats JSONB NOT NULL DEFAULT '{"sent": 0, "failed": 0, "total": 0}', created_by UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS tickets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), number TEXT NOT NULL UNIQUE, subject TEXT NOT NULL, description TEXT, contact_id UUID, assignee_id UUID, priority TEXT NOT NULL DEFAULT 'medium', status TEXT NOT NULL DEFAULT 'open', source TEXT NOT NULL DEFAULT 'agent', escalated BOOLEAN NOT NULL DEFAULT false, resolved_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `ALTER TABLE tickets ADD COLUMN IF NOT EXISTS escalated BOOLEAN NOT NULL DEFAULT false`)
+	// Sales pipeline.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS sales_stages (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL UNIQUE, probability INT NOT NULL DEFAULT 0, position INT NOT NULL DEFAULT 0, is_won BOOLEAN NOT NULL DEFAULT false, is_lost BOOLEAN NOT NULL DEFAULT false, active BOOLEAN NOT NULL DEFAULT true, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS deals (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), number TEXT NOT NULL UNIQUE, title TEXT NOT NULL, contact_id UUID REFERENCES contacts(id) ON DELETE SET NULL, value NUMERIC NOT NULL DEFAULT 0, stage_id UUID REFERENCES sales_stages(id) ON DELETE SET NULL, owner_id UUID REFERENCES users(id) ON DELETE SET NULL, expected_close DATE, source TEXT NOT NULL DEFAULT 'manual', notes TEXT NOT NULL DEFAULT '', lost_reason TEXT NOT NULL DEFAULT '', created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS deal_moves (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), deal_id UUID NOT NULL REFERENCES deals(id) ON DELETE CASCADE, from_stage_id UUID, to_stage_id UUID, moved_by UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_deals_stage ON deals(stage_id)`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_deals_owner ON deals(owner_id)`)
+	for _, s := range [][2]any{{"Baru", 10}, {"Kualifikasi", 25}, {"Penawaran", 50}, {"Negosiasi", 75}} {
+		_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position) values ($1,$2,(select coalesce(max(position),-1)+1 from sales_stages)) on conflict (name) do nothing`, s[0], s[1])
+	}
+	_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position, is_won) values ('Menang',100,(select coalesce(max(position),-1)+1 from sales_stages),true) on conflict (name) do nothing`)
+	_, _ = tpool.Exec(ctx, `insert into sales_stages (name, probability, position, is_lost) values ('Kalah',0,(select coalesce(max(position),-1)+1 from sales_stages),true) on conflict (name) do nothing`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS ticket_replies (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE, author_id UUID, author_type TEXT NOT NULL DEFAULT 'agent', body TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS operational_hours (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), day_of_week INT NOT NULL, open_time TIME, close_time TIME, is_closed BOOLEAN NOT NULL DEFAULT false, UNIQUE(day_of_week))`)
 	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS agent_presence (user_id UUID PRIMARY KEY, status TEXT NOT NULL DEFAULT 'offline', aux_label TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
@@ -162,11 +173,31 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 		_, _ = tpool.Exec(ctx, `insert into users (id, email, password_hash, full_name, role_id, status) values ($1,$2,'',$3,$4,'active')`, effectiveID, email, name, nullUUID(tenantRoleID))
 	}
 	_, _ = tpool.Exec(ctx, `create table if not exists role_menu_grants (role_key text not null, menu_key text not null, granted_at timestamptz not null default now(), primary key (role_key, menu_key))`)
+	// Employee & organization.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS departments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL UNIQUE, head_id UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS nik TEXT NOT NULL DEFAULT ''`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS position TEXT NOT NULL DEFAULT ''`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id UUID REFERENCES departments(id) ON DELETE SET NULL`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS join_date DATE`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT ''`)
+	for _, d := range []string{"Operasional", "Penjualan", "Keuangan", "SDM"} {
+		_, _ = tpool.Exec(ctx, `insert into departments (name) values ($1) on conflict (name) do nothing`, d)
+	}
+	// Kapasitas & channel agent.
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS max_chats INT NOT NULL DEFAULT 10`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS agent_channels (user_id UUID NOT NULL, channel_type_id TEXT NOT NULL, PRIMARY KEY (user_id, channel_type_id))`)
+	// Unit organisasi: regional → cabang → kios.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS org_units (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT NOT NULL, unit_type TEXT NOT NULL DEFAULT 'branch', parent_id UUID REFERENCES org_units(id) ON DELETE CASCADE, head_id UUID, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `ALTER TABLE users ADD COLUMN IF NOT EXISTS org_unit_id UUID REFERENCES org_units(id) ON DELETE SET NULL`)
+	// Timesheet + lembur.
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS timesheets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, date DATE NOT NULL, project TEXT NOT NULL DEFAULT '', hours NUMERIC NOT NULL DEFAULT 0, overtime_hours NUMERIC NOT NULL DEFAULT 0, description TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending', approver_id UUID, decided_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL DEFAULT now())`)
+	_, _ = tpool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_timesheets_user ON timesheets(user_id, date)`)
+	_, _ = tpool.Exec(ctx, `CREATE TABLE IF NOT EXISTS productivity_targets (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID NOT NULL, period TEXT NOT NULL, chats_target INT NOT NULL DEFAULT 0, tickets_target INT NOT NULL DEFAULT 0, deals_target INT NOT NULL DEFAULT 0, deals_value_target NUMERIC NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(user_id, period))`)
 	// Default akses sidebar per role; admin/developer bisa ubah via PUT /roles/{role}/menus.
-	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "kanban", "contacts", "attendance", "reports", "tickets"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -257,6 +288,36 @@ func main() {
 	mux.Handle("PATCH /api/v1/users/{id}/role", tenant("settings.manage_roles", handlers.UserRole))
 	mux.Handle("GET /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
 	mux.Handle("PUT /api/v1/roles/{role}/menus", tenant("settings.manage_roles", handlers.RoleMenus))
+	mux.Handle("GET /api/v1/sales-stages", tenant("deals.read", handlers.SalesStages))
+	mux.Handle("POST /api/v1/sales-stages", tenant("team.manage", handlers.SalesStages))
+	mux.Handle("PATCH /api/v1/sales-stages/{id}", tenant("team.manage", handlers.SalesStageDetail))
+	mux.Handle("DELETE /api/v1/sales-stages/{id}", tenant("team.manage", handlers.SalesStageDetail))
+	mux.Handle("GET /api/v1/deals", tenant("deals.read", handlers.Deals))
+	mux.Handle("POST /api/v1/deals", tenant("deals.create", handlers.Deals))
+	mux.Handle("GET /api/v1/deals/{id}", tenant("deals.read", handlers.DealDetail))
+	mux.Handle("PATCH /api/v1/deals/{id}", tenant("deals.update", handlers.DealDetail))
+	mux.Handle("DELETE /api/v1/deals/{id}", tenant("deals.delete", handlers.DealDetail))
+	mux.Handle("GET /api/v1/sales-summary", tenant("deals.read", handlers.SalesSummary))
+	mux.Handle("GET /api/v1/departments", tenant("team.manage", handlers.Departments))
+	mux.Handle("POST /api/v1/departments", tenant("team.manage", handlers.Departments))
+	mux.Handle("PATCH /api/v1/departments/{id}", tenant("team.manage", handlers.DepartmentDetail))
+	mux.Handle("DELETE /api/v1/departments/{id}", tenant("team.manage", handlers.DepartmentDetail))
+	mux.Handle("GET /api/v1/employees", tenant("team.manage", handlers.Employees))
+	mux.Handle("PATCH /api/v1/employees/{id}", tenant("team.manage", handlers.EmployeeDetail))
+	mux.Handle("GET /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
+	mux.Handle("PUT /api/v1/productivity/targets", tenant("team.manage", handlers.ProductivityTargets))
+	mux.Handle("GET /api/v1/productivity/scoreboard", tenant("team.manage", handlers.ProductivityScoreboard))
+	mux.Handle("GET /api/v1/team/members", tenant("team.manage", handlers.TeamMembers))
+	mux.Handle("PUT /api/v1/team/members/{id}", tenant("team.manage", handlers.TeamMemberUpdate))
+	mux.Handle("GET /api/v1/org-units", tenant("team.manage", handlers.OrgUnits))
+	mux.Handle("POST /api/v1/org-units", tenant("team.manage", handlers.OrgUnits))
+	mux.Handle("PATCH /api/v1/org-units/{id}", tenant("team.manage", handlers.OrgUnitDetail))
+	mux.Handle("DELETE /api/v1/org-units/{id}", tenant("team.manage", handlers.OrgUnitDetail))
+	mux.Handle("GET /api/v1/timesheets", middleware.Chain(http.HandlerFunc(handlers.Timesheets), auth, middleware.TenantResolver))
+	mux.Handle("POST /api/v1/timesheets", middleware.Chain(http.HandlerFunc(handlers.Timesheets), auth, middleware.TenantResolver))
+	mux.Handle("GET /api/v1/timesheets/team", tenant("team.manage", handlers.TimesheetsTeam))
+	mux.Handle("POST /api/v1/timesheets/{id}/approve", tenant("team.manage", handlers.TimesheetDecide))
+	mux.Handle("POST /api/v1/timesheets/{id}/reject", tenant("team.manage", handlers.TimesheetDecide))
 	mux.Handle("PUT /api/v1/users/{id}/supervisor", tenant("team.manage", handlers.UserSupervisor))
 
 	// Dashboard summary: ringkasan aktivitas sesuai hierarki (semua user login).
@@ -361,6 +422,14 @@ func main() {
 	mux.Handle("GET /api/v1/admin/companies/{id}", adminAuth(handlers.GetAdminCompany))
 	mux.Handle("PATCH /api/v1/admin/companies/{id}", adminAuth(handlers.UpdateAdminCompany))
 	mux.Handle("DELETE /api/v1/admin/companies/{id}", adminAuth(handlers.DeleteAdminCompany))
+
+	mux.Handle("GET /api/v1/emails", tenant("emails.read", handlers.Emails))
+	mux.Handle("POST /api/v1/emails", tenant("emails.create", handlers.Emails))
+	mux.Handle("PATCH /api/v1/emails/{id}", tenant("emails.create", handlers.EmailDetail))
+	mux.Handle("POST /api/v1/emails/{id}/send", tenant("emails.send", handlers.EmailDetail))
+	mux.Handle("GET /api/v1/email-templates", tenant("emails.read", handlers.EmailTemplates))
+	mux.Handle("POST /api/v1/email-templates", tenant("emails.manage_templates", handlers.EmailTemplates))
+	mux.Handle("DELETE /api/v1/email-templates/{id}", tenant("emails.manage_templates", handlers.EmailTemplates))
 
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
 	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))

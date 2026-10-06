@@ -36,10 +36,15 @@
 		createTicketField,
 		deleteTicketField,
 		updateTicketField,
+		getTeamMembers,
+		updateTeamMember,
+		getOrgUnits,
 		type HourRow,
 		type ActivityRow,
 		type BotQA,
-		type TicketField
+		type TicketField,
+		type RosterMember,
+		type OrgUnit
 	} from '$lib/team/api';
 	import { cn } from '$lib/utils';
 
@@ -47,6 +52,7 @@
 	let timezone = $state('Asia/Jakarta');
 	let saved = $state(false);
 	let savedTimeout: ReturnType<typeof setTimeout>;
+	let settingsTab = $state('umum');
 
 	const tzOptions = [
 		{ value: 'Asia/Jakarta', label: 'Asia/Jakarta (GMT+7)' },
@@ -161,6 +167,16 @@
 	const canManageOps = $derived(['developer', 'admin', 'owner'].includes(myRole));
 	const canSeeActivity = $derived(['developer', 'admin', 'spv', 'owner'].includes(myRole));
 
+	const settingTabs = $derived([
+		{ id: 'umum', label: $t('settings.tabGeneral'), show: true },
+		{ id: 'channel', label: $t('settings.tabChannel'), show: true },
+		{ id: 'tiket', label: $t('settings.tabTicket'), show: canManageOps },
+		{ id: 'tim', label: $t('settings.tabTeam'), show: canManageOps },
+		{ id: 'operasional', label: $t('settings.tabOps'), show: true },
+		{ id: 'aktivitas', label: $t('settings.tabActivity'), show: canSeeActivity },
+		{ id: 'bot', label: $t('settings.tabBot'), show: canManageOps }
+	]);
+
 	// ---- Jam operasional ----
 	let hours = $state<HourRow[]>([]);
 	let hoursSaving = $state(false);
@@ -208,7 +224,63 @@
 	let editingField = $state<string | null>(null);
 	let editFieldForm = $state({ label: '', options: '' });
 
-	// ---- Channel API per company ----
+	// ---- Tim: kapasitas, channel, unit (admin/spv) ----
+	let teamMembers = $state<RosterMember[]>([]);
+	let teamLoading = $state(false);
+	let memberEditing = $state<RosterMember | null>(null);
+	let memberForm = $state({ max_chats: 10, channels: [] as string[], org_unit_id: '' });
+	let memberSaving = $state(false);
+	let orgUnits = $state<OrgUnit[]>([]);
+
+	const channelOptions = [
+		'livechat',
+		'facebook',
+		'instagram',
+		'line',
+		'shopee',
+		'telegram',
+		'wa_official',
+		'wa_unofficial'
+	];
+
+	async function loadTeam() {
+		teamLoading = true;
+		try {
+			[teamMembers, orgUnits] = await Promise.all([getTeamMembers(), getOrgUnits()]);
+		} catch {
+			teamMembers = [];
+			orgUnits = [];
+		} finally {
+			teamLoading = false;
+		}
+	}
+
+	function startMemberEdit(m: RosterMember) {
+		memberEditing = m;
+		memberForm = { max_chats: m.max_chats, channels: [...m.channels], org_unit_id: m.org_unit_id ?? '' };
+	}
+
+	function toggleMemberChannel(ch: string) {
+		memberForm.channels = memberForm.channels.includes(ch)
+			? memberForm.channels.filter((c) => c !== ch)
+			: [...memberForm.channels, ch];
+	}
+
+	async function saveMemberEdit() {
+		if (!memberEditing) return;
+		memberSaving = true;
+		try {
+			await updateTeamMember(memberEditing.id, {
+				max_chats: Number(memberForm.max_chats) || 10,
+				channels: memberForm.channels,
+				org_unit_id: memberForm.org_unit_id || null
+			});
+			memberEditing = null;
+			await loadTeam();
+		} catch { /* abaikan */ } finally {
+			memberSaving = false;
+		}
+	}
 	let channelTypes = $state<ChannelType[]>([]);
 	let companyChannels = $state<CompanyChannel[]>([]);
 	let chLoading = $state(false);
@@ -281,6 +353,7 @@
 				ticketFields = await getTicketFields();
 			} catch { ticketFields = []; }
 			await loadRoleMenus();
+			await loadTeam();
 		}
 	});
 
@@ -381,10 +454,28 @@
 		} catch { /* abaikan */ }
 	}
 </script>
-
 <p class="mb-4 text-sm text-muted">{$t('settings.subtitle')}</p>
 
 <div class="mx-auto max-w-2xl space-y-5">
+	<div class="flex gap-1.5 overflow-x-auto pb-1" role="tablist" aria-label={$t('settings.title')}>
+		{#each settingTabs.filter((x) => x.show) as tb (tb.id)}
+			<button
+				type="button"
+				role="tab"
+				aria-selected={settingsTab === tb.id}
+				onclick={() => (settingsTab = tb.id)}
+				class={cn(
+					'shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+					settingsTab === tb.id
+						? 'border-neon bg-neon-soft text-neon-text'
+						: 'border-line bg-surface text-muted hover:text-ink'
+				)}
+			>
+				{tb.label}
+			</button>
+		{/each}
+	</div>
+	{#if settingsTab === 'umum'}
 	<Card title={$t('settings.appearance')}>
 		<div class="space-y-5">
 			<div>
@@ -450,6 +541,8 @@
 		</form>
 	</Card>
 
+	{/if}
+	{#if settingsTab === 'channel'}
 	<Card title={$t('settings.channels')} description={$t('settings.channelsDesc')}>
 		{#if chError}
 			<p class="mb-2 rounded-md bg-danger-soft px-3 py-1.5 text-xs text-danger">{chError}</p>
@@ -505,6 +598,8 @@
 		{/if}
 	</Card>
 
+	{/if}
+	{#if settingsTab === 'tiket'}
 	{#if canManageOps}
 		<Card title={$t('team.ticketFormTitle')} description={$t('team.ticketFormDesc')}>
 			<div class="space-y-2">
@@ -577,6 +672,8 @@
 		</Card>
 	{/if}
 
+	{/if}
+	{#if settingsTab === 'operasional'}
 	<Card title={$t('team.hoursTitle')} description={$t('team.hoursDesc')}>
 		<div class="space-y-1.5">
 			{#each [1, 2, 3, 4, 5, 6, 0] as d (d)}
@@ -626,6 +723,8 @@
 		</div>
 	</Card>
 
+	{/if}
+	{#if settingsTab === 'aktivitas'}
 	{#if canSeeActivity}
 		<Card title={$t('team.activityTitle')} description={$t('team.activityDesc')}>
 			<div class="max-h-96 space-y-1 overflow-y-auto">
@@ -644,6 +743,8 @@
 		</Card>
 	{/if}
 
+	{/if}
+	{#if settingsTab === 'bot'}
 	{#if canManageOps}
 		<Card title={$t('team.botTitle')} description={$t('team.botDesc')}>
 			<div class="space-y-2">
@@ -737,6 +838,92 @@
 		</div>
 	{/snippet}
 
+	{/if}
+	{#if settingsTab === 'tim'}
+	<Card title={$t('team.teamTitle')} description={$t('team.teamDesc')}>
+		{#if teamLoading}
+			<p class="py-4 text-center text-xs text-muted">{$t('common.loading')}</p>
+		{:else}
+			<div class="space-y-1.5">
+				{#each teamMembers as m (m.id)}
+					<div class="rounded-lg border border-line px-3 py-2 text-xs">
+						<div class="flex items-center gap-2">
+							<span class="size-2 rounded-full {m.presence === 'online' ? 'bg-neon dot-pulse' : m.presence === 'offline' ? 'bg-faint' : 'bg-warn'}"></span>
+							<span class="min-w-0 flex-1">
+								<span class="block truncate font-medium">{m.full_name}</span>
+								<span class="block truncate text-[10px] text-faint">{m.email} • {m.role || '—'}{m.org_unit_name ? ` • ${m.org_unit_name}` : ''}</span>
+							</span>
+							<Badge variant="neutral">max {m.max_chats}</Badge>
+							<button
+								type="button"
+								onclick={() => startMemberEdit(m)}
+								class="rounded-md border border-line px-2 py-1 text-[11px] text-muted hover:text-ink"
+							>
+								{$t('team.manageCapacity')}
+							</button>
+						</div>
+						{#if m.channels.length > 0}
+							<p class="mt-1 text-[10px] text-faint">Channel: {m.channels.join(', ')}</p>
+						{/if}
+					</div>
+				{:else}
+					<p class="py-4 text-center text-[11px] text-muted">{$t('common.empty')}</p>
+				{/each}
+			</div>
+		{/if}
+	</Card>
+	{#if memberEditing}
+		<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onclick={(e) => { if (e.target === e.currentTarget) memberEditing = null; }} role="presentation">
+			<div class="w-full max-w-md rounded-2xl border border-line bg-surface shadow-xl">
+				<div class="border-b border-line p-4">
+					<h2 class="font-semibold">{memberEditing.full_name}</h2>
+					<p class="text-xs text-muted">{memberEditing.email}</p>
+				</div>
+				<div class="space-y-3 p-4">
+					<div>
+						<p class="mb-1 text-[11px] font-medium text-muted">{$t('team.maxChats')}</p>
+						<Input bind:value={memberForm.max_chats} type="number" />
+					</div>
+					<div>
+						<p class="mb-1 text-[11px] font-medium text-muted">{$t('team.handleChannels')}</p>
+						<div class="grid grid-cols-2 gap-1.5">
+							{#each channelOptions as ch (ch)}
+								<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-2.5 py-1.5 text-xs">
+									<input
+										type="checkbox"
+										checked={memberForm.channels.includes(ch)}
+										onchange={() => toggleMemberChannel(ch)}
+										class="size-4 accent-[var(--neon)]"
+									/>
+									{ch}
+								</label>
+							{/each}
+						</div>
+						<p class="mt-1 text-[10px] text-faint">{$t('team.channelsHint')}</p>
+					</div>
+					<div>
+						<p class="mb-1 text-[11px] font-medium text-muted">{$t('employees.colDept')} / Unit</p>
+						<Select
+							value={memberForm.org_unit_id}
+							placeholder="—"
+							aria-label="Unit"
+							options={[
+								{ value: '__none', label: '—' },
+								...orgUnits.map((o) => ({ value: o.id, label: `${o.name} (${o.unit_type})` }))
+							]}
+							onchange={(v) => (memberForm.org_unit_id = v === '__none' ? '' : v)}
+						/>
+					</div>
+					<div class="flex justify-end gap-2">
+						<Button size="sm" variant="ghost" onclick={() => (memberEditing = null)}>{$t('common.cancel')}</Button>
+						<Button size="sm" onclick={saveMemberEdit} disabled={memberSaving}>
+							{memberSaving ? $t('common.saving') : $t('common.save')}
+						</Button>
+					</div>
+				</div>
+			</div>
+		</div>
+	{/if}
 	<Card title={$t('team.menuAccessTitle')} description={$t('team.menuAccessDesc')}>
 		<div class="space-y-3">
 			<!-- Tab role -->
@@ -814,4 +1001,5 @@
 			{/if}
 		</div>
 	</Card>
+	{/if}
 </div>
