@@ -423,6 +423,14 @@ func main() {
 	mux.Handle("PATCH /api/v1/admin/companies/{id}", adminAuth(handlers.UpdateAdminCompany))
 	mux.Handle("DELETE /api/v1/admin/companies/{id}", adminAuth(handlers.DeleteAdminCompany))
 
+	mux.Handle("GET /api/v1/emails", tenant("emails.read", handlers.Emails))
+	mux.Handle("POST /api/v1/emails", tenant("emails.create", handlers.Emails))
+	mux.Handle("PATCH /api/v1/emails/{id}", tenant("emails.create", handlers.EmailDetail))
+	mux.Handle("POST /api/v1/emails/{id}/send", tenant("emails.send", handlers.EmailDetail))
+	mux.Handle("GET /api/v1/email-templates", tenant("emails.read", handlers.EmailTemplates))
+	mux.Handle("POST /api/v1/email-templates", tenant("emails.manage_templates", handlers.EmailTemplates))
+	mux.Handle("DELETE /api/v1/email-templates/{id}", tenant("emails.manage_templates", handlers.EmailTemplates))
+
 	// WithApp paling luar agar AppFrom tersedia di semua handler.
 	wrapped := middleware.WithApp(a, middleware.RequestLog(middleware.CORS(cfg.CORSOrigins, mux)))
 

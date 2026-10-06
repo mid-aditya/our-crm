@@ -496,6 +496,28 @@ CREATE TABLE IF NOT EXISTS ticket_replies (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS emails (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  direction text NOT NULL DEFAULT 'outbound',
+  from_addr text NOT NULL DEFAULT '',
+  to_addr text NOT NULL DEFAULT '',
+  subject text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'draft',
+  contact_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_emails_status ON emails(status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS email_templates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  subject text NOT NULL DEFAULT '',
+  body text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Sales pipeline (deals) — tahap + deal + riwayat pindah tahap.
 CREATE TABLE IF NOT EXISTS sales_stages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
