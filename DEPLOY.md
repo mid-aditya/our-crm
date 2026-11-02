@@ -34,11 +34,11 @@ File terkait: `docker-compose.yml`, `deploy/Caddyfile`, `deploy/web.Dockerfile`,
 ## 1. Persiapan
 
 ### Domain
-Buat **A record** `codeit.id` (atau FQDN yang dipakai, mis. `crm.codeit.id`)
+Buat **A record** `crm.codeit.id` (atau FQDN yang dipakai, mis. `crm.crm.codeit.id`)
 mengarah ke IP VPS. Tunggu propagasi DNS:
 
 ```bash
-dig +short codeit.id
+dig +short crm.codeit.id
 ```
 
 HTTPS otomatis (Let's Encrypt) **butuh FQDN**, bukan IP. Kalau belum punya
@@ -90,7 +90,7 @@ Isi `.env.production`:
 
 ```bash
 # Domain FQDN (atau ":80" kalau tanpa domain)
-DOMAIN=codeit.id
+DOMAIN=crm.codeit.id
 
 # Password Postgres — huruf/angka saja agar aman di URL DSN
 POSTGRES_USER=crm
@@ -101,7 +101,7 @@ JWT_ACCESS_SECRET=$(openssl rand -hex 32)
 JWT_REFRESH_SECRET=$(openssl rand -hex 32)
 TENANT_CRED_KEY=$(openssl rand -hex 32)
 
-CORS_ORIGINS=https://codeit.id
+CORS_ORIGINS=https://crm.codeit.id
 ```
 
 Cara cepat mengisi otomatis:
@@ -159,12 +159,12 @@ Tunggu Caddy menerbitkan sertifikat (±30 detik setelah DNS benar).
 ## 6. Verifikasi
 
 ```bash
-curl -I https://codeit.id                     # 200, frontend
-curl https://codeit.id/api/v1/health          # {"data":{"status":"ok"}}
-curl -I https://codeit.id/login               # 200 (SPA fallback)
+curl -I https://crm.codeit.id                     # 200, frontend
+curl https://crm.codeit.id/api/v1/health          # {"data":{"status":"ok"}}
+curl -I https://crm.codeit.id/login               # 200 (SPA fallback)
 ```
 
-Lalu buka `https://codeit.id/signup` untuk membuat company + admin pertama.
+Lalu buka `https://crm.codeit.id/signup` untuk membuat company + admin pertama.
 Company baru otomatis dibuatkan database tenant (user Postgres harus punya
 privilege `CREATEDB`; user default container adalah superuser, jadi aman).
 
@@ -182,7 +182,7 @@ matikan Nginx. Caddy sudah dikonfigurasi internal di `127.0.0.1:8080`.
    curl http://127.0.0.1:8080/api/v1/health
    ```
 
-2. Pasang server block Nginx (ganti `codeit.id` bila perlu):
+2. Pasang server block Nginx (ganti `crm.codeit.id` bila perlu):
 
    ```bash
    cd /opt/our-crm
@@ -195,16 +195,16 @@ matikan Nginx. Caddy sudah dikonfigurasi internal di `127.0.0.1:8080`.
 3. Terbitkan sertifikat HTTPS:
 
    ```bash
-   sudo certbot --nginx -d codeit.id
+   sudo certbot --nginx -d crm.codeit.id
    ```
 
    Certbot akan menambahkan blok 443 + redirect HTTP→HTTPS secara otomatis.
-   Pastikan A record `codeit.id` sudah mengarah ke IP VPS.
+   Pastikan A record `crm.codeit.id` sudah mengarah ke IP VPS.
 
 4. Verifikasi:
 
    ```bash
-   curl https://codeit.id/api/v1/health
+   curl https://crm.codeit.id/api/v1/health
    ```
 
 Catatan:
