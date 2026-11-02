@@ -43,13 +43,13 @@ services:
       context: .
       dockerfile: deploy/web.Dockerfile
     restart: unless-stopped
-    environment:
-      DOMAIN: ${DOMAIN}
     depends_on:
       - backend
+    # Aplikasi ini dilayani di belakang Nginx host (yang sudah memakai 80/443).
+    # Caddy hanya HTTP di localhost; TLS + domain diatur Nginx.
+    # Kalau tidak ada Nginx di host, ubah menjadi "80:80" dan "443:443".
     ports:
-      - "80:80"
-      - "443:443"
+      - "127.0.0.1:8080:80"
     volumes:
       - caddy_data:/data
       - caddy_config:/config

@@ -14,13 +14,20 @@ backend Go ──► PostgreSQL (container, hanya jaringan internal)
 
 | Komponen | Image / build | Port |
 |---|---|---|
-| `web` | `deploy/web.Dockerfile` (Node build → Caddy) | 80, 443 (publik) |
+| `web` | `deploy/web.Dockerfile` (Node build → Caddy) | `127.0.0.1:8080` |
 | `backend` | `Dockerfile` (Go 1.26) | 3001 (internal) |
 | `db` | `postgres:16-alpine` | 5432 (internal) |
 
 File terkait: `docker-compose.yml`, `deploy/Caddyfile`, `deploy/web.Dockerfile`,
-`deploy/migrate.sh`, `deploy/deploy.sh`, `deploy/backup.sh`,
-`.env.production.example`.
+`deploy/nginx-our-crm.conf`, `deploy/migrate.sh`, `deploy/deploy.sh`,
+`deploy/backup.sh`, `.env.production.example`.
+
+> **Punya Nginx di host?** Konfigurasi default memang untuk kasus itu: Caddy
+> hanya listen di `127.0.0.1:8080`, sedangkan Nginx host yang memegang 80/443
+> dan meneruskan domain CRM ke Caddy. Lihat bagian
+> [Nginx sudah memakai 80/443](#nginx-sudah-memakai-80443). Kalau VPS kosong
+> tanpa Nginx, ubah `ports` service `web` menjadi `80:80` dan `443:443`, lalu
+> ganti alamat situs di `deploy/Caddyfile` dari `:80` menjadi `{$DOMAIN}`.
 
 ---
 
@@ -160,6 +167,54 @@ curl -I https://codeit.id/login               # 200 (SPA fallback)
 Lalu buka `https://codeit.id/signup` untuk membuat company + admin pertama.
 Company baru otomatis dibuatkan database tenant (user Postgres harus punya
 privilege `CREATEDB`; user default container adalah superuser, jadi aman).
+
+---
+
+## 6b. Nginx sudah memakai 80/443
+
+Kalau VPS sudah menjalankan Nginx untuk situs/subdomain lain, **jangan**
+matikan Nginx. Caddy sudah dikonfigurasi internal di `127.0.0.1:8080`.
+
+1. Pastikan container jalan:
+
+   ```bash
+   docker compose --env-file .env.production up -d --build
+   curl http://127.0.0.1:8080/api/v1/health
+   ```
+
+2. Pasang server block Nginx (ganti `codeit.id` bila perlu):
+
+   ```bash
+   cd /opt/our-crm
+   sudo cp deploy/nginx-our-crm.conf /etc/nginx/sites-available/our-crm
+   sudo nano /etc/nginx/sites-available/our-crm     # sesuaikan server_name
+   sudo ln -s /etc/nginx/sites-available/our-crm /etc/nginx/sites-enabled/our-crm
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+
+3. Terbitkan sertifikat HTTPS:
+
+   ```bash
+   sudo certbot --nginx -d codeit.id
+   ```
+
+   Certbot akan menambahkan blok 443 + redirect HTTP→HTTPS secara otomatis.
+   Pastikan A record `codeit.id` sudah mengarah ke IP VPS.
+
+4. Verifikasi:
+
+   ```bash
+   curl https://codeit.id/api/v1/health
+   ```
+
+Catatan:
+
+- Jangan menambahkan `ports: 80:80` / `443:443` pada service `web` selama
+  Nginx masih memakai port tersebut.
+- Kalau `nginx -t` error `duplicate map`, hapus blok `map $http_upgrade ...`
+  di `deploy/nginx-our-crm.conf` (sudah ada di konfigurasi Nginx lain).
+- WebSocket dan SSE butuh header `Upgrade`/`Connection` serta
+  `proxy_buffering off` — semuanya sudah ada di file contoh.
 
 ---
 

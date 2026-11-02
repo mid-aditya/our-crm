@@ -1,8 +1,9 @@
-# Caddy: static frontend + reverse proxy backend + HTTPS otomatis.
-# DOMAIN diambil dari environment (lihat .env.production).
-# Untuk akses tanpa domain (IP saja), set DOMAIN=:80.
+# Caddy internal: static frontend + reverse proxy backend.
+# Berjalan HTTP di port 80 container, dipublikasikan ke 127.0.0.1:8080.
+# TLS/HTTPS ditangani Nginx di host (lihat deploy/nginx-our-crm.conf).
+# Kalau Caddy dipakai langsung tanpa Nginx, ganti ":80" menjadi "{$DOMAIN}".
 
-{$DOMAIN} {
+:80 {
 	encode zstd gzip
 
 	# API dan WebSocket livechat.
