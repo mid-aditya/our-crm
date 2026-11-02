@@ -3,8 +3,11 @@
 
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY web/package.json web/package-lock.json ./
-RUN npm ci
+# Hanya package.json: package-lock.json di repo dibuat di Windows dan memuat
+# entri platform yang salah (esbuild aix/ppc64), sehingga "npm ci" gagal di
+# Linux. Tanpa lock, npm me-resolve dependensi yang cocok untuk linux/x64.
+COPY web/package.json ./
+RUN npm install --no-audit --no-fund
 COPY web/ ./
 RUN npm run build
 
