@@ -262,9 +262,11 @@ Simpan backup di luar VPS (S3/rsync) agar aman.
 
 1. **Login demo = backdoor admin tanpa password.** Endpoint
    `POST /api/v1/auth/demo-login` menerbitkan JWT untuk company demo tanpa
-   kredensial. `deploy/Caddyfile` sudah memblokirnya (404). Kalau butuh mode
-   demo di server, hapus blok `@demologin` — tapi jangan untuk produksi.
-   Setelah signup company asli, company demo juga bisa dihapus:
+   kredensial. Frontend saat ini **belum punya form login email/password**,
+   jadi endpoint ini sengaja dibiarkan aktif di `deploy/Caddyfile` agar aplikasi
+   bisa dipakai. Jangan simpan data sensitif sebelum auth asli dibuat. Setelah
+   form login asli tersedia, aktifkan kembali blok `@demologin` di Caddyfile
+   dan hapus company demo:
    ```sql
    DELETE FROM companies WHERE slug = 'demo';
    ```

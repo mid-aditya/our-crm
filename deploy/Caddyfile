@@ -10,10 +10,12 @@
 	@backend path /api/* /ws/*
 	handle @backend {
 		route {
-			# Backdoor login demo dimatikan di produksi.
-			# Kalau memang butuh mode demo, hapus/komentari dua baris di bawah.
-			@demologin path /api/v1/auth/demo-login
-			respond @demologin "Not Found" 404
+			# CATATAN KEAMANAN: login demo sengaja AKTIF karena frontend
+			# belum punya form login email/password. Siapa pun yang bisa
+			# membuka situs bisa masuk sebagai admin company demo.
+			# Aktifkan kembali blok di bawah setelah auth asli tersedia:
+			# @demologin path /api/v1/auth/demo-login
+			# respond @demologin "Not Found" 404
 
 			reverse_proxy backend:3001 {
 				# Jangan buffer response: SSE (/api/v1/livechat/sse) butuh streaming.
