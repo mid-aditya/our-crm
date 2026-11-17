@@ -1,0 +1,3 @@
+# Script deploy harus LF agar tidak gagal di Linux ("bad interpreter").
+*.sh text eol=lf
+deploy/** text eol=lf

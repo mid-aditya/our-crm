@@ -197,7 +197,7 @@ func ensureDemoTenantUser(ctx context.Context, tpool *pgxpool.Pool, userID, emai
 	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('agent',$1) on conflict do nothing`, m)
 	}
-	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity"} {
+	for _, m := range []string{"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity", "campaigns"} {
 		_, _ = tpool.Exec(ctx, `insert into role_menu_grants (role_key, menu_key) values ('spv',$1) on conflict do nothing`, m)
 	}
 	if role == "agent" {
@@ -262,6 +262,9 @@ func main() {
 
 	mux.Handle("GET /api/v1/campaigns", tenant("campaigns.read", handlers.Campaigns))
 	mux.Handle("POST /api/v1/campaigns", tenant("campaigns.create", handlers.Campaigns))
+	mux.Handle("GET /api/v1/campaigns/channels", tenant("campaigns.read", handlers.CampaignChannels))
+	mux.Handle("GET /api/v1/campaigns/audience", tenant("campaigns.read", handlers.CampaignAudience))
+	mux.Handle("POST /api/v1/campaigns/preview", tenant("campaigns.read", handlers.CampaignPreviewDraft))
 	mux.Handle("GET /api/v1/campaigns/{id}/preview", tenant("campaigns.read", handlers.CampaignPreview))
 	mux.Handle("POST /api/v1/campaigns/{id}/launch", tenant("campaigns.launch", handlers.CampaignLaunch))
 	mux.Handle("DELETE /api/v1/campaigns/{id}", tenant("campaigns.delete", handlers.CampaignDelete))

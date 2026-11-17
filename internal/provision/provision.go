@@ -260,8 +260,8 @@ func seedLeaveTypes(ctx context.Context, tpool *pgxpool.Pool) {
 }
 func seedChannelTypes(ctx context.Context, tpool *pgxpool.Pool) {
 	types := [][6]string{
-		{"wa_official", "WhatsApp Official", "Phone", "#25D366", "WhatsApp via Meta Business API (Cloud-hosted).", "{}"},
-		{"wa_unofficial", "WhatsApp Unofficial", "MessageCircle", "#128C7E", "WhatsApp via third-party gateway.", "{}"},
+		{"wa_official", "WhatsApp Official", "Phone", "#25D366", "WhatsApp via Meta Business API (Cloud-hosted).", `{"phone_number_id":"string","whatsapp_business_account_id":"string","meta_access_token":"string","meta_phone_number":"string"}`},
+		{"wa_unofficial", "WhatsApp Unofficial", "MessageCircle", "#128C7E", "WhatsApp via third-party gateway.", `{"gateway_url":"string","gateway_token":"string","gateway_device_id":"string"}`},
 		{"livechat", "Live Chat (Web)", "MessageSquare", "#6366F1", "Live chat widget di website.", "{}"},
 		{"facebook", "Facebook Messenger", "MessageCircle", "#1877F2", "Facebook Page Messenger.", "{}"},
 		{"instagram", "Instagram DM", "User", "#E1306C", "Instagram Direct Message.", "{}"},
@@ -270,7 +270,7 @@ func seedChannelTypes(ctx context.Context, tpool *pgxpool.Pool) {
 		{"telegram", "Telegram Bot", "Send", "#0088CC", "Telegram Bot via @BotFather.", "{}"},
 	}
 	for _, t := range types {
-		_, _ = tpool.Exec(ctx, `insert into channel_types (id, name, icon, color, description, config_schema) values ($1,$2,$3,$4,$5,$6::jsonb) on conflict (id) do nothing`, t[0], t[1], t[2], t[3], t[4], t[5])
+		_, _ = tpool.Exec(ctx, `insert into channel_types (id, name, icon, color, description, config_schema) values ($1,$2,$3,$4,$5,$6::jsonb) on conflict (id) do update set name=excluded.name, icon=excluded.icon, color=excluded.color, description=excluded.description, config_schema=excluded.config_schema`, t[0], t[1], t[2], t[3], t[4], t[5])
 	}
 }
 

@@ -69,3 +69,8 @@ Semua endpoint bisnis: `authenticate -> tenantResolver (company dari JWT)
 ```powershell
 go test ./...
 ```
+
+## Deploy ke server
+
+Panduan lengkap VPS Ubuntu + Docker (Postgres, backend Go, Caddy dengan
+HTTPS otomatis, backup, dan checklist keamanan) ada di [DEPLOY.md](DEPLOY.md).

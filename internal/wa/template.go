@@ -2,6 +2,7 @@ package wa
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -21,6 +22,26 @@ func RenderTemplate(tpl string, vars map[string]string) string {
 		}
 		return m
 	})
+}
+
+// UnknownVars mengembalikan variabel {{...}} yang tidak dikenal, agar typo
+// seperti {{namaa}} bisa ditampilkan sebagai peringatan di UI.
+func UnknownVars(tpl string) []string {
+	known := map[string]bool{}
+	for k := range ContactVars("", "", "", "") {
+		known[k] = true
+	}
+	seen := map[string]bool{}
+	out := []string{}
+	for _, m := range varRe.FindAllStringSubmatch(tpl, -1) {
+		key := strings.ToLower(strings.TrimSpace(m[1]))
+		if !known[key] && !seen[key] {
+			seen[key] = true
+			out = append(out, key)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // ContactVars memetakan field kontak ke variabel template.
