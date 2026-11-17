@@ -267,7 +267,7 @@
 			<Users size={18} />
 		{/snippet}
 		<Button variant="outline" onclick={() => goto('/campaigns')}>
-			{$t('common.back')}
+			{$t('campaigns.composer.back')}
 		</Button>
 	</EmptyState>
 {:else}
