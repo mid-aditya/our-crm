@@ -55,7 +55,7 @@ INSERT INTO role_menu_grants (role_key, menu_key)
 SELECT 'agent', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance')) AS v(m)
 ON CONFLICT DO NOTHING;
 INSERT INTO role_menu_grants (role_key, menu_key)
-SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('organization'),('productivity')) AS v(m)
+SELECT 'spv', m FROM (VALUES ('dashboard'),('livechat'),('conversations'),('sales'),('kanban'),('contacts'),('attendance'),('reports'),('tickets'),('organization'),('productivity'),('campaigns')) AS v(m)
 ON CONFLICT DO NOTHING;
 
 -- Employee & organization: profil karyawan + departemen.

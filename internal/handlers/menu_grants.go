@@ -21,7 +21,7 @@ var MenuKeys = []string{
 // DefaultRoleMenus: agent operasional dasar, spv + laporan & tiket & org.
 var DefaultRoleMenus = map[string][]string{
 	"agent": {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance"},
-	"spv":   {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity"},
+	"spv":   {"dashboard", "livechat", "conversations", "sales", "kanban", "contacts", "attendance", "reports", "tickets", "organization", "productivity", "campaigns"},
 }
 
 // GET /api/v1/menu-grants -> menu milik saya (untuk sidebar).
