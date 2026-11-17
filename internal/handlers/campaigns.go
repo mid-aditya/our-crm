@@ -299,13 +299,35 @@ type target struct {
 }
 
 func mapChannelType(typeID string) (string, bool) {
-	switch strings.ToLower(typeID) {
-	case "whatsapp-official", "official":
+	switch strings.ToLower(strings.TrimSpace(typeID)) {
+	// Katalog baru memakai wa_official/wa_unofficial; data lama memakai
+	// official/unofficial atau whatsapp-official/whatsapp-baileys.
+	case "wa_official", "official", "whatsapp-official", "whatsapp_official":
 		return "official", true
-	case "whatsapp-baileys", "unofficial", "gateway":
+	case "wa_unofficial", "unofficial", "gateway", "baileys", "whatsapp-baileys", "whatsapp_baileys":
 		return "unofficial", true
 	default:
 		return "", false
+	}
+}
+
+func firstValue(values ...string) string {
+	for _, v := range values {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
+}
+
+// normalizeOfficial menyelaraskan kunci config channel baru (meta_*) ke
+// format yang dipakai wa.Sender.
+func normalizeOfficial(cfg map[string]string) {
+	if cfg["access_token"] == "" {
+		cfg["access_token"] = firstValue(cfg["meta_access_token"], cfg["token"])
+	}
+	if cfg["phone_number_id"] == "" {
+		cfg["phone_number_id"] = firstValue(cfg["meta_phone_number_id"], cfg["phone_id"])
 	}
 }
 
@@ -323,10 +345,10 @@ func toStringMap(in map[string]any) map[string]string {
 // normalizeUnofficial menyelaraskan nama field channel baru ke format sender.
 func normalizeUnofficial(cfg map[string]string) {
 	if cfg["api_key"] == "" {
-		cfg["api_key"] = cfg["auth_key"]
+		cfg["api_key"] = firstValue(cfg["auth_key"], cfg["gateway_token"], cfg["token"])
 	}
 	if cfg["session"] == "" {
-		cfg["session"] = cfg["device_name"]
+		cfg["session"] = firstValue(cfg["device_name"], cfg["gateway_device_id"])
 	}
 }
 
@@ -352,7 +374,7 @@ func listSendChannels(ctx context.Context, pool *pgxpool.Pool, companyID string)
 			LIMIT 1
 		) cfg ON true
 		WHERE (cc.company_id = $1 OR cc.company_id IS NULL)
-		  AND cc.channel_type_id IN ('whatsapp-official', 'whatsapp-baileys')
+		  AND cc.channel_type_id IN ('wa_official', 'wa_unofficial', 'whatsapp-official', 'whatsapp-baileys')
 		ORDER BY ct.name`, companyID)
 	if err == nil {
 		for rows.Next() {
@@ -368,6 +390,8 @@ func listSendChannels(ctx context.Context, pool *pgxpool.Pool, companyID string)
 			cfg := toStringMap(raw)
 			if kind == "unofficial" {
 				normalizeUnofficial(cfg)
+			} else {
+				normalizeOfficial(cfg)
 			}
 			out = append(out, sendChannel{
 				ID: id, Name: name, Kind: kind, Status: status,
@@ -393,6 +417,8 @@ func listSendChannels(ctx context.Context, pool *pgxpool.Pool, companyID string)
 			cfg := toStringMap(raw)
 			if kind == "unofficial" {
 				normalizeUnofficial(cfg)
+			} else {
+				normalizeOfficial(cfg)
 			}
 			out = append(out, sendChannel{
 				ID: id, Name: name, Kind: kind, Status: status,
@@ -418,6 +444,8 @@ func getSenderChannel(ctx context.Context, pool *pgxpool.Pool, id string) (sendC
 		cfg := toStringMap(raw)
 		if kind == "unofficial" {
 			normalizeUnofficial(cfg)
+		} else {
+			normalizeOfficial(cfg)
 		}
 		return sendChannel{ID: id, Name: name, Kind: kind, Status: status, Ready: channelReady(kind, cfg), Config: cfg}, nil
 	}
@@ -445,6 +473,8 @@ func getSenderChannel(ctx context.Context, pool *pgxpool.Pool, id string) (sendC
 	cfg := toStringMap(cfgRaw)
 	if kind == "unofficial" {
 		normalizeUnofficial(cfg)
+	} else {
+		normalizeOfficial(cfg)
 	}
 	return sendChannel{ID: id, Name: ctName, Kind: kind, Status: status, Ready: channelReady(kind, cfg), Config: cfg}, nil
 }
